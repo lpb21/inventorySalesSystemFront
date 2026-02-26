@@ -1,0 +1,24 @@
+1. Registro de proveedor por producto — Saber de qué distribuidor viene cada carne/queso y cuándo fue la última compra.
+2. Fecha de vencimiento (caducidad) — Crítico para carnes y lácteos. Una alerta cuando un producto está próximo a vencer es esencial.
+3. Número de factura o ticket — El ID actual es un timestamp (Date.now()), lo que no es útil para mostrar al cliente o para llevar contabilidad. Debería ser una secuencia: #0001, #0002, etc.
+4. Múltiples métodos de pago — Efectivo, tarjeta, transferencia (Nequi/Daviplata), o combinación de varios en una misma venta.
+5. Apertura y cierre de caja — Registrar el monto inicial de caja cada día y el cierre al final, con el cuadre correspondiente.
+6. Nota o descripción en la venta — Por ejemplo, marcar si fue una venta a crédito, una entrega a domicilio o un pedido corporativo.
+7. Clientes frecuentes — Registro básico de clientes con nombre, teléfono y su historial de compras (hay un botón Users importado pero sin usar).
+8. Backend real — localStorage se puede limpiar accidentalmente con el navegador. Para un negocio real se necesita una base de datos persistente (Node.js + PostgreSQL/MySQL, o Firebase/Supabase como opción rápida).
+
+Fase 1 (1-2 meses): Backend básico
+  ├── Auth JWT (registro/login por tenant)
+  ├── CRUD de productos con tenant_id
+  ├── API de ventas
+  └── Deploy en Railway + Supabase
+
+Fase 2 (1 mes): Suscripciones
+  ├── Integrar Stripe
+  ├── Página de precios y landing page
+  └── Trial gratuito de 14 días
+
+Fase 3 (1-2 meses): Features avanzadas
+  ├── Multi-usuario por tienda
+  ├── Reportes exportables
+  └── Pantalla cliente en tiempo real (WebSockets)
