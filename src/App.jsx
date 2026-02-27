@@ -2,15 +2,18 @@ import { useState, useEffect } from 'react'
 import { 
   LayoutDashboard, Package, ShoppingCart, Settings, 
   AlertTriangle, Search, BarChart3,
-  RefreshCw, LogOut, Eye, Save, X, Check
+  RefreshCw, LogOut, Eye, Save, X, Check, User
 } from 'lucide-react'
+import Swal from 'sweetalert2'
 import Login from './Login'
 import { 
   productsAPI, categoriesAPI, salesAPI, reportsAPI, 
-  authAPI, usersAPI, getToken, getUser, setUser, clearSession
+  authAPI, usersAPI, customersAPI, getToken, getUser, setUser, clearSession
 } from './api/config'
 
 import { can, ROLE_LABELS } from './utils/permissions'
+import { useCart } from './hooks/useCart'
+import { useSales } from './hooks/useSales'
 import DashboardView    from './components/DashboardView'
 import InventoryView   from './components/InventoryView'
 import SalesView       from './components/SalesView'
@@ -18,7 +21,13 @@ import ReportsView     from './components/ReportsView'
 import SettingsView    from './components/SettingsView'
 import ProductModal    from './components/ProductModal'
 import UserModal       from './components/UserModal'
+import CustomerModal   from './components/CustomerModal'
 import CustomerDisplay from './components/CustomerDisplay'
+import MonthlyReportModal from './components/MonthlyReportModal'
+import CreditModal from './components/CreditModal'
+import CreditAccountsView from './components/CreditAccountsView'
+import CustomerSelectModal from './components/CustomerSelectModal'
+
 
 // Componente principal
 function App() {
@@ -28,26 +37,34 @@ function App() {
   const [currentView, setCurrentView] = useState('dashboard')
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
-  const [cart, setCart] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('Todos')
   const [showProductModal, setShowProductModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
   const [showCustomerDisplay, setShowCustomerDisplay] = useState(false)
   const [toasts, setToasts] = useState([])
-  const [posKey, setPosKey] = useState(0)
   const [sales, setSales] = useState([])
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
   const [loading, setLoading] = useState(false)
-  const [completingSale, setCompletingSale] = useState(false)
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '' })
-  
+
   // Estados para gestión de usuarios
   const [users, setUsers] = useState([])
   const [showUserModal, setShowUserModal] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
-  
+
+  // Estados para gestión de clientes
+  const [customers, setCustomers] = useState([])
+  const [showCustomerModal, setShowCustomerModal] = useState(false)
+  const [editingCustomer, setEditingCustomer] = useState(null)
+
+  // Estado para reporte mensual
+  const [showMonthlyReport, setShowMonthlyReport] = useState(false)
+
+  // Estado para fiados/créditos
+  const [showCreditModal, setShowCreditModal] = useState(false)
+
   // Datos del dashboard
   const [dashboardData, setDashboardData] = useState({
     todaySales: 0,
@@ -55,6 +72,154 @@ function App() {
     lowStockCount: 0,
     totalProducts: 0
   })
+
+  // Hook para el carrito
+  const { cart, posKey, cartTotal, addToCart, updateCartQuantity, removeFromCart, clearCart } = useCart()
+
+  // Estados para ventas
+  const [completingSale, setCompletingSale] = useState(false)
+  const [pendingCreditSale, setPendingCreditSale] = useState(null)
+  const [showCustomerSelectModal, setShowCustomerSelectModal] = useState(false)
+
+  // Funciones de ventas
+  const completeSale = async (paymentMethod = 'cash', amountReceived = cartTotal) => {
+    if (cart.length === 0) return
+    if (paymentMethod === 'credit') {
+      const saleItems = cart.map(item => ({
+        product_id: item.id,
+        quantity: item.quantity,
+        unit_price: item.price,
+        subtotal: item.price * item.quantity
+      }))
+      setPendingCreditSale({ items: saleItems, subtotal: cartTotal, total: cartTotal })
+      setShowCustomerSelectModal(true)
+      return
+    }
+    setCompletingSale(true)
+    try {
+      const saleData = {
+        items: cart.map(item => ({
+          product_id: item.id,
+          quantity: item.quantity,
+          unit_price: item.price,
+          subtotal: item.price * item.quantity
+        })),
+        subtotal: cartTotal,
+        discount: 0,
+        total: cartTotal,
+        payment_method: paymentMethod,
+        amount_received: amountReceived,
+        change_given: Math.max(0, amountReceived - cartTotal),
+        customer_id: null
+      }
+      await salesAPI.create(saleData)
+      clearCart()
+      addToast('Venta completada exitosamente!', 'success')
+      await Promise.all([loadProducts(), loadSales(), loadDashboard()])
+    } catch (error) {
+      addToast('Error al completar venta', 'error')
+    } finally {
+      setCompletingSale(false)
+    }
+  }
+
+  const processCreditSale = async (customer) => {
+    if (!pendingCreditSale || !customer) return
+    setShowCustomerSelectModal(false)
+    setCompletingSale(true)
+    try {
+      const customerId = customer?.id ? String(customer.id) : null
+      if (!customerId) throw new Error('El cliente seleccionado no tiene un ID válido')
+
+      const formattedItems = pendingCreditSale.items.map(item => ({
+        product_id: item.product_id,
+        quantity:   item.quantity,
+        unit_price: item.unit_price
+      }))
+
+      const saleData = {
+        payment_method: 'credit',
+        customer_id:    customerId,
+        customer_name:  customer.name || '',
+        subtotal:        pendingCreditSale.subtotal,
+        discount:        0,
+        tax:             0,
+        total:           pendingCreditSale.total,
+        note:            'Venta a crédito',
+        items:           formattedItems
+      }
+      
+      await salesAPI.create(saleData)
+      clearCart()
+      setPendingCreditSale(null)
+      addToast('Venta a crédito completada exitosamente!', 'success')
+      await Promise.all([loadProducts(), loadSales(), loadDashboard(), loadCustomers()])
+    } catch (error) {
+      const errorData    = error?.response?.data?.error
+      const errorMessage = errorData?.message || error?.message || 'Error al completar venta a crédito'
+
+      if (errorData?.code === 'VALIDATION_ERROR') {
+        Swal.fire({
+          icon:              'warning',
+          title:             '⚠️ Límite de Crédito Alcanzado',
+          html: `
+            <p style="margin-bottom:12px;">${errorMessage}</p>
+            <hr style="border-color:#444;margin:12px 0">
+            <ul style="text-align:left;padding-left:20px;font-size:14px;color:#aaa;line-height:1.8">
+              <li>Aumenta el límite del cliente en <b>Configuración → Clientes</b></li>
+              <li>Solicita un abono parcial para liberar crédito</li>
+              <li>Cambia el método de pago a <b>efectivo</b> o <b>tarjeta</b></li>
+            </ul>`,
+          confirmButtonText:  'Entendido',
+          confirmButtonColor: '#e94560',
+          background:         '#1a1f2e',
+          color:              '#e6edf3',
+          customClass:        { popup: 'swal-credit-error' }
+        })
+      } else {
+        addToast(errorMessage, 'error')
+      }
+    } finally {
+      setCompletingSale(false)
+    }
+  }
+
+
+
+
+  const handleUpdateCredit = async (customerId, paymentAmount, note = '') => {
+    try {
+      await customersAPI.registerPayment(customerId, { amount: paymentAmount, note: note || 'Abono de cliente' })
+      addToast('Pago registrado exitosamente', 'success')
+      await Promise.all([loadCustomers(), loadSales()])
+    } catch (error) {
+      const errorData    = error?.response?.data?.error
+      const errorMessage = errorData?.message || error?.message || 'Error al registrar pago'
+
+      if (errorData?.code === 'VALIDATION_ERROR') {
+        Swal.fire({
+          icon:              'warning',
+          title:             '⚠️ Error de Validación',
+          html: `
+            <p style="margin-bottom:12px;">${errorMessage}</p>
+            <hr style="border-color:#444;margin:12px 0">
+            <ul style="text-align:left;padding-left:20px;font-size:14px;color:#aaa;line-height:1.8">
+              <li>Verifique que el monto del abono no exceda la deuda actual</li>
+              <li>El cliente puede tener una deuda menor a la que intenta abonar</li>
+              <li>Verifique el saldo actual en la tarjeta de detalle del cliente</li>
+            </ul>`,
+          confirmButtonText:  'Entendido',
+          confirmButtonColor: '#e94560',
+          background:         '#1a1f2e',
+          color:              '#e6edf3',
+          customClass:        { popup: 'swal-credit-error' }
+        })
+      } else {
+        addToast(errorMessage, 'error')
+      }
+    }
+  }
+
 
   // 1) Validar sesión con el backend al montar la app
   useEffect(() => {
@@ -71,33 +236,26 @@ function App() {
         setIsLoggedIn(true)
         localStorage.setItem('invleo_logged_in', 'true')
       })
-      .catch(() => {
-        clearSession()
-      })
+      .catch(() => clearSession())
       .finally(() => setAuthChecked(true))
   }, [])
 
-  // 2) Cargar datos solo después de confirmar la sesión con el backend
+  // 2) Cargar datos solo después de confirmar sesión con el backend
   useEffect(() => {
     if (authChecked && isLoggedIn && currentUser) {
       loadInitialData()
+      checkMonthlyClosure()
     }
   }, [authChecked, isLoggedIn])
+
+  // ── Funciones de carga de datos ───────────────────────────────────────────
 
   const loadInitialData = async () => {
     setLoading(true)
     try {
-      const loadFunctions = [
-        loadProducts(),
-        loadCategories(),
-        loadSales(),
-        loadDashboard()
-      ]
-      // Cargar usuarios si tiene permiso
-      if (can(currentUser, 'canManageUsers')) {
-        loadFunctions.push(loadUsers())
-      }
-      await Promise.all(loadFunctions)
+      const fns = [loadProducts(), loadCategories(), loadSales(), loadDashboard(), loadCustomers()]
+      if (can(currentUser, 'canManageUsers')) fns.push(loadUsers())
+      await Promise.all(fns)
     } catch (error) {
       console.error('Error cargando datos:', error)
       addToast('Error al cargar datos', 'error')
@@ -106,37 +264,33 @@ function App() {
     }
   }
 
-  const loadProducts = async () => {
+  async function loadProducts() {
     try {
       const response = await productsAPI.getAll({ limit: 100 })
-      let productsData = response.data ?? response
-      if (!Array.isArray(productsData)) {
-        productsData = productsData.products || productsData.items || []
-      }
-
-      // Asegurar que los campos numéricos sean números, no strings
-      const processedProducts = Array.isArray(productsData) ? productsData.map(product => ({
-        ...product,
-        price:     Number(product.price)     || 0,
-        cost:      Number(product.cost)      || 0,
-        stock:     Number(product.stock)     || 0,
-        min_stock: Number(product.min_stock) || 0
-      })) : []
-
-      setProducts(processedProducts)
+      let data = response.data ?? response
+      if (!Array.isArray(data)) data = data.products || data.items || []
+      setProducts(
+        Array.isArray(data)
+          ? data.map(p => ({
+              ...p,
+              price:     Number(p.price)     || 0,
+              cost:      Number(p.cost)      || 0,
+              stock:     Number(p.stock)     || 0,
+              min_stock: Number(p.min_stock) || 0
+            }))
+          : []
+      )
     } catch (error) {
       console.error('Error cargando productos:', error)
       setProducts([])
     }
   }
 
-  const loadCategories = async () => {
+  async function loadCategories() {
     try {
       const response = await categoriesAPI.getAll()
       let list = response.data ?? response
-      if (!Array.isArray(list)) {
-        list = list.categories || list.items || list.data || []
-      }
+      if (!Array.isArray(list)) list = list.categories || list.items || list.data || []
       setCategories(Array.isArray(list) ? list : [])
     } catch (error) {
       console.error('Error cargando categorías:', error)
@@ -144,13 +298,11 @@ function App() {
     }
   }
 
-  const loadSales = async () => {
+  async function loadSales() {
     try {
       const response = await salesAPI.getAll()
       let list = response.data ?? response
-      if (!Array.isArray(list)) {
-        list = list.sales || list.items || []
-      }
+      if (!Array.isArray(list)) list = list.sales || list.items || []
       setSales(Array.isArray(list) ? list : [])
     } catch (error) {
       console.error('Error cargando ventas:', error)
@@ -158,29 +310,27 @@ function App() {
     }
   }
 
-  const loadDashboard = async () => {
+  async function loadDashboard() {
     try {
       const response = await reportsAPI.getDashboard()
       const d = response.data || response
+      const summary = d.summary || d
       setDashboardData({
-        todaySales:    Number(d.todaySales)    || 0,
-        todayProfit:   Number(d.todayProfit)   || 0,
-        lowStockCount: Number(d.lowStockCount) || 0,
-        totalProducts: Number(d.totalProducts) || 0
+        todaySales:    Number(summary.todayRevenue)  || 0,
+        todayProfit:   Number(summary.todayProfit)   || 0,
+        lowStockCount: Number(summary.lowStockCount) || 0,
+        totalProducts: Number(summary.totalProducts) || 0
       })
     } catch (error) {
       console.error('Error cargando dashboard:', error)
     }
   }
 
-  // Cargar usuarios
-  const loadUsers = async () => {
+  async function loadUsers() {
     try {
       const response = await usersAPI.getAll()
       let usersData = response.data ?? response
-      if (!Array.isArray(usersData)) {
-        usersData = usersData.users || usersData.items || []
-      }
+      if (!Array.isArray(usersData)) usersData = usersData.users || usersData.items || []
       setUsers(Array.isArray(usersData) ? usersData : [])
     } catch (error) {
       console.error('Error cargando usuarios:', error)
@@ -188,123 +338,53 @@ function App() {
     }
   }
 
-  // Guardar usuario (crear/editar)
-  const saveUser = async (userData) => {
+  async function loadCustomers() {
     try {
-      if (editingUser) {
-        await usersAPI.update(editingUser.id, userData)
-        addToast('Usuario actualizado exitosamente', 'success')
-      } else {
-        await usersAPI.create(userData)
-        addToast('Usuario creado exitosamente', 'success')
-      }
-      setShowUserModal(false)
-      setEditingUser(null)
-      await loadUsers()
+      const response = await customersAPI.getAll()
+      let list = response.data ?? response
+      if (!Array.isArray(list)) list = list.customers || list.items || []
+      setCustomers(Array.isArray(list) ? list : [])
     } catch (error) {
-      const errorMessage = error?.message || 'Error al guardar usuario'
-      addToast(errorMessage, 'error')
+      console.error('Error cargando clientes:', error)
+      setCustomers([])
     }
   }
 
-  // Eliminar usuario
-  const deleteUser = async (userId) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar este usuario?')) {
-      return
-    }
-    try {
-      await usersAPI.delete(userId)
-      addToast('Usuario eliminado exitosamente', 'success')
-      await loadUsers()
-    } catch (error) {
-      const errorMessage = error?.message || 'Error al eliminar usuario'
-      addToast(errorMessage, 'error')
+  // ── Reporte mensual ───────────────────────────────────────────────────────
+
+  const checkMonthlyClosure = () => {
+    const lastShown = localStorage.getItem('lastMonthlyReportShown')
+    const now = new Date()
+    const currentMonth = `${now.getFullYear()}-${now.getMonth()}`
+    const isLastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() === now.getDate()
+    if (lastShown !== currentMonth && (isLastDayOfMonth || !lastShown)) {
+      setTimeout(() => {
+        setShowMonthlyReport(true)
+        localStorage.setItem('lastMonthlyReportShown', currentMonth)
+      }, 2000)
     }
   }
 
-  // Editar usuario (abrir modal)
-  const handleEditUser = (user) => {
-    setEditingUser(user)
-    setShowUserModal(true)
+  const handleGenerateMonthlyReport = (reportData) => {
+    addToast('Reporte mensual generado y caja reiniciada', 'success')
   }
 
-  const addToast = (message, type = 'success') => {
+  // ── Notificaciones (toasts) ───────────────────────────────────────────────
+
+  function addToast(message, type = 'success') {
     const id = Date.now()
     setToasts(prev => [...prev, { id, message, type }])
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id))
-    }, 3000)
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000)
   }
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch   = product.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = selectedCategory === 'Todos' || product.category_id === selectedCategory || product.category?.name === selectedCategory
-    return matchesSearch && matchesCategory && product.is_active !== false
-  })
+  // ── Funciones del carrito ─────────────────────────────────────────────────
 
-  const lowStockProducts = products.filter(p => (p.stock || 0) <= (p.min_stock || p.minStock || 0))
-
-  const addToCart = (product) => {
-    const existing = cart.find(item => item.id === product.id)
-    if (existing) {
-      setCart(cart.map(item => 
-        item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-      ))
-    } else {
-      setCart([...cart, { ...product, quantity: 1 }])
-    }
+  const handleAddToCart = (product) => {
+    addToCart(product)
     addToast(`${product.name} agregado al carrito`)
   }
 
-  const updateCartQuantity = (id, delta) => {
-    setCart(cart.map(item => {
-      if (item.id === id) {
-        const newQty = item.quantity + delta
-        return newQty > 0 ? { ...item, quantity: newQty } : item
-      }
-      return item
-    }).filter(item => item.quantity > 0))
-  }
-
-  const removeFromCart = (id) => {
-    setCart(cart.filter(item => item.id !== id))
-  }
-
-  const cartTotal = cart.reduce((sum, item) => sum + ((item.price || 0) * item.quantity), 0)
-
-  const completeSale = async () => {
-    if (cart.length === 0) return
-    
-    setCompletingSale(true)
-    try {
-      const saleData = {
-        items: cart.map(item => ({
-          product_id: item.id,
-          quantity:   item.quantity,
-          unit_price: item.price,
-          subtotal:   item.price * item.quantity
-        })),
-        subtotal:        cartTotal,
-        discount:        0,
-        total:           cartTotal,
-        payment_method:  'cash',
-        amount_received: cartTotal,
-        change_given:    0
-      }
-      
-      await salesAPI.create(saleData)
-      
-      setCart([])
-      setPosKey(posKey + 1)
-      addToast('Venta completada exitosamente!', 'success')
-      
-      await Promise.all([loadProducts(), loadSales(), loadDashboard()])
-    } catch (error) {
-      addToast('Error al completar venta', 'error')
-    } finally {
-      setCompletingSale(false)
-    }
-  }
+  // ── Productos ─────────────────────────────────────────────────────────────
 
   const saveProduct = async (product) => {
     try {
@@ -333,7 +413,113 @@ function App() {
     }
   }
 
-  // Funciones de login/logout
+  // ── Categorías ────────────────────────────────────────────────────────────
+
+  const handleSaveCategory = async (name) => {
+    try {
+      await categoriesAPI.create({ name })
+      addToast('Categoría creada', 'success')
+      setShowCategoryModal(false)
+      await loadCategories()
+    } catch (error) {
+      addToast('Error al crear categoría', 'error')
+    }
+  }
+
+  const handleDeleteCategory = async (cat) => {
+    try {
+      await categoriesAPI.delete(cat.id)
+      addToast('Categoría eliminada', 'warning')
+      await loadCategories()
+    } catch (error) {
+      const errorData = error?.response?.data
+      const msg = errorData?.error?.message || errorData?.message || error?.message || 'Error al eliminar categoría'
+      addToast(msg, 'error')
+    }
+  }
+
+  // ── Usuarios ──────────────────────────────────────────────────────────────
+
+  const saveUser = async (userData) => {
+    try {
+      if (editingUser) {
+        await usersAPI.update(editingUser.id, userData)
+        addToast('Usuario actualizado exitosamente', 'success')
+      } else {
+        await usersAPI.create(userData)
+        addToast('Usuario creado exitosamente', 'success')
+      }
+      setShowUserModal(false)
+      setEditingUser(null)
+      await loadUsers()
+    } catch (error) {
+      addToast(error?.message || 'Error al guardar usuario', 'error')
+    }
+  }
+
+  const deleteUser = async (userId) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este usuario?')) return
+    try {
+      await usersAPI.delete(userId)
+      addToast('Usuario eliminado exitosamente', 'success')
+      await loadUsers()
+    } catch (error) {
+      addToast(error?.message || 'Error al eliminar usuario', 'error')
+    }
+  }
+
+  const handleEditUser = (user) => {
+    setEditingUser(user)
+    setShowUserModal(true)
+  }
+
+  // ── Clientes ──────────────────────────────────────────────────────────────
+
+  const saveCustomer = async (customerData) => {
+    try {
+      if (editingCustomer) {
+        await customersAPI.update(editingCustomer.id, customerData)
+        addToast('Cliente actualizado exitosamente', 'success')
+      } else {
+        // Agregar tenant_id al crear un nuevo cliente
+        const customerWithTenant = {
+          ...customerData,
+          tenant_id: currentUser?.tenant_id
+        }
+        await customersAPI.create(customerWithTenant)
+        addToast('Cliente creado exitosamente', 'success')
+      }
+      setShowCustomerModal(false)
+      setEditingCustomer(null)
+      await loadCustomers()
+    } catch (error) {
+      addToast(error?.message || 'Error al guardar cliente', 'error')
+    }
+  }
+
+  const deleteCustomer = async (customerId) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este cliente?')) return
+    try {
+      await customersAPI.delete(customerId)
+      addToast('Cliente eliminado exitosamente', 'success')
+      await loadCustomers()
+    } catch (error) {
+      addToast(error?.message || 'Error al eliminar cliente', 'error')
+    }
+  }
+
+  const handleEditCustomer = (customer) => {
+    setEditingCustomer(customer)
+    setShowCustomerModal(true)
+  }
+
+  const handleAddCustomer = () => {
+    setEditingCustomer(null)
+    setShowCustomerModal(true)
+  }
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+
   const handleLogin = (user) => {
     setCurrentUser(user)
     setIsLoggedIn(true)
@@ -347,11 +533,23 @@ function App() {
     setCategories([])
     setSales([])
     setUsers([])
+    setCustomers([])
     setDashboardData({ todaySales: 0, todayProfit: 0, lowStockCount: 0, totalProducts: 0 })
     clearSession()
   }
 
-  // Mientras se valida la sesión con el backend, mostrar spinner
+  // ── Derivados ─────────────────────────────────────────────────────────────
+
+  const filteredProducts = products.filter(p => {
+    const matchesSearch   = p.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesCategory = selectedCategory === 'Todos' || p.category_id === selectedCategory || p.category?.name === selectedCategory
+    return matchesSearch && matchesCategory && p.is_active !== false
+  })
+
+  const lowStockProducts = products.filter(p => (p.stock || 0) <= (p.min_stock || p.minStock || 0))
+
+  // ── Pantallas de carga y login ────────────────────────────────────────────
+
   if (!authChecked) {
     return (
       <div style={{
@@ -372,15 +570,15 @@ function App() {
     )
   }
 
-  // Si no está logueado, mostrar pantalla de login
   if (!isLoggedIn) {
     return <Login onLogin={handleLogin} />
   }
 
+  // ── Render principal ──────────────────────────────────────────────────────
+
   return (
     <>
       <div className="app-container">
-        {/* Sidebar */}
         <aside className="sidebar">
           <div className="sidebar-logo">
             <div className="logo-icon">iL</div>
@@ -391,39 +589,29 @@ function App() {
           </div>
           
           <nav className="sidebar-nav">
-            <button 
-              className={`nav-item ${currentView === 'dashboard' ? 'active' : ''}`}
-              onClick={() => setCurrentView('dashboard')}
-            >
+            <button className={`nav-item ${currentView === 'dashboard' ? 'active' : ''}`} onClick={() => setCurrentView('dashboard')}>
               <LayoutDashboard />
               Dashboard
             </button>
-            <button 
-              className={`nav-item ${currentView === 'inventory' ? 'active' : ''}`}
-              onClick={() => setCurrentView('inventory')}
-            >
+            <button className={`nav-item ${currentView === 'inventory' ? 'active' : ''}`} onClick={() => setCurrentView('inventory')}>
               <Package />
               Inventario
             </button>
-            <button 
-              className={`nav-item ${currentView === 'sales' ? 'active' : ''}`}
-              onClick={() => setCurrentView('sales')}
-            >
+            <button className={`nav-item ${currentView === 'sales' ? 'active' : ''}`} onClick={() => setCurrentView('sales')}>
               <ShoppingCart />
               Punto de Venta
             </button>
-            <button 
-              className={`nav-item ${currentView === 'reports' ? 'active' : ''}`}
-              onClick={() => setCurrentView('reports')}
-            >
+            <button className={`nav-item ${currentView === 'credit-accounts' ? 'active' : ''}`} onClick={() => setCurrentView('credit-accounts')}>
+              <User />
+              Cuentas por Cobrar
+            </button>
+            <button className={`nav-item ${currentView === 'reports' ? 'active' : ''}`} onClick={() => setCurrentView('reports')}>
               <BarChart3 />
               Reportes
             </button>
             {can(currentUser, 'canAccessSettings') && (
-              <button 
-                className={`nav-item ${currentView === 'settings' ? 'active' : ''}`}
-                onClick={() => setCurrentView('settings')}
-              >
+
+              <button className={`nav-item ${currentView === 'settings' ? 'active' : ''}`} onClick={() => setCurrentView('settings')}>
                 <Settings />
                 Configuración
               </button>
@@ -431,21 +619,18 @@ function App() {
           </nav>
 
           <div style={{ marginTop: 'auto', paddingTop: '20px' }}>
-            <button 
-              className="nav-item"
-              onClick={() => window.open('/customer', '_blank')}
-            >
+            <button className="nav-item" onClick={() => window.open('/customer', '_blank')}>
               <Eye />
               Pantalla Cliente
             </button>
             <button className="nav-item" onClick={handleLogout}>
+
               <LogOut />
               Cerrar Sesión
             </button>
           </div>
         </aside>
 
-        {/* Main Content */}
         <main className="main-content">
           <header className="header">
             <div className="header-left">
@@ -455,7 +640,9 @@ function App() {
                 {currentView === 'sales' && 'Punto de Venta'}
                 {currentView === 'reports' && 'Reportes'}
                 {currentView === 'settings' && 'Configuración'}
+                {currentView === 'credit-accounts' && 'Cuentas por Cobrar'}
               </h1>
+
             </div>
             
             <div className="header-right">
@@ -465,7 +652,7 @@ function App() {
                   type="text" 
                   placeholder="Buscar productos... (Ctrl+K)"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={e => setSearchTerm(e.target.value)}
                 />
               </div>
               
@@ -484,15 +671,11 @@ function App() {
                 </div>
                 <div className="user-info">
                   <span className="user-name">{currentUser?.name || 'Usuario'}</span>
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      color: ROLE_LABELS[currentUser?.role]?.color || 'var(--text-secondary)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px'
-                    }}
-                  >
+                  <span style={{
+                    fontSize: '11px', fontWeight: 700,
+                    color: ROLE_LABELS[currentUser?.role]?.color || 'var(--text-secondary)',
+                    textTransform: 'uppercase', letterSpacing: '0.5px'
+                  }}>
                     {ROLE_LABELS[currentUser?.role]?.label || currentUser?.role}
                   </span>
                 </div>
@@ -520,7 +703,7 @@ function App() {
                 selectedCategory={selectedCategory}
                 onCategoryChange={setSelectedCategory}
                 onAddProduct={() => { setEditingProduct(null); setShowProductModal(true) }}
-                onEditProduct={(p) => { setEditingProduct(p); setShowProductModal(true) }}
+                onEditProduct={p => { setEditingProduct(p); setShowProductModal(true) }}
                 onDeleteProduct={deleteProduct}
                 searchTerm={searchTerm}
                 onAddCategory={() => setShowCategoryModal(true)}
@@ -533,7 +716,7 @@ function App() {
                 key={posKey}
                 products={filteredProducts}
                 cart={cart}
-                onAddToCart={addToCart}
+                onAddToCart={handleAddToCart}
                 onUpdateQuantity={updateCartQuantity}
                 onRemoveItem={removeFromCart}
                 onCompleteSale={completeSale}
@@ -547,33 +730,34 @@ function App() {
               <ReportsView sales={sales} products={products} currentUser={currentUser} />
             )}
             
-            {currentView === 'settings' && (
+                {currentView === 'settings' && (
               <SettingsView
                 categories={categories}
-                onDeleteCategory={async (cat) => {
-                  try {
-                    await categoriesAPI.delete(cat.id)
-                    addToast('Categoría eliminada', 'warning')
-                    await loadCategories()
-                  } catch (error) {
-                    const errorData = error?.response?.data
-                    const errorMessage = errorData?.error?.message || errorData?.message || error?.message || 'Error al eliminar categoría'
-                    addToast(errorMessage, 'error')
-                  }
-                }}
+                onDeleteCategory={handleDeleteCategory}
                 onAddCategory={() => setShowCategoryModal(true)}
                 currentUser={currentUser}
                 users={users}
                 onAddUser={() => { setEditingUser(null); setShowUserModal(true) }}
                 onEditUser={handleEditUser}
                 onDeleteUser={deleteUser}
+                customers={customers}
+                onAddCustomer={handleAddCustomer}
+                onEditCustomer={handleEditCustomer}
+                onDeleteCustomer={deleteCustomer}
               />
             )}
+            
+            {currentView === 'credit-accounts' && (
+              <CreditAccountsView 
+                onUpdateCredit={handleUpdateCredit}
+              />
+            )}
+
           </div>
         </main>
       </div>
 
-      {/* Product Modal */}
+      {/* Modales de inventario */}
       {showProductModal && (
         <ProductModal 
           product={editingProduct}
@@ -584,55 +768,14 @@ function App() {
         />
       )}
 
-      {/* Category Modal */}
       {showCategoryModal && (
-        <div className="modal-overlay" onClick={() => setShowCategoryModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">Nueva Categoría</h3>
-              <button className="modal-close" onClick={() => setShowCategoryModal(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label className="form-label">Nombre de la Categoría</label>
-                <input 
-                  type="text" 
-                  className="form-input"
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  placeholder="Ej: Bebidas, Congelados, etc."
-                  autoFocus
-                />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={() => setShowCategoryModal(false)}>
-                Cancelar
-              </button>
-              <button type="button" className="btn btn-primary" onClick={async () => {
-                if (newCategoryName.trim()) {
-                  try {
-                    await categoriesAPI.create({ name: newCategoryName.trim() })
-                    addToast('Categoría creada', 'success')
-                    setNewCategoryName('')
-                    setShowCategoryModal(false)
-                    await loadCategories()
-                  } catch (error) {
-                    addToast('Error al crear categoría', 'error')
-                  }
-                }
-              }}>
-                <Save size={18} />
-                Guardar
-              </button>
-            </div>
-          </div>
-        </div>
+        <CategoryModal
+          onSave={handleSaveCategory}
+          onClose={() => setShowCategoryModal(false)}
+        />
       )}
 
-      {/* User Modal */}
+      {/* Modales de usuarios y clientes */}
       {showUserModal && (
         <UserModal 
           user={editingUser}
@@ -641,7 +784,15 @@ function App() {
         />
       )}
 
-      {/* Customer Display */}
+      {showCustomerModal && (
+        <CustomerModal 
+          customer={editingCustomer}
+          onSave={saveCustomer}
+          onClose={() => { setShowCustomerModal(false); setEditingCustomer(null) }}
+        />
+      )}
+
+      {/* Pantalla del cliente */}
       {showCustomerDisplay && (
         <CustomerDisplay
           products={products.filter(p => p.is_active !== false)}
@@ -651,7 +802,28 @@ function App() {
         />
       )}
 
-      {/* Toasts */}
+      {/* Cuentas por cobrar */}
+      {showCreditModal && (
+        <CreditModal
+          customers={customers}
+          onClose={() => setShowCreditModal(false)}
+          onUpdateCredit={handleUpdateCredit}
+        />
+      )}
+
+      {/* Selección de cliente para venta a crédito */}
+      {showCustomerSelectModal && (
+        <CustomerSelectModal
+          customers={customers}
+          onClose={() => {
+            setShowCustomerSelectModal(false)
+            setPendingCreditSale(null)
+          }}
+          onSelectCustomer={processCreditSale}
+        />
+      )}
+
+      {/* Sistema de notificaciones */}
       <div className="toast-container">
         {toasts.map(toast => (
           <div key={toast.id} className={`toast ${toast.type}`}>
@@ -663,14 +835,12 @@ function App() {
         ))}
       </div>
 
-      {/* Alert Modal */}
+      {/* Modal de alerta genérico */}
       {alertModal.show && (
         <div className="alert-modal-overlay" onClick={() => setAlertModal({ show: false, title: '', message: '' })}>
           <div className="alert-modal" onClick={e => e.stopPropagation()}>
             <div className="alert-modal-header">
-              <div className="alert-icon">
-                <AlertTriangle size={28} />
-              </div>
+              <div className="alert-icon"><AlertTriangle size={28} /></div>
               <h3 className="alert-modal-title">{alertModal.title}</h3>
             </div>
             <div className="alert-modal-body">
@@ -683,6 +853,16 @@ function App() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Reporte mensual de cierre */}
+      {showMonthlyReport && (
+        <MonthlyReportModal
+          sales={sales}
+          products={products}
+          onClose={() => setShowMonthlyReport(false)}
+          onGenerateReport={handleGenerateMonthlyReport}
+        />
       )}
     </>
   )

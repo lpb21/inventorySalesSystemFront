@@ -1,13 +1,16 @@
 import {
   TrendingUp, AlertTriangle, DollarSign, Package,
-  ShoppingCart, History, ChevronRight, BarChart3
+  ShoppingCart, History, ChevronRight, BarChart3, Calendar
 } from 'lucide-react'
+import { getProductsNearingExpiration, getExpirationStatus } from '../utils/expiration'
 
 function DashboardView({ products, sales, todaySales, todayProfit, lowStockProducts, onNavigate, loading }) {
   const totalProducts = products.length
   const localLowStock = products.filter(p => (p.stock || 0) <= (p.min_stock || p.minStock || 0)).length
+  const nearingExpiration = getProductsNearingExpiration(products, 7)
   
   return (
+
     <div>
       <div className="stats-grid">
         <div className="stat-card primary">
@@ -41,7 +44,16 @@ function DashboardView({ products, sales, todaySales, todayProfit, lowStockProdu
           <div className="stat-value">{localLowStock}</div>
           <div className="stat-label">Stock Bajo</div>
         </div>
+        
+        <div className="stat-card danger">
+          <div className="stat-icon danger">
+            <Calendar />
+          </div>
+          <div className="stat-value">{nearingExpiration.length}</div>
+          <div className="stat-label">Próximos a Vencer</div>
+        </div>
       </div>
+
 
       <div className="grid-2">
         <div className="card">
@@ -83,8 +95,66 @@ function DashboardView({ products, sales, todaySales, todayProfit, lowStockProdu
 
         <div className="card">
           <div className="card-header">
+            <h3 className="card-title">Productos Próximos a Vencer</h3>
+            <button className="btn btn-sm btn-secondary" onClick={() => onNavigate('inventory')}>
+              Ver Todos
+            </button>
+          </div>
+          {nearingExpiration.length === 0 ? (
+            <div className="empty-state" style={{ padding: '40px' }}>
+              <Calendar size={48} />
+              <h4>Sin alertas</h4>
+              <p>No hay productos próximos a vencer</p>
+            </div>
+          ) : (
+            <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
+              {nearingExpiration.slice(0, 5).map(product => {
+                const status = getExpirationStatus(product)
+                const statusColors = {
+                  today: 'var(--danger)',
+                  tomorrow: 'var(--danger)',
+                  critical: 'var(--warning)',
+                  warning: '#ffc107',
+                  normal: 'var(--success)'
+                }
+                return (
+                  <div key={product.id} style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between',
+                    padding: '12px',
+                    borderBottom: '1px solid var(--border)'
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: 600 }}>{product.name}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                        {product.category?.name || product.category}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ 
+                        fontWeight: 600, 
+                        color: statusColors[status.type] || 'var(--text-secondary)',
+                        fontSize: '12px'
+                      }}>
+                        {status.message}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        Vence: {new Date(product.expiry_date).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="card">
+          <div className="card-header">
             <h3 className="card-title">Ventas Recientes</h3>
           </div>
+
           <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
             {sales.length === 0 ? (
               <div className="empty-state" style={{ padding: '40px' }}>

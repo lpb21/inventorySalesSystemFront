@@ -3,7 +3,16 @@ import { X, Plus, Save } from 'lucide-react'
 
 function ProductModal({ product, categories, onSave, onClose, onAddCategory }) {
   const [formData, setFormData] = useState(product
-    ? { ...product, price: product.price ?? '', cost: product.cost ?? '', stock: product.stock ?? '', min_stock: product.min_stock ?? '' }
+    ? { 
+        ...product, 
+        price: product.price ?? '', 
+        cost: product.cost ?? '', 
+        stock: product.stock ?? '', 
+        min_stock: product.min_stock ?? '',
+        description: product.description ?? '',
+        barcode: product.barcode ?? '',
+        expiry_date: product.expiry_date ?? ''
+      }
     : {
     name: '',
     description: '',
@@ -18,6 +27,7 @@ function ProductModal({ product, categories, onSave, onClose, onAddCategory }) {
     is_active: true,
     expiry_date: ''
   })
+
 
   const handleSubmit = (e) => {
     e.preventDefault()

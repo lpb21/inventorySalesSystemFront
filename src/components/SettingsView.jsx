@@ -1,8 +1,9 @@
-import { Settings, Users, User, Edit, Trash2, Plus, Save, Download, Upload, X, Package2 } from 'lucide-react'
+import { Settings, Users, User, Edit, Trash2, Plus, Save, Download, Upload, X, Package2, Phone, Mail } from 'lucide-react'
 import { can, ROLE_LABELS } from '../utils/permissions'
 
-function SettingsView({ categories, onDeleteCategory, onAddCategory, currentUser, users, onAddUser, onEditUser, onDeleteUser }) {
+function SettingsView({ categories, onDeleteCategory, onAddCategory, currentUser, users, onAddUser, onEditUser, onDeleteUser, customers, onAddCustomer, onEditCustomer, onDeleteCustomer }) {
   const canManageUsers = can(currentUser, 'canManageUsers')
+
 
   if (!can(currentUser, 'canAccessSettings')) {
     return (
@@ -56,6 +57,101 @@ function SettingsView({ categories, onDeleteCategory, onAddCategory, currentUser
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Gestión de Clientes */}
+      <div className="card" style={{ marginTop: '24px' }}>
+        <div className="card-header">
+          <h3 className="card-title">Gestión de Clientes</h3>
+          <button className="btn btn-primary btn-sm" onClick={onAddCustomer}>
+            <User size={16} />
+            Nuevo Cliente
+          </button>
+        </div>
+        {customers.length === 0 ? (
+          <div className="empty-state" style={{ padding: '40px' }}>
+            <Users size={48} />
+            <h4>Sin clientes</h4>
+            <p>No hay clientes registrados aún</p>
+          </div>
+        ) : (
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Contacto</th>
+                  <th>Límite de Crédito</th>
+                  <th>Deuda Actual</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {customers.map(customer => (
+                  <tr key={customer.id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ 
+                          width: '32px', 
+                          height: '32px', 
+                          borderRadius: '50%', 
+                          background: 'var(--accent)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontSize: '12px',
+                          fontWeight: 'bold'
+                        }}>
+                          {customer.name?.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() || 'C'}
+                        </div>
+                        {customer.name}
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                        {customer.phone && <div><Phone size={12} style={{ display: 'inline', marginRight: '4px' }} />{customer.phone}</div>}
+                        {customer.email && <div><Mail size={12} style={{ display: 'inline', marginRight: '4px' }} />{customer.email}</div>}
+                        {!customer.phone && !customer.email && <span>Sin contacto</span>}
+                      </div>
+                    </td>
+                    <td>${(customer.credit_limit || 0).toLocaleString()}</td>
+                    <td>
+                      <span style={{
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        background: (customer.credit_balance || 0) > 0 ? 'rgba(233, 69, 96, 0.15)' : 'rgba(0, 217, 165, 0.15)',
+                        color: (customer.credit_balance || 0) > 0 ? 'var(--danger)' : 'var(--success)'
+                      }}>
+                        ${(customer.credit_balance || 0).toLocaleString()}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button 
+                          className="btn btn-secondary btn-sm" 
+                          onClick={() => onEditCustomer(customer)}
+                          title="Editar cliente"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button 
+                          className="btn btn-danger btn-sm" 
+                          onClick={() => onDeleteCustomer(customer.id)}
+                          title="Eliminar cliente"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Gestión de Usuarios - Solo para admin/owner */}
@@ -165,6 +261,7 @@ function SettingsView({ categories, onDeleteCategory, onAddCategory, currentUser
           )}
         </div>
       )}
+
 
       <div className="card" style={{ marginTop: '24px' }}>
         <div className="card-header">

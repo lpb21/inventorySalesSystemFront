@@ -1,13 +1,16 @@
 import { useState } from 'react'
 import { 
   ShoppingCart, Minus, Plus, X, DollarSign, Check,
-  Milk, Beef, Drumstick
+  Milk, Beef, Drumstick, Package
 } from 'lucide-react'
+
 
 function SalesView({ products, cart, onAddToCart, onUpdateQuantity, onRemoveItem, onCompleteSale, cartTotal, categories, completingSale }) {
   const [selectedCategory, setSelectedCategory] = useState('Todos')
   const [paymentAmount, setPaymentAmount] = useState('')
   const [showPayment, setShowPayment] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState('cash')
+
 
   const filteredProducts = products.filter(p =>
     selectedCategory === 'Todos' || p.category?.name === selectedCategory || p.category === selectedCategory
@@ -45,7 +48,9 @@ function SalesView({ products, cart, onAddToCart, onUpdateQuantity, onRemoveItem
                 {product.category?.name === 'Pollo' && <Drumstick size={36} />}
                 {product.category?.name === 'Quesos' && <Milk size={36} />}
                 {(product.category?.name === 'Carnes Frías' || product.category?.name === 'Embutidos') && <Beef size={36} />}
+                {!['Pollo', 'Quesos', 'Carnes Frías', 'Embutidos'].includes(product.category?.name) && <Package size={36} />}
               </div>
+
               <div className="product-name" style={{ fontSize: '14px' }}>{product.name}</div>
               <div className="product-price" style={{ fontSize: '18px' }}>
                 ${(product.price || 0).toLocaleString()}
@@ -115,17 +120,35 @@ function SalesView({ products, cart, onAddToCart, onUpdateQuantity, onRemoveItem
           {showPayment ? (
             <div>
               <div className="form-group">
-                <label className="form-label">Monto Recibido</label>
-                <input 
-                  type="number" 
-                  className="form-input"
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
-                  placeholder="Ingrese el monto"
-                  autoFocus
-                />
+                <label className="form-label">Forma de Pago</label>
+                <select
+                  className="form-select"
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  style={{ marginBottom: '12px' }}
+                >
+                  <option value="cash">Efectivo</option>
+                  <option value="nequi">Nequi</option>
+                  <option value="card">Tarjeta</option>
+                  <option value="credit">Credito</option>
+                </select>
               </div>
-              {parseInt(paymentAmount || 0) >= cartTotal && (
+              {paymentMethod !== 'credit' && (
+                <div className="form-group">
+                  <label className="form-label">Monto Recibido</label>
+                  <input 
+                    type="number" 
+                    className="form-input"
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    placeholder="Ingrese el monto"
+                    autoFocus
+                  />
+                </div>
+              )}
+
+              {paymentMethod !== 'credit' && parseInt(paymentAmount || 0) >= cartTotal && (
+
                 <div style={{ 
                   padding: '12px', 
                   background: 'rgba(0, 217, 165, 0.15)', 
@@ -146,9 +169,10 @@ function SalesView({ products, cart, onAddToCart, onUpdateQuantity, onRemoveItem
                 <button 
                   className="btn btn-primary" 
                   style={{ flex: 1 }}
-                  onClick={onCompleteSale}
-                  disabled={parseInt(paymentAmount || 0) < cartTotal || completingSale}
+                  onClick={() => onCompleteSale(paymentMethod, parseInt(paymentAmount || 0))}
+                  disabled={paymentMethod !== 'credit' && parseInt(paymentAmount || 0) < cartTotal || completingSale}
                 >
+
                   {completingSale ? (
                     <>
                       <span style={{ 

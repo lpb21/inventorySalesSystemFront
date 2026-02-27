@@ -277,6 +277,24 @@ export const customersAPI = {
   delete: (id) => apiRequest(`/customers/${id}`, {
     method: 'DELETE',
   }),
+  
+  // Endpoints de crédito/fiado
+  registerPayment: (id, data) => apiRequest(`/customers/${id}/payments`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  
+  getBalance: (id) => apiRequest(`/customers/${id}/balance`),
+  
+  getCreditSales: (id) => apiRequest(`/customers/${id}/credit-sales`),
+  
+  getWithCredit: () => apiRequest('/customers/with-credit/list'),
+  
+  updateCreditLimit: (id, creditLimit) => apiRequest(`/customers/${id}/credit-limit`, {
+    method: 'PUT',
+    body: JSON.stringify({ credit_limit: creditLimit }),
+  }),
 };
+
 
 export { getToken, setToken, setUser, getUser, clearSession, API_URL };

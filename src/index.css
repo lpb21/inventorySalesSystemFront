@@ -258,10 +258,12 @@ body {
 /* Stats Grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 20px;
   margin-bottom: 24px;
 }
+
+
 
 .stat-card {
   background: var(--surface);
@@ -300,7 +302,14 @@ body {
   color: #3b82f6;
 }
 
+.stat-icon.danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+}
+
 .stat-value {
+
+
   font-family: 'Outfit', sans-serif;
   font-size: 28px;
   font-weight: 700;
@@ -925,10 +934,12 @@ td {
 /* Responsive */
 @media (max-width: 1200px) {
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
   
   .pos-container {
+
+
     grid-template-columns: 1fr;
   }
   

@@ -48,8 +48,12 @@ const apiRequest = async (endpoint, options = {}) => {
   const response = await fetch(`${API_URL}${endpoint}`, config);
   
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Error de conexión' }));
-    throw new Error(error.message || 'Error en la solicitud');
+    const body = await response.json().catch(() => ({}))
+    // Preservar la estructura completa del servidor para que los catch del componente
+    // puedan leer body.error.code y body.error.message sin perder información
+    const err = new Error(body?.error?.message || body?.message || 'Error en la solicitud')
+    err.response = { status: response.status, data: body }
+    throw err
   }
   
   return response.json();
@@ -277,6 +281,24 @@ export const customersAPI = {
   delete: (id) => apiRequest(`/customers/${id}`, {
     method: 'DELETE',
   }),
+  
+  // Endpoints de crédito/fiado
+  registerPayment: (id, data) => apiRequest(`/customers/${id}/payments`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  
+  getBalance: (id) => apiRequest(`/customers/${id}/balance`),
+  
+  getCreditSales: (id) => apiRequest(`/customers/${id}/credit-sales`),
+  
+  getWithCredit: () => apiRequest('/customers/with-credit/list'),
+  
+  updateCreditLimit: (id, creditLimit) => apiRequest(`/customers/${id}/credit-limit`, {
+    method: 'PUT',
+    body: JSON.stringify({ credit_limit: creditLimit }),
+  }),
 };
+
 
 export { getToken, setToken, setUser, getUser, clearSession, API_URL };
