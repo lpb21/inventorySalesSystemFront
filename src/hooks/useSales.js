@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Swal from 'sweetalert2'
 import { salesAPI, customersAPI } from '../api/config'
 
 /**
@@ -80,15 +81,25 @@ export function useSales({ cart, cartTotal, clearCart, addToast, loadProducts, l
     setCompletingSale(true)
 
     try {
+      const customerId = customer?.id ? String(customer.id) : null
+      if (!customerId) throw new Error('El cliente seleccionado no tiene un ID válido')
+
+      const formattedItems = pendingCreditSale.items.map(item => ({
+        product_id: item.product_id,
+        quantity:   item.quantity,
+        unit_price: item.unit_price
+      }))
+
       const saleData = {
-        items:           pendingCreditSale.items,
+        payment_method: 'credit',
+        customer_id:    customerId,
+        customer_name:  customer.name || '',
         subtotal:        pendingCreditSale.subtotal,
         discount:        0,
+        tax:             0,
         total:           pendingCreditSale.total,
-        payment_method:  'credit',
-        amount_received: 0,
-        change_given:    0,
-        customer_id:     customer.id
+        note:            'Venta a crédito',
+        items:           formattedItems
       }
 
       await salesAPI.create(saleData)
@@ -97,7 +108,30 @@ export function useSales({ cart, cartTotal, clearCart, addToast, loadProducts, l
       addToast('Venta a crédito completada exitosamente!', 'success')
       await Promise.all([loadProducts(), loadSales(), loadDashboard(), loadCustomers()])
     } catch (error) {
-      addToast('Error al completar venta a crédito', 'error')
+      const errorData    = error?.response?.data?.error
+      const errorMessage = errorData?.message || error?.message || 'Error al completar venta a crédito'
+
+      if (errorData?.code === 'VALIDATION_ERROR') {
+        Swal.fire({
+          icon:              'warning',
+          title:             '⚠️ Límite de Crédito Alcanzado',
+          html: `
+            <p style="margin-bottom:12px;">${errorMessage}</p>
+            <hr style="border-color:#444;margin:12px 0">
+            <ul style="text-align:left;padding-left:20px;font-size:14px;color:#aaa;line-height:1.8">
+              <li>Aumenta el límite del cliente en <b>Configuración → Clientes</b></li>
+              <li>Solicita un abono parcial para liberar crédito</li>
+              <li>Cambia el método de pago a <b>efectivo</b> o <b>tarjeta</b></li>
+            </ul>`,
+          confirmButtonText:  'Entendido',
+          confirmButtonColor: '#e94560',
+          background:         '#1a1f2e',
+          color:              '#e6edf3',
+          customClass:        { popup: 'swal-credit-error' }
+        })
+      } else {
+        addToast(errorMessage, 'error')
+      }
     } finally {
       setCompletingSale(false)
     }
@@ -108,14 +142,34 @@ export function useSales({ cart, cartTotal, clearCart, addToast, loadProducts, l
    */
   const handleUpdateCredit = async (customerId, paymentAmount, note = '') => {
     try {
-      await customersAPI.registerPayment(customerId, {
-        amount: paymentAmount,
-        note:   note || 'Abono de cliente'
-      })
+      await customersAPI.registerPayment(customerId, { amount: paymentAmount, note: note || 'Abono de cliente' })
       addToast('Pago registrado exitosamente', 'success')
       await Promise.all([loadCustomers(), loadSales()])
     } catch (error) {
-      addToast('Error al registrar pago', 'error')
+      const errorData    = error?.response?.data?.error
+      const errorMessage = errorData?.message || error?.message || 'Error al registrar pago'
+
+      if (errorData?.code === 'VALIDATION_ERROR') {
+        Swal.fire({
+          icon:              'warning',
+          title:             '⚠️ Error de Validación',
+          html: `
+            <p style="margin-bottom:12px;">${errorMessage}</p>
+            <hr style="border-color:#444;margin:12px 0">
+            <ul style="text-align:left;padding-left:20px;font-size:14px;color:#aaa;line-height:1.8">
+              <li>Verifique que el monto del abono no exceda la deuda actual</li>
+              <li>El cliente puede tener una deuda menor a la que intenta abonar</li>
+              <li>Verifique el saldo actual en la tarjeta de detalle del cliente</li>
+            </ul>`,
+          confirmButtonText:  'Entendido',
+          confirmButtonColor: '#e94560',
+          background:         '#1a1f2e',
+          color:              '#e6edf3',
+          customClass:        { popup: 'swal-credit-error' }
+        })
+      } else {
+        addToast(errorMessage, 'error')
+      }
     }
   }
 

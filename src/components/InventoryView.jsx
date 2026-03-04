@@ -1,7 +1,7 @@
-import { Plus, Edit, Trash2, Package2, Milk, Beef, Drumstick } from 'lucide-react'
+import { Plus, Edit, Trash2, Package2, Milk, Beef, Drumstick, ArrowDownCircle } from 'lucide-react'
 import { can } from '../utils/permissions'
 
-function InventoryView({ products, categories, selectedCategory, onCategoryChange, onAddProduct, onEditProduct, onDeleteProduct, searchTerm, onAddCategory, currentUser }) {
+function InventoryView({ products, categories, selectedCategory, onCategoryChange, onAddProduct, onEditProduct, onDeleteProduct, searchTerm, onAddCategory, onRegisterOutput, currentUser }) {
   const canEdit       = can(currentUser, 'canEditProducts')
   const canDelete     = can(currentUser, 'canDeleteProducts')
   const canManageCats = can(currentUser, 'canManageCategories')
@@ -33,12 +33,20 @@ function InventoryView({ products, categories, selectedCategory, onCategoryChang
             </button>
           )}
         </div>
-        {canEdit && (
-          <button className="btn btn-primary" onClick={onAddProduct}>
-            <Plus size={18} />
-            Nuevo Producto
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {canEdit && onRegisterOutput && (
+            <button className="btn btn-secondary" onClick={onRegisterOutput}>
+              <ArrowDownCircle size={18} />
+              Registrar Salida
+            </button>
+          )}
+          {canEdit && (
+            <button className="btn btn-primary" onClick={onAddProduct}>
+              <Plus size={18} />
+              Nuevo Producto
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="product-grid">

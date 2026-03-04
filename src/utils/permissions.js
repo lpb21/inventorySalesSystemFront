@@ -1,10 +1,10 @@
 // Sistema de permisos
 export const PERMISSIONS = {
-  cashier:    { canEditProducts: false, canDeleteProducts: false, canManageCategories: false, canDiscount: false, canViewFullReports: false, canViewCosts: false, canAccessSettings: false, canManageUsers: false },
-  supervisor: { canEditProducts: true,  canDeleteProducts: false, canManageCategories: true,  canDiscount: true,  canViewFullReports: true,  canViewCosts: true,  canAccessSettings: false, canManageUsers: false },
-  admin:      { canEditProducts: true,  canDeleteProducts: true,  canManageCategories: true,  canDiscount: true,  canViewFullReports: true,  canViewCosts: true,  canAccessSettings: true,  canManageUsers: true },
-  owner:      { canEditProducts: true,  canDeleteProducts: true,  canManageCategories: true,  canDiscount: true,  canViewFullReports: true,  canViewCosts: true,  canAccessSettings: true,  canManageUsers: true },
-  superadmin: { canEditProducts: true,  canDeleteProducts: true,  canManageCategories: true,  canDiscount: true,  canViewFullReports: true,  canViewCosts: true,  canAccessSettings: true,  canManageUsers: true, canManageAllTenants: true },
+  cashier:    { canEditProducts: false, canDeleteProducts: false, canManageCategories: false, canDiscount: false, canViewFullReports: false, canViewCosts: false, canAccessSettings: false, canManageUsers: false, canViewCreditAccounts: false },
+  supervisor: { canEditProducts: true,  canDeleteProducts: false, canManageCategories: true,  canDiscount: true,  canViewFullReports: true,  canViewCosts: true,  canAccessSettings: false, canManageUsers: false, canViewCreditAccounts: true },
+  admin:      { canEditProducts: true,  canDeleteProducts: true,  canManageCategories: true,  canDiscount: true,  canViewFullReports: true,  canViewCosts: true,  canAccessSettings: true,  canManageUsers: true, canViewCreditAccounts: true },
+  owner:      { canEditProducts: true,  canDeleteProducts: true,  canManageCategories: true,  canDiscount: true,  canViewFullReports: true,  canViewCosts: true,  canAccessSettings: true,  canManageUsers: true, canViewCreditAccounts: true },
+  superadmin: { canEditProducts: true,  canDeleteProducts: true,  canManageCategories: true,  canDiscount: true,  canViewFullReports: true,  canViewCosts: true,  canAccessSettings: true,  canManageUsers: true, canManageAllTenants: true, canViewCreditAccounts: true },
 }
 
 export const ROLE_LABELS = {

@@ -1,8 +1,41 @@
-import { ShoppingCart, DollarSign, Package, History } from 'lucide-react'
+import { ShoppingCart, DollarSign, Package, History, TrendingDown } from 'lucide-react'
 import { can } from '../utils/permissions'
+import { reportsAPI } from '../api/config'
+import { useState, useEffect } from 'react'
 
 function ReportsView({ sales, products, currentUser }) {
+  const [lowRotationProducts, setLowRotationProducts] = useState([])
+  const [loadingLowRotation, setLoadingLowRotation] = useState(true)
+  
   const showFullReports = can(currentUser, 'canViewFullReports')
+  
+  // Cargar productos con menor rotación
+  useEffect(() => {
+    const fetchLowRotation = async () => {
+      try {
+        const response = await reportsAPI.getLowRotation({ days: 30, limit: 10 })
+        // El backend responde con { success: true, data: { products: [...] } }
+        let productsArray = []
+        if (response && response.success && response.data && response.data.products) {
+          productsArray = response.data.products
+        } else if (Array.isArray(response)) {
+          productsArray = response
+        } else if (response && typeof response === 'object') {
+          productsArray = response.products || response.data || []
+        }
+        setLowRotationProducts(productsArray)
+      } catch (error) {
+        console.error('Error fetching low rotation products:', error)
+        setLowRotationProducts([])
+      } finally {
+        setLoadingLowRotation(false)
+      }
+    }
+    
+    if (showFullReports) {
+      fetchLowRotation()
+    }
+  }, [showFullReports])
   
   const totalRevenue = sales.reduce((sum, s) => sum + Number(s.total || 0), 0)
   const totalSales   = sales.length
@@ -114,6 +147,66 @@ function ReportsView({ sales, products, currentUser }) {
           </div>
         </div>
       </div>
+
+      {/* Productos con Menor Rotación */}
+      {showFullReports && (
+        <div className="card" style={{ marginTop: '24px' }}>
+          <div className="card-header">
+            <h3 className="card-title">
+              <TrendingDown size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+              Productos con Menor Rotación (Últimos 30 días)
+            </h3>
+          </div>
+          <div className="table-container">
+            {loadingLowRotation ? (
+              <div className="empty-state" style={{ padding: '40px' }}>
+                <div className="spinner"></div>
+                <p>Cargando datos...</p>
+              </div>
+            ) : lowRotationProducts.length === 0 ? (
+              <div className="empty-state" style={{ padding: '40px' }}>
+                <TrendingDown size={48} />
+                <h4>Sin datos de rotación</h4>
+                <p>No hay suficientes datos para determinar la rotación de productos</p>
+              </div>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Categoría</th>
+                    <th>Stock Actual</th>
+                    <th>Vendidos</th>
+                    <th>Última Venta</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lowRotationProducts.map(product => (
+                    <tr key={product.id}>
+                      <td>{product.name}</td>
+                      <td>{product.category?.name || product.category || '-'}</td>
+                      <td>{product.stock} {product.unit}</td>
+                      <td>
+                        <span style={{ 
+                          color: 'var(--danger)', 
+                          fontWeight: 600 
+                        }}>
+                          {product.total_sold || 0} {product.unit}
+                        </span>
+                      </td>
+                      <td>
+                        {product.last_sale_date 
+                          ? new Date(product.last_sale_date).toLocaleDateString()
+                          : 'Sin ventas'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

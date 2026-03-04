@@ -1,32 +1,34 @@
 import { useState, useEffect } from 'react'
-import { 
-  LayoutDashboard, Package, ShoppingCart, Settings, 
-  AlertTriangle, Search, BarChart3,
-  RefreshCw, LogOut, Eye, Save, X, Check, User
-} from 'lucide-react'
-import Swal from 'sweetalert2'
+import { AlertTriangle, X, Check } from 'lucide-react'
 import Login from './Login'
 import { 
   productsAPI, categoriesAPI, salesAPI, reportsAPI, 
-  authAPI, usersAPI, customersAPI, getToken, getUser, setUser, clearSession
+  authAPI, usersAPI, customersAPI, inventoryAPI, tenantAPI, getToken, getUser, setUser, clearSession
 } from './api/config'
 
-import { can, ROLE_LABELS } from './utils/permissions'
+import { can } from './utils/permissions'
 import { useCart } from './hooks/useCart'
 import { useSales } from './hooks/useSales'
-import DashboardView    from './components/DashboardView'
-import InventoryView   from './components/InventoryView'
-import SalesView       from './components/SalesView'
-import ReportsView     from './components/ReportsView'
-import SettingsView    from './components/SettingsView'
-import ProductModal    from './components/ProductModal'
-import UserModal       from './components/UserModal'
-import CustomerModal   from './components/CustomerModal'
-import CustomerDisplay from './components/CustomerDisplay'
+import { useProducts } from './hooks/useProducts'
+import { useUsers } from './hooks/useUsers'
+import { useCustomers } from './hooks/useCustomers'
+
+import AppLayout         from './components/AppLayout'
+import DashboardView     from './components/DashboardView'
+import InventoryView     from './components/InventoryView'
+import SalesView         from './components/SalesView'
+import ReportsView       from './components/ReportsView'
+import SettingsView      from './components/SettingsView'
+import ProductModal      from './components/ProductModal'
+import UserModal         from './components/UserModal'
+import CustomerModal     from './components/CustomerModal'
+import CustomerDisplay   from './components/CustomerDisplay'
 import MonthlyReportModal from './components/MonthlyReportModal'
-import CreditModal from './components/CreditModal'
+import CreditModal       from './components/CreditModal'
 import CreditAccountsView from './components/CreditAccountsView'
 import CustomerSelectModal from './components/CustomerSelectModal'
+import OutputModal       from './components/OutputModal'
+import CategoryModal     from './components/CategoryModal'
 
 
 // Componente principal
@@ -45,7 +47,6 @@ function App() {
   const [toasts, setToasts] = useState([])
   const [sales, setSales] = useState([])
   const [showCategoryModal, setShowCategoryModal] = useState(false)
-  const [newCategoryName, setNewCategoryName] = useState('')
   const [loading, setLoading] = useState(false)
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '' })
 
@@ -65,6 +66,15 @@ function App() {
   // Estado para fiados/créditos
   const [showCreditModal, setShowCreditModal] = useState(false)
 
+  // Estado para mostrar/ocultar productos inactivos en inventario
+  const [showInactiveProducts, setShowInactiveProducts] = useState(false)
+
+  // Estado para salidas de inventario
+  const [showOutputModal, setShowOutputModal] = useState(false)
+
+  // Datos del negocio (tenant)
+  const [businessData, setBusinessData] = useState(null)
+
   // Datos del dashboard
   const [dashboardData, setDashboardData] = useState({
     todaySales: 0,
@@ -73,196 +83,19 @@ function App() {
     totalProducts: 0
   })
 
-  // Hook para el carrito
+  // ── Notificaciones (toasts) ───────────────────────────────────────────────
+
+  function addToast(message, type = 'success') {
+    const id = Date.now()
+    setToasts(prev => [...prev, { id, message, type }])
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000)
+  }
+
+  // ── Hook para el carrito ──────────────────────────────────────────────────
+
   const { cart, posKey, cartTotal, addToCart, updateCartQuantity, removeFromCart, clearCart } = useCart()
 
-  // Estados para ventas
-  const [completingSale, setCompletingSale] = useState(false)
-  const [pendingCreditSale, setPendingCreditSale] = useState(null)
-  const [showCustomerSelectModal, setShowCustomerSelectModal] = useState(false)
-
-  // Funciones de ventas
-  const completeSale = async (paymentMethod = 'cash', amountReceived = cartTotal) => {
-    if (cart.length === 0) return
-    if (paymentMethod === 'credit') {
-      const saleItems = cart.map(item => ({
-        product_id: item.id,
-        quantity: item.quantity,
-        unit_price: item.price,
-        subtotal: item.price * item.quantity
-      }))
-      setPendingCreditSale({ items: saleItems, subtotal: cartTotal, total: cartTotal })
-      setShowCustomerSelectModal(true)
-      return
-    }
-    setCompletingSale(true)
-    try {
-      const saleData = {
-        items: cart.map(item => ({
-          product_id: item.id,
-          quantity: item.quantity,
-          unit_price: item.price,
-          subtotal: item.price * item.quantity
-        })),
-        subtotal: cartTotal,
-        discount: 0,
-        total: cartTotal,
-        payment_method: paymentMethod,
-        amount_received: amountReceived,
-        change_given: Math.max(0, amountReceived - cartTotal),
-        customer_id: null
-      }
-      await salesAPI.create(saleData)
-      clearCart()
-      addToast('Venta completada exitosamente!', 'success')
-      await Promise.all([loadProducts(), loadSales(), loadDashboard()])
-    } catch (error) {
-      addToast('Error al completar venta', 'error')
-    } finally {
-      setCompletingSale(false)
-    }
-  }
-
-  const processCreditSale = async (customer) => {
-    if (!pendingCreditSale || !customer) return
-    setShowCustomerSelectModal(false)
-    setCompletingSale(true)
-    try {
-      const customerId = customer?.id ? String(customer.id) : null
-      if (!customerId) throw new Error('El cliente seleccionado no tiene un ID válido')
-
-      const formattedItems = pendingCreditSale.items.map(item => ({
-        product_id: item.product_id,
-        quantity:   item.quantity,
-        unit_price: item.unit_price
-      }))
-
-      const saleData = {
-        payment_method: 'credit',
-        customer_id:    customerId,
-        customer_name:  customer.name || '',
-        subtotal:        pendingCreditSale.subtotal,
-        discount:        0,
-        tax:             0,
-        total:           pendingCreditSale.total,
-        note:            'Venta a crédito',
-        items:           formattedItems
-      }
-      
-      await salesAPI.create(saleData)
-      clearCart()
-      setPendingCreditSale(null)
-      addToast('Venta a crédito completada exitosamente!', 'success')
-      await Promise.all([loadProducts(), loadSales(), loadDashboard(), loadCustomers()])
-    } catch (error) {
-      const errorData    = error?.response?.data?.error
-      const errorMessage = errorData?.message || error?.message || 'Error al completar venta a crédito'
-
-      if (errorData?.code === 'VALIDATION_ERROR') {
-        Swal.fire({
-          icon:              'warning',
-          title:             '⚠️ Límite de Crédito Alcanzado',
-          html: `
-            <p style="margin-bottom:12px;">${errorMessage}</p>
-            <hr style="border-color:#444;margin:12px 0">
-            <ul style="text-align:left;padding-left:20px;font-size:14px;color:#aaa;line-height:1.8">
-              <li>Aumenta el límite del cliente en <b>Configuración → Clientes</b></li>
-              <li>Solicita un abono parcial para liberar crédito</li>
-              <li>Cambia el método de pago a <b>efectivo</b> o <b>tarjeta</b></li>
-            </ul>`,
-          confirmButtonText:  'Entendido',
-          confirmButtonColor: '#e94560',
-          background:         '#1a1f2e',
-          color:              '#e6edf3',
-          customClass:        { popup: 'swal-credit-error' }
-        })
-      } else {
-        addToast(errorMessage, 'error')
-      }
-    } finally {
-      setCompletingSale(false)
-    }
-  }
-
-
-
-
-  const handleUpdateCredit = async (customerId, paymentAmount, note = '') => {
-    try {
-      await customersAPI.registerPayment(customerId, { amount: paymentAmount, note: note || 'Abono de cliente' })
-      addToast('Pago registrado exitosamente', 'success')
-      await Promise.all([loadCustomers(), loadSales()])
-    } catch (error) {
-      const errorData    = error?.response?.data?.error
-      const errorMessage = errorData?.message || error?.message || 'Error al registrar pago'
-
-      if (errorData?.code === 'VALIDATION_ERROR') {
-        Swal.fire({
-          icon:              'warning',
-          title:             '⚠️ Error de Validación',
-          html: `
-            <p style="margin-bottom:12px;">${errorMessage}</p>
-            <hr style="border-color:#444;margin:12px 0">
-            <ul style="text-align:left;padding-left:20px;font-size:14px;color:#aaa;line-height:1.8">
-              <li>Verifique que el monto del abono no exceda la deuda actual</li>
-              <li>El cliente puede tener una deuda menor a la que intenta abonar</li>
-              <li>Verifique el saldo actual en la tarjeta de detalle del cliente</li>
-            </ul>`,
-          confirmButtonText:  'Entendido',
-          confirmButtonColor: '#e94560',
-          background:         '#1a1f2e',
-          color:              '#e6edf3',
-          customClass:        { popup: 'swal-credit-error' }
-        })
-      } else {
-        addToast(errorMessage, 'error')
-      }
-    }
-  }
-
-
-  // 1) Validar sesión con el backend al montar la app
-  useEffect(() => {
-    const token = getToken()
-    if (!token) {
-      setAuthChecked(true)
-      return
-    }
-    authAPI.me()
-      .then(response => {
-        const user = response.data || response
-        setUser(user)
-        setCurrentUser(user)
-        setIsLoggedIn(true)
-        localStorage.setItem('invleo_logged_in', 'true')
-      })
-      .catch(() => clearSession())
-      .finally(() => setAuthChecked(true))
-  }, [])
-
-  // 2) Cargar datos solo después de confirmar sesión con el backend
-  useEffect(() => {
-    if (authChecked && isLoggedIn && currentUser) {
-      loadInitialData()
-      checkMonthlyClosure()
-    }
-  }, [authChecked, isLoggedIn])
-
   // ── Funciones de carga de datos ───────────────────────────────────────────
-
-  const loadInitialData = async () => {
-    setLoading(true)
-    try {
-      const fns = [loadProducts(), loadCategories(), loadSales(), loadDashboard(), loadCustomers()]
-      if (can(currentUser, 'canManageUsers')) fns.push(loadUsers())
-      await Promise.all(fns)
-    } catch (error) {
-      console.error('Error cargando datos:', error)
-      addToast('Error al cargar datos', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   async function loadProducts() {
     try {
@@ -276,7 +109,8 @@ function App() {
               price:     Number(p.price)     || 0,
               cost:      Number(p.cost)      || 0,
               stock:     Number(p.stock)     || 0,
-              min_stock: Number(p.min_stock) || 0
+              min_stock: Number(p.min_stock) || 0,
+              unit:      p.unit || 'und'
             }))
           : []
       )
@@ -350,6 +184,112 @@ function App() {
     }
   }
 
+  async function loadBusinessData() {
+    if (currentUser?.tenant) {
+      setBusinessData(currentUser.tenant)
+    } else if (currentUser?.business_name) {
+      setBusinessData({
+        name: currentUser.business_name,
+        address: currentUser.business_address,
+        phone: currentUser.business_phone
+      })
+    }
+  }
+
+  const loadInitialData = async () => {
+    setLoading(true)
+    try {
+      const fns = [loadProducts(), loadCategories(), loadSales(), loadDashboard(), loadCustomers(), loadBusinessData()]
+      if (can(currentUser, 'canManageUsers')) fns.push(loadUsers())
+      await Promise.all(fns)
+    } catch (error) {
+      console.error('Error cargando datos:', error)
+      addToast('Error al cargar datos', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ── Hooks de lógica de negocio ────────────────────────────────────────────
+
+  const {
+    completingSale,
+    pendingCreditSale,
+    setPendingCreditSale,
+    showCustomerSelectModal,
+    setShowCustomerSelectModal,
+    completeSale,
+    processCreditSale,
+    handleUpdateCredit
+  } = useSales({ cart, cartTotal, clearCart, addToast, loadProducts, loadSales, loadDashboard, loadCustomers })
+
+  const {
+    saveProduct,
+    toggleProductStatus,
+    deleteProduct
+  } = useProducts({ addToast, loadProducts, editingProduct, setEditingProduct, setShowProductModal })
+
+  const {
+    saveUser,
+    toggleUserStatus,
+    handleEditUser
+  } = useUsers({ addToast, loadUsers, editingUser, setEditingUser, setShowUserModal })
+
+  const {
+    saveCustomer,
+    deleteCustomer,
+    handleEditCustomer,
+    handleAddCustomer
+  } = useCustomers({ addToast, loadCustomers, currentUser, editingCustomer, setEditingCustomer, setShowCustomerModal })
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+
+  // 1) Validar sesión con el backend al montar la app
+  useEffect(() => {
+    const token = getToken()
+    if (!token) {
+      setAuthChecked(true)
+      return
+    }
+    authAPI.me()
+      .then(response => {
+        const user = response.data || response
+        setUser(user)
+        setCurrentUser(user)
+        setIsLoggedIn(true)
+        localStorage.setItem('invleo_logged_in', 'true')
+      })
+      .catch(() => clearSession())
+      .finally(() => setAuthChecked(true))
+  }, [])
+
+  // 2) Cargar datos solo después de confirmar sesión con el backend
+  useEffect(() => {
+    if (authChecked && isLoggedIn && currentUser) {
+      loadInitialData()
+      checkMonthlyClosure()
+    }
+  }, [authChecked, isLoggedIn])
+
+  const handleLogin = (user) => {
+    setCurrentUser(user)
+    setIsLoggedIn(true)
+    localStorage.setItem('invleo_logged_in', 'true')
+  }
+
+  const handleLogout = () => {
+    setCurrentUser(null)
+    setIsLoggedIn(false)
+    setProducts([])
+    setCategories([])
+    setSales([])
+    setUsers([])
+    setCustomers([])
+    setBusinessData(null)
+    setDashboardData({ todaySales: 0, todayProfit: 0, lowStockCount: 0, totalProducts: 0 })
+    clearSession()
+  }
+
   // ── Reporte mensual ───────────────────────────────────────────────────────
 
   const checkMonthlyClosure = () => {
@@ -369,48 +309,11 @@ function App() {
     addToast('Reporte mensual generado y caja reiniciada', 'success')
   }
 
-  // ── Notificaciones (toasts) ───────────────────────────────────────────────
-
-  function addToast(message, type = 'success') {
-    const id = Date.now()
-    setToasts(prev => [...prev, { id, message, type }])
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000)
-  }
-
   // ── Funciones del carrito ─────────────────────────────────────────────────
 
   const handleAddToCart = (product) => {
     addToCart(product)
     addToast(`${product.name} agregado al carrito`)
-  }
-
-  // ── Productos ─────────────────────────────────────────────────────────────
-
-  const saveProduct = async (product) => {
-    try {
-      if (editingProduct) {
-        await productsAPI.update(editingProduct.id, product)
-        addToast('Producto actualizado', 'success')
-      } else {
-        await productsAPI.create(product)
-        addToast('Producto creado', 'success')
-      }
-      setShowProductModal(false)
-      setEditingProduct(null)
-      await loadProducts()
-    } catch (error) {
-      addToast('Error al guardar producto', 'error')
-    }
-  }
-
-  const deleteProduct = async (id) => {
-    try {
-      await productsAPI.delete(id)
-      addToast('Producto eliminado', 'warning')
-      await loadProducts()
-    } catch (error) {
-      addToast('Error al eliminar producto', 'error')
-    }
   }
 
   // ── Categorías ────────────────────────────────────────────────────────────
@@ -438,104 +341,17 @@ function App() {
     }
   }
 
-  // ── Usuarios ──────────────────────────────────────────────────────────────
+  // ── Salidas de inventario ─────────────────────────────────────────────────
 
-  const saveUser = async (userData) => {
+  const handleRegisterOutput = async (outputData) => {
     try {
-      if (editingUser) {
-        await usersAPI.update(editingUser.id, userData)
-        addToast('Usuario actualizado exitosamente', 'success')
-      } else {
-        await usersAPI.create(userData)
-        addToast('Usuario creado exitosamente', 'success')
-      }
-      setShowUserModal(false)
-      setEditingUser(null)
-      await loadUsers()
+      await inventoryAPI.createOutput(outputData)
+      addToast('Salida registrada exitosamente', 'success')
+      await Promise.all([loadProducts(), loadDashboard()])
     } catch (error) {
-      addToast(error?.message || 'Error al guardar usuario', 'error')
+      addToast('Error al registrar salida: ' + (error.message || 'Error desconocido'), 'error')
+      throw error
     }
-  }
-
-  const deleteUser = async (userId) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar este usuario?')) return
-    try {
-      await usersAPI.delete(userId)
-      addToast('Usuario eliminado exitosamente', 'success')
-      await loadUsers()
-    } catch (error) {
-      addToast(error?.message || 'Error al eliminar usuario', 'error')
-    }
-  }
-
-  const handleEditUser = (user) => {
-    setEditingUser(user)
-    setShowUserModal(true)
-  }
-
-  // ── Clientes ──────────────────────────────────────────────────────────────
-
-  const saveCustomer = async (customerData) => {
-    try {
-      if (editingCustomer) {
-        await customersAPI.update(editingCustomer.id, customerData)
-        addToast('Cliente actualizado exitosamente', 'success')
-      } else {
-        // Agregar tenant_id al crear un nuevo cliente
-        const customerWithTenant = {
-          ...customerData,
-          tenant_id: currentUser?.tenant_id
-        }
-        await customersAPI.create(customerWithTenant)
-        addToast('Cliente creado exitosamente', 'success')
-      }
-      setShowCustomerModal(false)
-      setEditingCustomer(null)
-      await loadCustomers()
-    } catch (error) {
-      addToast(error?.message || 'Error al guardar cliente', 'error')
-    }
-  }
-
-  const deleteCustomer = async (customerId) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar este cliente?')) return
-    try {
-      await customersAPI.delete(customerId)
-      addToast('Cliente eliminado exitosamente', 'success')
-      await loadCustomers()
-    } catch (error) {
-      addToast(error?.message || 'Error al eliminar cliente', 'error')
-    }
-  }
-
-  const handleEditCustomer = (customer) => {
-    setEditingCustomer(customer)
-    setShowCustomerModal(true)
-  }
-
-  const handleAddCustomer = () => {
-    setEditingCustomer(null)
-    setShowCustomerModal(true)
-  }
-
-  // ── Auth ──────────────────────────────────────────────────────────────────
-
-  const handleLogin = (user) => {
-    setCurrentUser(user)
-    setIsLoggedIn(true)
-    localStorage.setItem('invleo_logged_in', 'true')
-  }
-
-  const handleLogout = () => {
-    setCurrentUser(null)
-    setIsLoggedIn(false)
-    setProducts([])
-    setCategories([])
-    setSales([])
-    setUsers([])
-    setCustomers([])
-    setDashboardData({ todaySales: 0, todayProfit: 0, lowStockCount: 0, totalProducts: 0 })
-    clearSession()
   }
 
   // ── Derivados ─────────────────────────────────────────────────────────────
@@ -578,184 +394,92 @@ function App() {
 
   return (
     <>
-      <div className="app-container">
-        <aside className="sidebar">
-          <div className="sidebar-logo">
-            <div className="logo-icon">iL</div>
-            <div>
-              <div className="logo-text">invLeo</div>
-              <div className="logo-subtitle">Inventarios</div>
-            </div>
-          </div>
-          
-          <nav className="sidebar-nav">
-            <button className={`nav-item ${currentView === 'dashboard' ? 'active' : ''}`} onClick={() => setCurrentView('dashboard')}>
-              <LayoutDashboard />
-              Dashboard
-            </button>
-            <button className={`nav-item ${currentView === 'inventory' ? 'active' : ''}`} onClick={() => setCurrentView('inventory')}>
-              <Package />
-              Inventario
-            </button>
-            <button className={`nav-item ${currentView === 'sales' ? 'active' : ''}`} onClick={() => setCurrentView('sales')}>
-              <ShoppingCart />
-              Punto de Venta
-            </button>
-            <button className={`nav-item ${currentView === 'credit-accounts' ? 'active' : ''}`} onClick={() => setCurrentView('credit-accounts')}>
-              <User />
-              Cuentas por Cobrar
-            </button>
-            <button className={`nav-item ${currentView === 'reports' ? 'active' : ''}`} onClick={() => setCurrentView('reports')}>
-              <BarChart3 />
-              Reportes
-            </button>
-            {can(currentUser, 'canAccessSettings') && (
-
-              <button className={`nav-item ${currentView === 'settings' ? 'active' : ''}`} onClick={() => setCurrentView('settings')}>
-                <Settings />
-                Configuración
-              </button>
-            )}
-          </nav>
-
-          <div style={{ marginTop: 'auto', paddingTop: '20px' }}>
-            <button className="nav-item" onClick={() => window.open('/customer', '_blank')}>
-              <Eye />
-              Pantalla Cliente
-            </button>
-            <button className="nav-item" onClick={handleLogout}>
-
-              <LogOut />
-              Cerrar Sesión
-            </button>
-          </div>
-        </aside>
-
-        <main className="main-content">
-          <header className="header">
-            <div className="header-left">
-              <h1 className="header-title">
-                {currentView === 'dashboard' && 'Panel Principal'}
-                {currentView === 'inventory' && 'Gestión de Inventario'}
-                {currentView === 'sales' && 'Punto de Venta'}
-                {currentView === 'reports' && 'Reportes'}
-                {currentView === 'settings' && 'Configuración'}
-                {currentView === 'credit-accounts' && 'Cuentas por Cobrar'}
-              </h1>
-
-            </div>
-            
-            <div className="header-right">
-              <div className="search-box">
-                <Search />
-                <input 
-                  type="text" 
-                  placeholder="Buscar productos... (Ctrl+K)"
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                />
-              </div>
-              
-              <div className="header-actions">
-                <button className="icon-btn" onClick={loadInitialData}>
-                  <RefreshCw />
-                  {lowStockProducts.length > 0 && (
-                    <span className="badge">{lowStockProducts.length}</span>
-                  )}
-                </button>
-              </div>
-              
-              <div className="user-menu">
-                <div className="user-avatar">
-                  {currentUser?.name?.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() || 'US'}
-                </div>
-                <div className="user-info">
-                  <span className="user-name">{currentUser?.name || 'Usuario'}</span>
-                  <span style={{
-                    fontSize: '11px', fontWeight: 700,
-                    color: ROLE_LABELS[currentUser?.role]?.color || 'var(--text-secondary)',
-                    textTransform: 'uppercase', letterSpacing: '0.5px'
-                  }}>
-                    {ROLE_LABELS[currentUser?.role]?.label || currentUser?.role}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </header>
-
-          <div className="content-area">
-            {currentView === 'dashboard' && (
-              <DashboardView 
-                products={products}
-                sales={sales}
-                todaySales={dashboardData.todaySales}
-                todayProfit={dashboardData.todayProfit}
-                lowStockProducts={lowStockProducts}
-                onNavigate={setCurrentView}
-                loading={loading}
-              />
-            )}
-            
-            {currentView === 'inventory' && (
-              <InventoryView 
-                products={products}
-                categories={categories}
-                selectedCategory={selectedCategory}
-                onCategoryChange={setSelectedCategory}
-                onAddProduct={() => { setEditingProduct(null); setShowProductModal(true) }}
-                onEditProduct={p => { setEditingProduct(p); setShowProductModal(true) }}
-                onDeleteProduct={deleteProduct}
-                searchTerm={searchTerm}
-                onAddCategory={() => setShowCategoryModal(true)}
-                currentUser={currentUser}
-              />
-            )}
-            
-            {currentView === 'sales' && (
-              <SalesView
-                key={posKey}
-                products={filteredProducts}
-                cart={cart}
-                onAddToCart={handleAddToCart}
-                onUpdateQuantity={updateCartQuantity}
-                onRemoveItem={removeFromCart}
-                onCompleteSale={completeSale}
-                cartTotal={cartTotal}
-                categories={categories}
-                completingSale={completingSale}
-              />
-            )}
-            
-            {currentView === 'reports' && (
-              <ReportsView sales={sales} products={products} currentUser={currentUser} />
-            )}
-            
-                {currentView === 'settings' && (
-              <SettingsView
-                categories={categories}
-                onDeleteCategory={handleDeleteCategory}
-                onAddCategory={() => setShowCategoryModal(true)}
-                currentUser={currentUser}
-                users={users}
-                onAddUser={() => { setEditingUser(null); setShowUserModal(true) }}
-                onEditUser={handleEditUser}
-                onDeleteUser={deleteUser}
-                customers={customers}
-                onAddCustomer={handleAddCustomer}
-                onEditCustomer={handleEditCustomer}
-                onDeleteCustomer={deleteCustomer}
-              />
-            )}
-            
-            {currentView === 'credit-accounts' && (
-              <CreditAccountsView 
-                onUpdateCredit={handleUpdateCredit}
-              />
-            )}
-
-          </div>
-        </main>
-      </div>
+      <AppLayout
+        currentView={currentView}
+        setCurrentView={setCurrentView}
+        currentUser={currentUser}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        lowStockCount={lowStockProducts.length}
+        onRefresh={loadInitialData}
+        onLogout={handleLogout}
+      >
+        {currentView === 'dashboard' && (
+          <DashboardView 
+            products={products}
+            sales={sales}
+            todaySales={dashboardData.todaySales}
+            todayProfit={dashboardData.todayProfit}
+            lowStockProducts={lowStockProducts}
+            onNavigate={setCurrentView}
+            loading={loading}
+            currentUser={currentUser}
+          />
+        )}
+        
+        {currentView === 'inventory' && (
+          <InventoryView 
+            products={showInactiveProducts ? products : products.filter(p => p.is_active !== false)}
+            showInactiveProducts={showInactiveProducts}
+            setShowInactiveProducts={setShowInactiveProducts}
+            toggleProductStatus={toggleProductStatus}
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+            onAddProduct={() => { setEditingProduct(null); setShowProductModal(true) }}
+            onEditProduct={p => { setEditingProduct(p); setShowProductModal(true) }}
+            onDeleteProduct={deleteProduct}
+            searchTerm={searchTerm}
+            onAddCategory={() => setShowCategoryModal(true)}
+            onRegisterOutput={() => setShowOutputModal(true)}
+            currentUser={currentUser}
+          />
+        )}
+        
+        {currentView === 'sales' && (
+          <SalesView
+            key={posKey}
+            products={filteredProducts}
+            cart={cart}
+            onAddToCart={handleAddToCart}
+            onUpdateQuantity={updateCartQuantity}
+            onRemoveItem={removeFromCart}
+            onCompleteSale={completeSale}
+            cartTotal={cartTotal}
+            categories={categories}
+            completingSale={completingSale}
+          />
+        )}
+        
+        {currentView === 'reports' && (
+          <ReportsView sales={sales} products={products} currentUser={currentUser} />
+        )}
+        
+        {currentView === 'settings' && (
+          <SettingsView
+            categories={categories}
+            onDeleteCategory={handleDeleteCategory}
+            onAddCategory={() => setShowCategoryModal(true)}
+            currentUser={currentUser}
+            users={users}
+            onAddUser={() => { setEditingUser(null); setShowUserModal(true) }}
+            onEditUser={handleEditUser}
+            onToggleUserStatus={toggleUserStatus}
+            customers={customers}
+            onAddCustomer={handleAddCustomer}
+            onEditCustomer={handleEditCustomer}
+            onDeleteCustomer={deleteCustomer}
+            businessData={businessData}
+            onUpdateBusiness={loadBusinessData}
+          />
+        )}
+        
+        {currentView === 'credit-accounts' && (
+          <CreditAccountsView 
+            onUpdateCredit={handleUpdateCredit}
+          />
+        )}
+      </AppLayout>
 
       {/* Modales de inventario */}
       {showProductModal && (
@@ -862,6 +586,15 @@ function App() {
           products={products}
           onClose={() => setShowMonthlyReport(false)}
           onGenerateReport={handleGenerateMonthlyReport}
+        />
+      )}
+
+      {/* Modal de salidas de inventario */}
+      {showOutputModal && (
+        <OutputModal
+          products={products}
+          onSave={handleRegisterOutput}
+          onClose={() => setShowOutputModal(false)}
         />
       )}
     </>

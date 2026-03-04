@@ -142,6 +142,17 @@ export const inventoryAPI = {
     method: 'POST',
     body: JSON.stringify(data),
   }),
+
+  // Registrar salidas de inventario (vencidos, dañados, devueltos)
+  createOutput: (data) => apiRequest('/inventory/adjust', {
+    method: 'POST',
+    body: JSON.stringify({
+      product_id: data.product_id,
+      quantity: data.quantity,
+      type: data.output_type === 'return' ? 'return' : 'waste',
+      reason: data.notes || data.reason || ''
+    }),
+  }),
 };
 
 // API Ventas
@@ -187,6 +198,11 @@ export const reportsAPI = {
   getTopProducts: () => apiRequest('/reports/top-products'),
   
   getLowStock: () => apiRequest('/reports/low-stock'),
+  
+  getLowRotation: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiRequest(`/reports/low-rotation${query ? `?${query}` : ''}`);
+  },
 };
 
 // API Usuarios

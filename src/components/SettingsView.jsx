@@ -1,8 +1,47 @@
-import { Settings, Users, User, Edit, Trash2, Plus, Save, Download, Upload, X, Package2, Phone, Mail } from 'lucide-react'
+import { Settings, Users, User, Edit, Trash2, Plus, Save, Download, Upload, X, Package2, Phone, Mail, Ban, CheckCircle } from 'lucide-react'
 import { can, ROLE_LABELS } from '../utils/permissions'
 
-function SettingsView({ categories, onDeleteCategory, onAddCategory, currentUser, users, onAddUser, onEditUser, onDeleteUser, customers, onAddCustomer, onEditCustomer, onDeleteCustomer }) {
+function SettingsView({ categories, onDeleteCategory, onAddCategory, currentUser, users, onAddUser, onEditUser, onToggleUserStatus, customers, onAddCustomer, onEditCustomer, onDeleteCustomer, businessData, onUpdateBusiness }) {
   const canManageUsers = can(currentUser, 'canManageUsers')
+  
+  // Función helper para obtener datos del negocio desde múltiples fuentes
+  const getBusinessInfo = () => {
+    // 1. businessData pasado como prop (del tenant API en App.jsx)
+    if (businessData?.name) {
+      return {
+        name: businessData.name,
+        address: businessData.address,
+        phone: businessData.phone
+      }
+    }
+    
+    // 2. currentUser.tenant (datos del tenant incluidos en el usuario desde auth/me)
+    if (currentUser?.tenant?.name) {
+      return {
+        name: currentUser.tenant.name,
+        address: currentUser.tenant.address,
+        phone: currentUser.tenant.phone
+      }
+    }
+    
+    // 3. currentUser directo (para backward compatibility - campos directos en el usuario)
+    if (currentUser?.business_name) {
+      return {
+        name: currentUser.business_name,
+        address: currentUser.business_address,
+        phone: currentUser.business_phone
+      }
+    }
+    
+    // Valores por defecto
+    return null
+  }
+  
+  // Obtener los datos del negocio
+  const businessInfo = getBusinessInfo()
+  const businessName = businessInfo?.name || 'Mi Negocio'
+  const businessAddress = businessInfo?.address || 'Sin dirección'
+  const businessPhone = businessInfo?.phone || 'Sin teléfono'
 
 
   if (!can(currentUser, 'canAccessSettings')) {
@@ -26,15 +65,23 @@ function SettingsView({ categories, onDeleteCategory, onAddCategory, currentUser
           </div>
           <div className="form-group">
             <label className="form-label">Nombre del Negocio</label>
-            <input type="text" className="form-input" defaultValue="Salsamentaría invLeo" />
+            <input type="text" className="form-input" defaultValue={businessName} />
           </div>
           <div className="form-group">
             <label className="form-label">Dirección</label>
-            <input type="text" className="form-input" defaultValue="Calle Principal #123" />
+            <input type="text" className="form-input" defaultValue={businessAddress} />
           </div>
           <div className="form-group">
             <label className="form-label">Teléfono</label>
-            <input type="text" className="form-input" defaultValue="+57 300 123 4567" />
+            <input type="text" className="form-input" defaultValue={businessPhone} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Usuario</label>
+            <input type="text" className="form-input" defaultValue={currentUser?.name || 'Usuario'} disabled style={{ opacity: 0.7 }} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Email</label>
+            <input type="text" className="form-input" defaultValue={currentUser?.email || 'Sin email'} disabled style={{ opacity: 0.7 }} />
           </div>
           <button className="btn btn-primary">
             <Save size={18} />
@@ -164,11 +211,11 @@ function SettingsView({ categories, onDeleteCategory, onAddCategory, currentUser
               Nuevo Usuario
             </button>
           </div>
-          {users.length === 0 ? (
+          {users.filter(user => user.id !== currentUser.id).length === 0 ? (
             <div className="empty-state" style={{ padding: '40px' }}>
               <Users size={48} />
               <h4>Sin usuarios</h4>
-              <p>No hay usuarios registrados aún</p>
+              <p>No hay otros usuarios registrados aún</p>
             </div>
           ) : (
             <div className="table-container">
@@ -184,7 +231,7 @@ function SettingsView({ categories, onDeleteCategory, onAddCategory, currentUser
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map(user => (
+                  {users.filter(user => user.id !== currentUser.id).map(user => (
                     <tr key={user.id}>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -244,11 +291,12 @@ function SettingsView({ categories, onDeleteCategory, onAddCategory, currentUser
                           </button>
                           {user.id !== currentUser.id && (
                             <button 
-                              className="btn btn-danger btn-sm" 
-                              onClick={() => onDeleteUser(user.id)}
-                              title="Eliminar usuario"
+                              className={`btn btn-sm ${user.is_active ? 'btn-danger' : 'btn-success'}`}
+                              onClick={() => onToggleUserStatus(user.id, user.is_active)}
+                              title={user.is_active ? 'Desactivar usuario' : 'Activar usuario'}
+                              style={user.is_active ? {} : { background: '#10b981', borderColor: '#10b981' }}
                             >
-                              <Trash2 size={14} />
+                              {user.is_active ? <Ban size={14} /> : <CheckCircle size={14} />}
                             </button>
                           )}
                         </div>

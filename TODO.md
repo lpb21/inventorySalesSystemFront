@@ -1,24 +1,20 @@
-# TODO - Gestión de Usuarios
+# TODO - Reporte de Productos con Menor Rotación
 
-## Plan de Implementación
+## Tareas:
+- [x] 1. Agregar endpoint `getLowRotation` en src/api/config_new.js
+- [x] 2. Modificar ReportsView.jsx para consumir el endpoint y mostrar los datos
 
-- [x] 1. Agregar estado `users` y función `loadUsers()` en App.jsx
-- [x] 2. Importar `usersAPI` de config.js
-- [x] 3. Agregar estado para modal de usuarios (`showUserModal`)
-- [x] 4. Agregar función `saveUser` para crear nuevos usuarios
-- [x] 5. Modificar `SettingsView` para incluir sección de gestión de usuarios
-- [x] 6. Crear componente `UserModal` para el formulario de usuario
-- [x] 7. Agregar permisos `canManageUsers` para admin y owner
+## Estado: Completado ✅
 
-## Funcionalidades Implementadas
+---
 
-1. **Nueva sección "Gestión de Usuarios"** en Configuración (solo visible para admin/owner)
-2. **Lista de usuarios** con información de nombre, email, rol, estado y fecha de creación
-3. **Botón "Nuevo Usuario"** que abre un modal
-4. **Modal de usuario** con formulario que incluye:
-   - Nombre completo
-   - Correo electrónico
-   - Contraseña
-   - Rol (Cajero, Supervisor, Administrador, Propietario)
-   - Checkbox de usuario activo
-5. **Integración con endpoint** `POST /v1/users` del backend
+# TODO - Eliminación de Productos
+
+## Tareas:
+- [x] 1. Modificar deleteProduct en App.jsx para mostrar modal de confirmación
+- [x] 2. Manejar respuesta de error cuando el producto tiene stock
+
+## Estado: Completado ✅
+
+
+
