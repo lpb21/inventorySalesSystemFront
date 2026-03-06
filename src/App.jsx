@@ -371,9 +371,16 @@ function App() {
 
   const handleToggleCategoryStatus = async (category) => {
     try {
-      await categoriesAPI.toggleStatus(category.id)
-      addToast(category.is_active ? 'Categoría desactivada' : 'Categoría activada', 'success')
-      // Use the appropriate load function based on current view state
+      if (category.is_active === false) {
+        // Reactivar: PUT con is_active: true
+        await categoriesAPI.reactivate(category.id)
+        addToast('Categoría activada', 'success')
+      } else {
+        // Desactivar: DELETE (soft delete)
+        await categoriesAPI.deactivate(category.id)
+        addToast('Categoría desactivada', 'success')
+      }
+      // Recargar según el estado actual de visualización
       if (showInactiveCategories) {
         await loadAllCategories()
       } else {
@@ -381,7 +388,7 @@ function App() {
       }
     } catch (error) {
       const errorData = error?.response?.data
-      const msg = errorData?.error?.message || errorData?.message || error?.message || 'Error al eliminar categoría'
+      const msg = errorData?.error?.message || errorData?.message || error?.message || 'Error al cambiar estado de categoría'
       addToast(msg, 'error')
     }
   }
@@ -396,17 +403,7 @@ function App() {
     }
   }
 
-  const handleDeleteCategory = async (cat) => {
-    try {
-      await categoriesAPI.delete(cat.id)
-      addToast('Categoría eliminada', 'warning')
-      await loadCategories()
-    } catch (error) {
-      const errorData = error?.response?.data
-      const msg = errorData?.error?.message || errorData?.message || error?.message || 'Error al eliminar categoría'
-      addToast(msg, 'error')
-    }
-  }
+
 
   // ── Salidas de inventario ─────────────────────────────────────────────────
 
@@ -525,7 +522,6 @@ function App() {
         {currentView === 'settings' && (
           <SettingsView
             categories={categories}
-            onDeleteCategory={handleDeleteCategory}
             onAddCategory={() => setShowCategoryModal(true)}
             onToggleCategoryStatus={handleToggleCategoryStatus}
             onToggleShowInactiveCategories={handleToggleShowInactiveCategories}

@@ -1,11 +1,10 @@
 import { useState } from 'react'
-import { Settings, Users, User, Edit, Trash2, Plus, Save, Download, Upload, X, Package2, Phone, Mail, Ban, CheckCircle, AlertTriangle, Eye, EyeOff } from 'lucide-react'
+import { Settings, Users, User, Edit, Trash2, Plus, Save, Download, Upload, Package2, Phone, Mail, Ban, CheckCircle, AlertTriangle, Eye, EyeOff } from 'lucide-react'
 import { can, ROLE_LABELS } from '../utils/permissions'
 import ImportModal from './ImportModal'
 
 function SettingsView({ 
   categories, 
-  onDeleteCategory, 
   onAddCategory, 
   onToggleCategoryStatus,
   onToggleShowInactiveCategories,
@@ -380,46 +379,26 @@ function SettingsView({
                 {cat.is_active === false && (
                   <span style={{ fontSize: '10px', color: 'var(--danger)', fontWeight: 'bold' }}>INACTIVA</span>
                 )}
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  {onToggleCategoryStatus && (
-                    <button
-                      onClick={() => onToggleCategoryStatus(cat)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: cat.is_active === false ? 'var(--success)' : 'var(--text-secondary)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        padding: '2px',
-                        borderRadius: '4px',
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.color = cat.is_active === false ? 'var(--success)' : 'var(--danger)'}
-                      onMouseLeave={e => e.currentTarget.style.color = cat.is_active === false ? 'var(--success)' : 'var(--text-secondary)'}
-                      title={cat.is_active === false ? `Activar categoría ${cat.name}` : `Desactivar categoría ${cat.name}`}
-                    >
-                      {cat.is_active === false ? <CheckCircle size={14} /> : <Ban size={14} />}
-                    </button>
-                  )}
+                {onToggleCategoryStatus && (
                   <button
-                    onClick={() => onDeleteCategory(cat)}
+                    onClick={() => onToggleCategoryStatus(cat)}
                     style={{
                       background: 'none',
                       border: 'none',
                       cursor: 'pointer',
-                      color: 'var(--text-secondary)',
+                      color: cat.is_active === false ? 'var(--success)' : 'var(--text-secondary)',
                       display: 'flex',
                       alignItems: 'center',
                       padding: '2px',
                       borderRadius: '4px',
                     }}
-                    onMouseEnter={e => e.currentTarget.style.color = 'var(--danger)'}
-                    onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
-                    title={`Eliminar categoría ${cat.name}`}
+                    onMouseEnter={e => e.currentTarget.style.color = cat.is_active === false ? 'var(--success)' : 'var(--danger)'}
+                    onMouseLeave={e => e.currentTarget.style.color = cat.is_active === false ? 'var(--success)' : 'var(--text-secondary)'}
+                    title={cat.is_active === false ? `Activar categoría ${cat.name}` : `Desactivar categoría ${cat.name}`}
                   >
-                    <X size={14} />
+                    {cat.is_active === false ? <CheckCircle size={14} /> : <Ban size={14} />}
                   </button>
-                </div>
+                )}
               </div>
             ))}
           </div>

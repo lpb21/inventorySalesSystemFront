@@ -155,7 +155,7 @@ export const productsAPI = {
 
 // API Categorías
 export const categoriesAPI = {
-  getAll: () => apiRequest('/categories'),
+  getAll: () => apiRequest('/categories?include_inactive=false'),
   
   getAllWithInactive: () => apiRequest('/categories?include_inactive=true'),
   
@@ -175,8 +175,13 @@ export const categoriesAPI = {
     method: 'DELETE',
   }),
   
-  toggleStatus: (id) => apiRequest(`/categories/${id}/toggle-status`, {
+  deactivate: (id) => apiRequest(`/categories/${id}`, {
+    method: 'DELETE',
+  }),
+  
+  reactivate: (id) => apiRequest(`/categories/${id}`, {
     method: 'PUT',
+    body: JSON.stringify({ is_active: true }),
   }),
 };
 
