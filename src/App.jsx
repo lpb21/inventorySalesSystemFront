@@ -545,6 +545,7 @@ function App() {
           <SettingsView
             categories={categories}
             onAddCategory={() => setShowCategoryModal(true)}
+            onEditCategory={handleEditCategory}
             onToggleCategoryStatus={handleToggleCategoryStatus}
             onToggleShowInactiveCategories={handleToggleShowInactiveCategories}
             showInactiveCategories={showInactiveCategories}
