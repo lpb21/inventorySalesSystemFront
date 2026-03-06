@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { X, DollarSign, User, ShoppingCart, History, CreditCard, AlertCircle } from 'lucide-react'
-import { customersAPI } from '../api/config'
+import { customersAPI, ApiNormalizers } from '../api/config'
 
 function CreditModal({ customers, onClose, onUpdateCredit }) {
   const [customersWithCredit, setCustomersWithCredit] = useState([])
@@ -21,8 +21,16 @@ function CreditModal({ customers, onClose, onUpdateCredit }) {
       setLoading(true)
       setError(null)
       const response = await customersAPI.getWithCredit()
-      const list = response.data?.customers || response.data || response
-      setCustomersWithCredit(Array.isArray(list) ? list : [])
+      // normalizeList ya maneja body.data || body y busca claves comunes
+      const rawList = ApiNormalizers.normalizeList(response, ['customers'])
+      
+      // Normalizar cada objeto cliente para asegurar que tenga credit_balance
+      const list = rawList.map(c => ({
+        ...c,
+        credit_balance: c.credit_balance ?? c.total_credit ?? c.balance ?? 0
+      }))
+      
+      setCustomersWithCredit(list)
 
     } catch (err) {
       console.error('Error cargando clientes con crédito:', err)
@@ -42,9 +50,25 @@ function CreditModal({ customers, onClose, onUpdateCredit }) {
         customersAPI.getCreditSales(customerId)
       ])
       
+      const rawBalance = balanceRes.balance || balanceRes.data || balanceRes
+      const creditVal = rawBalance.credit_balance ?? rawBalance.total_credit ?? rawBalance.balance?.credit_balance ?? 0
+      const limitVal = rawBalance.credit_limit ?? rawBalance.balance?.credit_limit ?? 0
+      
+      const normalizedBalance = {
+        credit_balance: creditVal,
+        total_credit: creditVal, // Para compatibilidad con JSX que usa total_credit
+        credit_limit: limitVal,
+        available_credit: rawBalance.available_credit ?? 0
+      }
+      
+      // Asegurar que available_credit tenga valor si no vino del backend
+      if (normalizedBalance.available_credit === 0 && (normalizedBalance.credit_limit > 0)) {
+        normalizedBalance.available_credit = normalizedBalance.credit_limit - normalizedBalance.credit_balance
+      }
+
       setCustomerDetails({
-        balance: balanceRes.data || balanceRes,
-        sales: salesRes.data || salesRes
+        balance: normalizedBalance,
+        sales: ApiNormalizers.normalizeList(salesRes, ['sales'])
       })
     } catch (err) {
       console.error('Error cargando detalles del cliente:', err)
@@ -94,7 +118,8 @@ function CreditModal({ customers, onClose, onUpdateCredit }) {
   const handlePayAll = async () => {
     if (!selectedCustomer || !customerDetails) return
     
-    const totalDebt = customerDetails.balance?.total_credit || 0
+    const balance = customerDetails.balance
+    const totalDebt = balance?.credit_balance ?? balance?.total_credit ?? balance?.balance?.credit_balance ?? 0
     if (totalDebt <= 0) {
       alert('El cliente no tiene deuda pendiente')
       return
