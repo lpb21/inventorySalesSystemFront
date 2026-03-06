@@ -1,0 +1,7 @@
+name,description,sku,barcode,category,price,cost,stock,min_stock,unit,type,expiry_date
+"Arroz Diana 500g","Arroz blanco premium","ARZ001","789123456001","Granos",2500,1800,50,10,"und","unit","2025-12-31"
+"Jamón de Pierna","Jamón de cerdo procesado","JAM001","7701234567890","Carnes Frías",25000,18000,30,5,"kg","weight","2025-11-30"
+"Queso Mozzarella","Queso mozzarella italiano","QMO001","7701234567891","Quesos",28000,20000,25,10,"kg","weight","2025-09-30"
+"Salchicha Vienesa","Salchicha tipo vienesa","SAL001","7701234567892","Embutidos",15000,10000,50,15,"kg","weight","2025-06-30"
+"Pollo Entero","Pollo entero de mercado","POL001",,"Pollos",18000,14000,40,10,"unit","unit",
+

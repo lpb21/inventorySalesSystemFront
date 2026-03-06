@@ -1,8 +1,30 @@
-import { Settings, Users, User, Edit, Trash2, Plus, Save, Download, Upload, X, Package2, Phone, Mail, Ban, CheckCircle } from 'lucide-react'
+import { useState } from 'react'
+import { Settings, Users, User, Edit, Trash2, Plus, Save, Download, Upload, X, Package2, Phone, Mail, Ban, CheckCircle, AlertTriangle, Eye, EyeOff } from 'lucide-react'
 import { can, ROLE_LABELS } from '../utils/permissions'
+import ImportModal from './ImportModal'
 
-function SettingsView({ categories, onDeleteCategory, onAddCategory, currentUser, users, onAddUser, onEditUser, onToggleUserStatus, customers, onAddCustomer, onEditCustomer, onDeleteCustomer, businessData, onUpdateBusiness }) {
+function SettingsView({ 
+  categories, 
+  onDeleteCategory, 
+  onAddCategory, 
+  onToggleCategoryStatus,
+  onToggleShowInactiveCategories,
+  showInactiveCategories,
+  currentUser, 
+  users, 
+  onAddUser, 
+  onEditUser, 
+  onToggleUserStatus, 
+  customers, 
+  onAddCustomer, 
+  onEditCustomer, 
+  onDeleteCustomer, 
+  businessData, 
+  onUpdateBusiness, 
+  onRefreshProducts 
+}) {
   const canManageUsers = can(currentUser, 'canManageUsers')
+  const [showImportModal, setShowImportModal] = useState(false)
   
   // Función helper para obtener datos del negocio desde múltiples fuentes
   const getBusinessInfo = () => {
@@ -98,9 +120,9 @@ function SettingsView({ categories, onDeleteCategory, onAddCategory, currentUser
               <Download size={18} />
               Exportar Datos (JSON)
             </button>
-            <button className="btn btn-secondary" style={{ justifyContent: 'flex-start' }}>
+            <button className="btn btn-secondary" style={{ justifyContent: 'flex-start' }} onClick={() => setShowImportModal(true)}>
               <Upload size={18} />
-              Importar Datos
+              Importar Productos CSV
             </button>
           </div>
         </div>
@@ -312,53 +334,107 @@ function SettingsView({ categories, onDeleteCategory, onAddCategory, currentUser
 
 
       <div className="card" style={{ marginTop: '24px' }}>
-        <div className="card-header">
+        <div className="card-header" style={{ justifyContent: 'space-between' }}>
           <h3 className="card-title">Categorías de Productos</h3>
-          <button className="btn btn-primary btn-sm" onClick={onAddCategory}>
-            <Plus size={16} />
-            Nueva Categoría
-          </button>
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', padding: '8px 0' }}>
-          {categories.map(cat => (
-            <div
-              key={cat.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                background: 'var(--background)',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-                padding: '8px 14px',
-                fontSize: '14px',
-                fontWeight: 500
-              }}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button 
+              className="btn btn-secondary btn-sm" 
+              onClick={onToggleShowInactiveCategories}
             >
-              <Package2 size={16} style={{ color: 'var(--accent)' }} />
-              {cat.name}
-              <button
-                onClick={() => onDeleteCategory(cat)}
+              {showInactiveCategories ? <EyeOff size={16} /> : <Eye size={16} />}
+              {showInactiveCategories ? 'Ocultar Inactivas' : 'Categorías Inactivas'}
+            </button>
+            <button className="btn btn-primary btn-sm" onClick={onAddCategory}>
+              <Plus size={16} />
+              Nueva Categoría
+            </button>
+          </div>
+        </div>
+        {categories.length === 0 ? (
+          <div className="empty-state" style={{ padding: '40px' }}>
+            <Package2 size={48} style={{ opacity: 0.3 }} />
+            <h4>Sin categorías</h4>
+            <p>No hay categorías creadas aún</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', padding: '8px 0' }}>
+            {categories.map(cat => (
+              <div
+                key={cat.id}
                 style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--text-secondary)',
                   display: 'flex',
                   alignItems: 'center',
-                  padding: '2px',
-                  borderRadius: '4px',
+                  gap: '8px',
+                  background: cat.is_active === false ? 'rgba(233, 69, 96, 0.1)' : 'var(--background)',
+                  border: '1px solid',
+                  borderColor: cat.is_active === false ? 'var(--danger)' : 'var(--border)',
+                  borderRadius: '8px',
+                  padding: '8px 14px',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  opacity: cat.is_active === false ? 0.7 : 1
                 }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--danger)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
-                title={`Eliminar categoría ${cat.name}`}
               >
-                <X size={14} />
-              </button>
-            </div>
-          ))}
-        </div>
+                <Package2 size={16} style={{ color: cat.is_active === false ? 'var(--danger)' : 'var(--accent)' }} />
+                {cat.name}
+                {cat.is_active === false && (
+                  <span style={{ fontSize: '10px', color: 'var(--danger)', fontWeight: 'bold' }}>INACTIVA</span>
+                )}
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {onToggleCategoryStatus && (
+                    <button
+                      onClick={() => onToggleCategoryStatus(cat)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: cat.is_active === false ? 'var(--success)' : 'var(--text-secondary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '2px',
+                        borderRadius: '4px',
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.color = cat.is_active === false ? 'var(--success)' : 'var(--danger)'}
+                      onMouseLeave={e => e.currentTarget.style.color = cat.is_active === false ? 'var(--success)' : 'var(--text-secondary)'}
+                      title={cat.is_active === false ? `Activar categoría ${cat.name}` : `Desactivar categoría ${cat.name}`}
+                    >
+                      {cat.is_active === false ? <CheckCircle size={14} /> : <Ban size={14} />}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => onDeleteCategory(cat)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--text-secondary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '2px',
+                      borderRadius: '4px',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.color = 'var(--danger)'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+                    title={`Eliminar categoría ${cat.name}`}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Modal de importación de productos */}
+      {showImportModal && (
+        <ImportModal 
+          onClose={() => setShowImportModal(false)} 
+          onImportComplete={() => {
+            if (onRefreshProducts) onRefreshProducts()
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -3,7 +3,7 @@ import { AlertTriangle, X, Check } from 'lucide-react'
 import Login from './Login'
 import { 
   productsAPI, categoriesAPI, salesAPI, reportsAPI, 
-  authAPI, usersAPI, customersAPI, inventoryAPI, tenantAPI, getToken, getUser, setUser, clearSession
+  authAPI, usersAPI, customersAPI, inventoryAPI, tenantAPI, getToken, getUser, setUser, clearSession, ApiNormalizers
 } from './api/config'
 
 import { can } from './utils/permissions'
@@ -12,6 +12,7 @@ import { useSales } from './hooks/useSales'
 import { useProducts } from './hooks/useProducts'
 import { useUsers } from './hooks/useUsers'
 import { useCustomers } from './hooks/useCustomers'
+import { useToasts } from './hooks/useToasts'
 
 import AppLayout         from './components/AppLayout'
 import DashboardView     from './components/DashboardView'
@@ -44,7 +45,6 @@ function App() {
   const [showProductModal, setShowProductModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
   const [showCustomerDisplay, setShowCustomerDisplay] = useState(false)
-  const [toasts, setToasts] = useState([])
   const [sales, setSales] = useState([])
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -69,6 +69,9 @@ function App() {
   // Estado para mostrar/ocultar productos inactivos en inventario
   const [showInactiveProducts, setShowInactiveProducts] = useState(false)
 
+  // Estado para mostrar/ocultar categorías inactivas en configuración
+  const [showInactiveCategories, setShowInactiveCategories] = useState(false)
+
   // Estado para salidas de inventario
   const [showOutputModal, setShowOutputModal] = useState(false)
 
@@ -84,12 +87,16 @@ function App() {
   })
 
   // ── Notificaciones (toasts) ───────────────────────────────────────────────
+  const { toasts, addToast, removeToast } = useToasts()
 
-  function addToast(message, type = 'success') {
-    const id = Date.now()
-    setToasts(prev => [...prev, { id, message, type }])
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000)
-  }
+  // ── Estados de carga / error por recurso ───────────────────────────────────
+
+  const [productsStatus, setProductsStatus] = useState({ loading: false, error: null })
+  const [categoriesStatus, setCategoriesStatus] = useState({ loading: false, error: null })
+  const [salesStatus, setSalesStatus] = useState({ loading: false, error: null })
+  const [usersStatus, setUsersStatus] = useState({ loading: false, error: null })
+  const [customersStatus, setCustomersStatus] = useState({ loading: false, error: null })
+  const [dashboardStatus, setDashboardStatus] = useState({ loading: false, error: null })
 
   // ── Hook para el carrito ──────────────────────────────────────────────────
 
@@ -98,56 +105,79 @@ function App() {
   // ── Funciones de carga de datos ───────────────────────────────────────────
 
   async function loadProducts() {
+    setProductsStatus(prev => ({ ...prev, loading: true, error: null }))
     try {
       const response = await productsAPI.getAll({ limit: 100 })
-      let data = response.data ?? response
-      if (!Array.isArray(data)) data = data.products || data.items || []
+      const data = ApiNormalizers.normalizeList(response, ['products'])
       setProducts(
-        Array.isArray(data)
-          ? data.map(p => ({
-              ...p,
-              price:     Number(p.price)     || 0,
-              cost:      Number(p.cost)      || 0,
-              stock:     Number(p.stock)     || 0,
-              min_stock: Number(p.min_stock) || 0,
-              unit:      p.unit || 'und'
-            }))
-          : []
+        data.map(p => ({
+          ...p,
+          price:     Number(p.price)     || 0,
+          cost:      Number(p.cost)      || 0,
+          stock:     Number(p.stock)     || 0,
+          min_stock: Number(p.min_stock) || 0,
+          unit:      p.unit || 'und'
+        }))
       )
+      setProductsStatus(prev => ({ ...prev, loading: false }))
     } catch (error) {
       console.error('Error cargando productos:', error)
       setProducts([])
+      setProductsStatus({ loading: false, error })
+      addToast('Error al cargar productos', 'error')
     }
   }
 
   async function loadCategories() {
+    setCategoriesStatus(prev => ({ ...prev, loading: true, error: null }))
     try {
       const response = await categoriesAPI.getAll()
-      let list = response.data ?? response
-      if (!Array.isArray(list)) list = list.categories || list.items || list.data || []
-      setCategories(Array.isArray(list) ? list : [])
+      const list = ApiNormalizers.normalizeList(response, ['categories', 'data'])
+      setCategories(list)
+      setCategoriesStatus(prev => ({ ...prev, loading: false }))
     } catch (error) {
       console.error('Error cargando categorías:', error)
       setCategories([])
+      setCategoriesStatus({ loading: false, error })
+      addToast('Error al cargar categorías', 'error')
+    }
+  }
+
+  async function loadAllCategories() {
+    setCategoriesStatus(prev => ({ ...prev, loading: true, error: null }))
+    try {
+      const response = await categoriesAPI.getAllWithInactive()
+      const list = ApiNormalizers.normalizeList(response, ['categories', 'data'])
+      setCategories(list)
+      setCategoriesStatus(prev => ({ ...prev, loading: false }))
+    } catch (error) {
+      console.error('Error cargando categorías:', error)
+      setCategories([])
+      setCategoriesStatus({ loading: false, error })
+      addToast('Error al cargar categorías', 'error')
     }
   }
 
   async function loadSales() {
+    setSalesStatus(prev => ({ ...prev, loading: true, error: null }))
     try {
       const response = await salesAPI.getAll()
-      let list = response.data ?? response
-      if (!Array.isArray(list)) list = list.sales || list.items || []
-      setSales(Array.isArray(list) ? list : [])
+      const list = ApiNormalizers.normalizeList(response, ['sales'])
+      setSales(list)
+      setSalesStatus(prev => ({ ...prev, loading: false }))
     } catch (error) {
       console.error('Error cargando ventas:', error)
       setSales([])
+      setSalesStatus({ loading: false, error })
+      addToast('Error al cargar ventas', 'error')
     }
   }
 
   async function loadDashboard() {
+    setDashboardStatus(prev => ({ ...prev, loading: true, error: null }))
     try {
       const response = await reportsAPI.getDashboard()
-      const d = response.data || response
+      const d = ApiNormalizers.normalizeSuccessResponse(response)
       const summary = d.summary || d
       setDashboardData({
         todaySales:    Number(summary.todayRevenue)  || 0,
@@ -155,32 +185,41 @@ function App() {
         lowStockCount: Number(summary.lowStockCount) || 0,
         totalProducts: Number(summary.totalProducts) || 0
       })
+      setDashboardStatus(prev => ({ ...prev, loading: false }))
     } catch (error) {
       console.error('Error cargando dashboard:', error)
+      setDashboardStatus({ loading: false, error })
+      addToast('Error al cargar dashboard', 'error')
     }
   }
 
   async function loadUsers() {
+    setUsersStatus(prev => ({ ...prev, loading: true, error: null }))
     try {
       const response = await usersAPI.getAll()
-      let usersData = response.data ?? response
-      if (!Array.isArray(usersData)) usersData = usersData.users || usersData.items || []
-      setUsers(Array.isArray(usersData) ? usersData : [])
+      const usersData = ApiNormalizers.normalizeList(response, ['users'])
+      setUsers(usersData)
+      setUsersStatus(prev => ({ ...prev, loading: false }))
     } catch (error) {
       console.error('Error cargando usuarios:', error)
       setUsers([])
+      setUsersStatus({ loading: false, error })
+      addToast('Error al cargar usuarios', 'error')
     }
   }
 
   async function loadCustomers() {
+    setCustomersStatus(prev => ({ ...prev, loading: true, error: null }))
     try {
       const response = await customersAPI.getAll()
-      let list = response.data ?? response
-      if (!Array.isArray(list)) list = list.customers || list.items || []
-      setCustomers(Array.isArray(list) ? list : [])
+      const list = ApiNormalizers.normalizeList(response, ['customers'])
+      setCustomers(list)
+      setCustomersStatus(prev => ({ ...prev, loading: false }))
     } catch (error) {
       console.error('Error cargando clientes:', error)
       setCustomers([])
+      setCustomersStatus({ loading: false, error })
+      addToast('Error al cargar clientes', 'error')
     }
   }
 
@@ -197,16 +236,13 @@ function App() {
   }
 
   const loadInitialData = async () => {
-    setLoading(true)
     try {
       const fns = [loadProducts(), loadCategories(), loadSales(), loadDashboard(), loadCustomers(), loadBusinessData()]
       if (can(currentUser, 'canManageUsers')) fns.push(loadUsers())
       await Promise.all(fns)
     } catch (error) {
-      console.error('Error cargando datos:', error)
-      addToast('Error al cargar datos', 'error')
-    } finally {
-      setLoading(false)
+      console.error('Error cargando datos iniciales:', error)
+      addToast('Error al cargar datos iniciales', 'error')
     }
   }
 
@@ -318,14 +354,45 @@ function App() {
 
   // ── Categorías ────────────────────────────────────────────────────────────
 
-  const handleSaveCategory = async (name) => {
+  const handleSaveCategory = async (categoryData) => {
     try {
-      await categoriesAPI.create({ name })
+      await categoriesAPI.create({
+        name: categoryData.name,
+        description: categoryData.description || '',
+        icon: categoryData.icon || 'package'
+      })
       addToast('Categoría creada', 'success')
       setShowCategoryModal(false)
       await loadCategories()
     } catch (error) {
       addToast('Error al crear categoría', 'error')
+    }
+  }
+
+  const handleToggleCategoryStatus = async (category) => {
+    try {
+      await categoriesAPI.toggleStatus(category.id)
+      addToast(category.is_active ? 'Categoría desactivada' : 'Categoría activada', 'success')
+      // Use the appropriate load function based on current view state
+      if (showInactiveCategories) {
+        await loadAllCategories()
+      } else {
+        await loadCategories()
+      }
+    } catch (error) {
+      const errorData = error?.response?.data
+      const msg = errorData?.error?.message || errorData?.message || error?.message || 'Error al eliminar categoría'
+      addToast(msg, 'error')
+    }
+  }
+
+  const handleToggleShowInactiveCategories = async () => {
+    const newState = !showInactiveCategories
+    setShowInactiveCategories(newState)
+    if (newState) {
+      await loadAllCategories()
+    } else {
+      await loadCategories()
     }
   }
 
@@ -412,7 +479,7 @@ function App() {
             todayProfit={dashboardData.todayProfit}
             lowStockProducts={lowStockProducts}
             onNavigate={setCurrentView}
-            loading={loading}
+            loading={dashboardStatus.loading || productsStatus.loading || salesStatus.loading}
             currentUser={currentUser}
           />
         )}
@@ -460,6 +527,9 @@ function App() {
             categories={categories}
             onDeleteCategory={handleDeleteCategory}
             onAddCategory={() => setShowCategoryModal(true)}
+            onToggleCategoryStatus={handleToggleCategoryStatus}
+            onToggleShowInactiveCategories={handleToggleShowInactiveCategories}
+            showInactiveCategories={showInactiveCategories}
             currentUser={currentUser}
             users={users}
             onAddUser={() => { setEditingUser(null); setShowUserModal(true) }}
@@ -471,6 +541,7 @@ function App() {
             onDeleteCustomer={deleteCustomer}
             businessData={businessData}
             onUpdateBusiness={loadBusinessData}
+            onRefreshProducts={loadProducts}
           />
         )}
         
@@ -554,7 +625,27 @@ function App() {
             {toast.type === 'success' && <Check size={20} />}
             {toast.type === 'warning' && <AlertTriangle size={20} />}
             {toast.type === 'error' && <X size={20} />}
-            {toast.message}
+            <span style={{ flex: 1 }}>{toast.message}</span>
+            <button 
+              onClick={() => removeToast(toast.id)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '4px',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+              title="Cerrar"
+            >
+              <X size={16} />
+            </button>
           </div>
         ))}
       </div>

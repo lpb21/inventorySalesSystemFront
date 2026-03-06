@@ -32,6 +32,29 @@ const clearSession = () => {
   localStorage.removeItem('invleo_logged_in');
 };
 
+// Función auxiliar para normalizar respuestas exitosas del backend
+// Unifica el patrón response.data || response en un solo lugar
+const normalizeSuccessResponse = (body) => {
+  // Muchos endpoints envían { data: ... }, otros envían directamente el recurso
+  return body && (body.data !== undefined ? body.data : body)
+}
+
+// Funciones auxiliares para listas/colecciones
+// Devuelven siempre un array, usando claves comunes como fallback
+const normalizeList = (body, possibleKeys = []) => {
+  const data = normalizeSuccessResponse(body)
+
+  if (Array.isArray(data)) return data
+
+  const keys = [...possibleKeys, 'items', 'results', 'rows', 'list']
+  for (const key of keys) {
+    if (Array.isArray(data?.[key])) return data[key]
+  }
+
+  // Si nada coincide, devolver array vacío para evitar errores en los componentes
+  return []
+}
+
 // Función genérica para hacer requests
 const apiRequest = async (endpoint, options = {}) => {
   const token = getToken();
@@ -56,7 +79,10 @@ const apiRequest = async (endpoint, options = {}) => {
     throw err
   }
   
-  return response.json();
+  // Para respuestas exitosas devolvemos SIEMPRE el body normalizado
+  // (data || body) para evitar repetir este patrón en componentes/hooks
+  const body = await response.json().catch(() => ({}))
+  return normalizeSuccessResponse(body);
 };
 
 // API Auth
@@ -104,11 +130,34 @@ export const productsAPI = {
   getLowStock: () => apiRequest('/products/low-stock'),
   
   searchByBarcode: (code) => apiRequest(`/products/barcode/${code}`),
+
+  // Importar productos desde CSV
+  importFromCSV: async (formData) => {
+    const token = getToken();
+    const response = await fetch(`${API_URL}/products/import`, {
+      method: 'POST',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      const err = new Error(body?.error?.message || body?.message || 'Error al importar productos');
+      err.response = { status: response.status, data: body };
+      throw err;
+    }
+    
+    return response.json();
+  },
 };
 
 // API Categorías
 export const categoriesAPI = {
   getAll: () => apiRequest('/categories'),
+  
+  getAllWithInactive: () => apiRequest('/categories?include_inactive=true'),
   
   getById: (id) => apiRequest(`/categories/${id}`),
   
@@ -124,6 +173,10 @@ export const categoriesAPI = {
   
   delete: (id) => apiRequest(`/categories/${id}`, {
     method: 'DELETE',
+  }),
+  
+  toggleStatus: (id) => apiRequest(`/categories/${id}/toggle-status`, {
+    method: 'PUT',
   }),
 };
 
@@ -316,5 +369,12 @@ export const customersAPI = {
   }),
 };
 
+
+// Helpers exportados para que los componentes/hooks puedan normalizar colecciones
+// sin duplicar lógica (por ejemplo, listas de productos, ventas, usuarios, etc.).
+export const ApiNormalizers = {
+  normalizeSuccessResponse,
+  normalizeList,
+}
 
 export { getToken, setToken, setUser, getUser, clearSession, API_URL };
