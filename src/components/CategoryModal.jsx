@@ -82,11 +82,12 @@ const ICON_OPTIONS = [
  * Gestiona su propio estado de texto internamente
  * y delega la lógica de guardado a onSave.
  */
-function CategoryModal({ onSave, onClose }) {
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [selectedIcon, setSelectedIcon] = useState('package')
+function CategoryModal({ onSave, onClose, category }) {
+  const [name, setName] = useState(category?.name || '')
+  const [description, setDescription] = useState(category?.description || '')
+  const [selectedIcon, setSelectedIcon] = useState(category?.icon || 'package')
   const [loading, setLoading] = useState(false)
+  const isEditing = !!category
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -94,6 +95,7 @@ function CategoryModal({ onSave, onClose }) {
     setLoading(true)
     try {
       await onSave({
+        id: category?.id,
         name: name.trim(),
         description: description.trim(),
         icon: selectedIcon
@@ -111,7 +113,7 @@ function CategoryModal({ onSave, onClose }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '550px', width: '95%' }}>
         <div className="modal-header">
-          <h3 className="modal-title">Nueva Categoría</h3>
+          <h3 className="modal-title">{isEditing ? 'Editar Categoría' : 'Nueva Categoría'}</h3>
           <button className="modal-close" onClick={onClose}>
             <X size={20} />
           </button>
@@ -227,7 +229,7 @@ function CategoryModal({ onSave, onClose }) {
             </button>
             <button type="submit" className="btn btn-primary" disabled={loading || !name.trim()}>
               <Save size={18} />
-              {loading ? 'Guardando...' : 'Guardar'}
+              {loading ? 'Guardando...' : isEditing ? 'Guardar Cambios' : 'Guardar'}
             </button>
           </div>
         </form>
@@ -236,5 +238,6 @@ function CategoryModal({ onSave, onClose }) {
   )
 }
 
+export { ICON_OPTIONS }
 export default CategoryModal
 

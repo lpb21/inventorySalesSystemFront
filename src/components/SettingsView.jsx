@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { Settings, Users, User, Edit, Trash2, Plus, Save, Download, Upload, Package2, Phone, Mail, Ban, CheckCircle, AlertTriangle, Eye, EyeOff } from 'lucide-react'
 import { can, ROLE_LABELS } from '../utils/permissions'
 import ImportModal from './ImportModal'
+import { ICON_OPTIONS } from './CategoryModal'
 
 function SettingsView({ 
   categories, 
   onAddCategory, 
+  onEditCategory,
   onToggleCategoryStatus,
   onToggleShowInactiveCategories,
   showInactiveCategories,
@@ -374,31 +376,55 @@ function SettingsView({
                   opacity: cat.is_active === false ? 0.7 : 1
                 }}
               >
-                <Package2 size={16} style={{ color: cat.is_active === false ? 'var(--danger)' : 'var(--accent)' }} />
+                {(() => {
+                  const iconData = ICON_OPTIONS.find(i => i.name === cat.icon)
+                  const IconComp = iconData ? iconData.icon : Package2
+                  return <IconComp size={16} style={{ color: cat.is_active === false ? 'var(--danger)' : 'var(--accent)' }} />
+                })()}
                 {cat.name}
                 {cat.is_active === false && (
                   <span style={{ fontSize: '10px', color: 'var(--danger)', fontWeight: 'bold' }}>INACTIVA</span>
                 )}
-                {onToggleCategoryStatus && (
+                <div style={{ display: 'flex', gap: '4px' }}>
                   <button
-                    onClick={() => onToggleCategoryStatus(cat)}
+                    onClick={() => onEditCategory(cat)}
                     style={{
                       background: 'none',
                       border: 'none',
                       cursor: 'pointer',
-                      color: cat.is_active === false ? 'var(--success)' : 'var(--text-secondary)',
+                      color: 'var(--text-secondary)',
                       display: 'flex',
                       alignItems: 'center',
                       padding: '2px',
                       borderRadius: '4px',
                     }}
-                    onMouseEnter={e => e.currentTarget.style.color = cat.is_active === false ? 'var(--success)' : 'var(--danger)'}
-                    onMouseLeave={e => e.currentTarget.style.color = cat.is_active === false ? 'var(--success)' : 'var(--text-secondary)'}
-                    title={cat.is_active === false ? `Activar categoría ${cat.name}` : `Desactivar categoría ${cat.name}`}
+                    onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+                    title={`Editar categoría ${cat.name}`}
                   >
-                    {cat.is_active === false ? <CheckCircle size={14} /> : <Ban size={14} />}
+                    <Edit size={14} />
                   </button>
-                )}
+                  {onToggleCategoryStatus && (
+                    <button
+                      onClick={() => onToggleCategoryStatus(cat)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: cat.is_active === false ? 'var(--success)' : 'var(--text-secondary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '2px',
+                        borderRadius: '4px',
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.color = cat.is_active === false ? 'var(--success)' : 'var(--danger)'}
+                      onMouseLeave={e => e.currentTarget.style.color = cat.is_active === false ? 'var(--success)' : 'var(--text-secondary)'}
+                      title={cat.is_active === false ? `Activar categoría ${cat.name}` : `Desactivar categoría ${cat.name}`}
+                    >
+                      {cat.is_active === false ? <CheckCircle size={14} /> : <Ban size={14} />}
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

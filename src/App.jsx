@@ -47,6 +47,7 @@ function App() {
   const [showCustomerDisplay, setShowCustomerDisplay] = useState(false)
   const [sales, setSales] = useState([])
   const [showCategoryModal, setShowCategoryModal] = useState(false)
+  const [editingCategory, setEditingCategory] = useState(null)
   const [loading, setLoading] = useState(false)
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '' })
 
@@ -356,17 +357,38 @@ function App() {
 
   const handleSaveCategory = async (categoryData) => {
     try {
-      await categoriesAPI.create({
-        name: categoryData.name,
-        description: categoryData.description || '',
-        icon: categoryData.icon || 'package'
-      })
-      addToast('Categoría creada', 'success')
+      if (categoryData.id) {
+        // Editar categoría existente
+        await categoriesAPI.update(categoryData.id, {
+          name: categoryData.name,
+          description: categoryData.description || '',
+          icon: categoryData.icon || 'package'
+        })
+        addToast('Categoría editada con éxito', 'success')
+      } else {
+        // Crear nueva categoría
+        await categoriesAPI.create({
+          name: categoryData.name,
+          description: categoryData.description || '',
+          icon: categoryData.icon || 'package'
+        })
+        addToast('Categoría creada', 'success')
+      }
       setShowCategoryModal(false)
-      await loadCategories()
+      setEditingCategory(null)
+      if (showInactiveCategories) {
+        await loadAllCategories()
+      } else {
+        await loadCategories()
+      }
     } catch (error) {
-      addToast('Error al crear categoría', 'error')
+      addToast(categoryData.id ? 'Error al editar categoría' : 'Error al crear categoría', 'error')
     }
+  }
+
+  const handleEditCategory = (category) => {
+    setEditingCategory(category)
+    setShowCategoryModal(true)
   }
 
   const handleToggleCategoryStatus = async (category) => {
@@ -561,8 +583,9 @@ function App() {
 
       {showCategoryModal && (
         <CategoryModal
+          category={editingCategory}
           onSave={handleSaveCategory}
-          onClose={() => setShowCategoryModal(false)}
+          onClose={() => { setShowCategoryModal(false); setEditingCategory(null) }}
         />
       )}
 
