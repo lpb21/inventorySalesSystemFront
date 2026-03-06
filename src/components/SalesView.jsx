@@ -45,10 +45,20 @@ function SalesView({ products, cart, onAddToCart, onUpdateQuantity, onRemoveItem
               style={{ cursor: 'pointer' }}
             >
               <div className="product-image" style={{ height: '100px' }}>
-                {product.category?.name === 'Pollo' && <Drumstick size={36} />}
-                {product.category?.name === 'Quesos' && <Milk size={36} />}
-                {(product.category?.name === 'Carnes Frías' || product.category?.name === 'Embutidos') && <Beef size={36} />}
-                {!['Pollo', 'Quesos', 'Carnes Frías', 'Embutidos'].includes(product.category?.name) && <Package size={36} />}
+                {product.image_url ? (
+                  <img 
+                    src={product.image_url} 
+                    alt={product.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
+                  />
+                ) : (
+                  <>
+                    {product.category?.name === 'Pollo' && <Drumstick size={36} />}
+                    {product.category?.name === 'Quesos' && <Milk size={36} />}
+                    {(product.category?.name === 'Carnes Frías' || product.category?.name === 'Embutidos') && <Beef size={36} />}
+                    {!['Pollo', 'Quesos', 'Carnes Frías', 'Embutidos'].includes(product.category?.name) && <Package size={36} />}
+                  </>
+                )}
               </div>
 
               <div className="product-name" style={{ fontSize: '14px' }}>{product.name}</div>

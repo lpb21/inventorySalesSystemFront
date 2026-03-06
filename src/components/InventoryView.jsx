@@ -53,10 +53,20 @@ function InventoryView({ products, categories, selectedCategory, onCategoryChang
         {filteredProducts.map(product => (
           <div key={product.id} className="product-card">
             <div className="product-image">
-              {product.category?.name === 'Pollo' && <Drumstick size={48} />}
-              {product.category?.name === 'Quesos' && <Milk size={48} />}
-              {(product.category?.name === 'Carnes Frías' || product.category?.name === 'Embutidos') && <Beef size={48} />}
-              {!['Pollo', 'Quesos', 'Carnes Frías', 'Embutidos'].includes(product.category?.name) && <Package2 size={48} />}
+              {product.image_url ? (
+                <img 
+                  src={product.image_url} 
+                  alt={product.name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
+                />
+              ) : (
+                <>
+                  {product.category?.name === 'Pollo' && <Drumstick size={48} />}
+                  {product.category?.name === 'Quesos' && <Milk size={48} />}
+                  {(product.category?.name === 'Carnes Frías' || product.category?.name === 'Embutidos') && <Beef size={48} />}
+                  {!['Pollo', 'Quesos', 'Carnes Frías', 'Embutidos'].includes(product.category?.name) && <Package2 size={48} />}
+                </>
+              )}
             </div>
             <div className="product-name">{product.name}</div>
             <div className="product-category">{product.category?.name || product.category}</div>
