@@ -1,26 +1,39 @@
 import { useState, useRef, useEffect } from 'react'
 import { X, Upload, FileText, Check, AlertCircle, Download, Trash2 } from 'lucide-react'
-import { API_URL, getToken } from '../api/config'
+import { API_URL, getToken, categoriesAPI, ApiNormalizers } from '../api/config'
 
 // Columnas OBLIGATORIAS a nivel de estructura (el backend exige al menos "name")
 const REQUIRED_CSV_HEADERS = ['name']
 // Nombres alternativos que aceptamos por columna (p. ej. "nombre" -> "name")
 const HEADER_ALIASES = {
   nombre: 'name',
+  name: 'name',
   descripcion: 'description',
   descripción: 'description',
+  description: 'description',
   categoria: 'category',
   categoría: 'category',
+  category: 'category',
+  categorias: 'category',
+  categorías: 'category',
+  categories: 'category',
   precio: 'price',
+  price: 'price',
   costo: 'cost',
+  cost: 'cost',
   codigo: 'sku',
   código: 'sku',
+  sku: 'sku',
   codigo_barras: 'barcode',
   barras: 'barcode',
+  barcode: 'barcode',
+  stock: 'stock',
   stock_minimo: 'min_stock',
   min_stock: 'min_stock',
   unidad: 'unit',
+  unit: 'unit',
   tipo: 'type',
+  type: 'type',
   fecha_vencimiento: 'expiry_date',
   expiry_date: 'expiry_date',
 }
@@ -51,7 +64,11 @@ function parseCSVLine(line) {
  * Normaliza nombre de cabecera para comparación (minúsculas, sin comillas, alias).
  */
 function normalizeHeader(h) {
-  const raw = (h || '').trim().toLowerCase().replace(/^"|"$/g, '')
+  // Eliminar BOM (Byte Order Mark), comillas, espacios y normalizar a minúsculas
+  const raw = (h || '').trim()
+    .replace(/^\uFEFF/, '') 
+    .replace(/^"|"$/g, '')
+    .toLowerCase()
   return HEADER_ALIASES[raw] || raw
 }
 
@@ -113,7 +130,14 @@ function ImportModal({ onClose, onImportComplete }) {
     }
 
     const headerLine = lines[0]
-    const headerCells = parseCSVLine(headerLine)
+    
+    // Detectar delimitador (punto y coma o coma)
+    let delimiter = ','
+    if (!headerLine.includes(',') && headerLine.includes(';')) {
+      delimiter = ';'
+    }
+
+    const headerCells = delimiter === ',' ? parseCSVLine(headerLine) : headerLine.split(';')
     const normalizedHeaders = headerCells.map((h) => normalizeHeader(h))
 
     const missing = REQUIRED_CSV_HEADERS.filter((req) => !normalizedHeaders.includes(req))
@@ -133,8 +157,9 @@ function ImportModal({ onClose, onImportComplete }) {
 
     let validRows = 0
     for (let i = 1; i < lines.length; i++) {
-      const cells = parseCSVLine(lines[i])
-      const name = (cells[nameIdx] || '').trim().replace(/^"|"$/g, '')
+      const cells = delimiter === ',' ? parseCSVLine(lines[i]) : lines[i].split(';')
+      let name = (cells[nameIdx] || '').trim()
+      if (delimiter === ';') name = name.replace(/^"|"$/g, '')
 
       if (!name) {
         // Coincide con la regla del backend: nombre requerido
@@ -252,6 +277,133 @@ function ImportModal({ onClose, onImportComplete }) {
     return fallback
   }
 
+  /**
+   * Lee el archivo CSV, identifica categorías únicas y las crea si no existen.
+   */
+  const ensureCategoriesExist = async (file) => {
+    setProgressDetail(prev => ({ ...prev, message: 'Analizando categorías en el archivo...' }))
+    
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = async (e) => {
+        try {
+          const text = (e.target.result || '').toString()
+          const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0)
+          if (lines.length < 2) return resolve()
+
+          const headerLine = lines[0]
+          
+          // Detectar delimitador (punto y coma o coma)
+          let delimiter = ','
+          if (!headerLine.includes(',') && headerLine.includes(';')) {
+            delimiter = ';'
+            console.log('[Importar CSV] Detectado delimitador punto y coma (;)')
+          }
+
+          const cells = delimiter === ',' ? parseCSVLine(headerLine) : headerLine.split(';')
+          const normalizedHeaders = cells.map(h => normalizeHeader(h))
+          const catIdx = normalizedHeaders.indexOf('category')
+          
+          if (catIdx === -1) {
+            console.log('[Importar CSV] No se encontró columna de categoría en:', normalizedHeaders)
+            return resolve()
+          }
+
+          const uniqueCategories = new Set()
+          for (let i = 1; i < lines.length; i++) {
+             const rowCells = delimiter === ',' ? parseCSVLine(lines[i]) : lines[i].split(';')
+             let catName = (rowCells[catIdx] || '').trim()
+             // Quitar comillas si vienen en el split simple del punto y coma
+             if (delimiter === ';') catName = catName.replace(/^"|"$/g, '')
+             if (catName) uniqueCategories.add(catName)
+          }
+
+          if (uniqueCategories.size === 0) {
+            console.log('[Importar CSV] No se encontraron nombres de categorías en la columna', catIdx)
+            return resolve()
+          }
+
+          setProgressDetail(prev => ({ ...prev, message: `Verificando ${uniqueCategories.size} categorías...` }))
+          
+          const existingResponse = await categoriesAPI.getAllWithInactive()
+          const existingList = ApiNormalizers.normalizeList(existingResponse, ['categories', 'data'])
+          
+          // Crear un mapa de categorías existentes para búsqueda rápida (case-insensitive)
+          const existingMap = new Map()
+          existingList.forEach(c => {
+            if (c.name) {
+              const key = c.name.trim().toLowerCase()
+              // Si hay duplicados en el DB, preferir la activa
+              if (!existingMap.has(key) || c.is_active !== false) {
+                existingMap.set(key, c)
+              }
+            }
+          })
+
+          let createdCount = 0
+          let reactivatedCount = 0
+          const categoriesToHandle = Array.from(uniqueCategories)
+
+          for (let i = 0; i < categoriesToHandle.length; i++) {
+            const name = categoriesToHandle[i].trim()
+            if (!name) continue
+            
+            const lowerName = name.toLowerCase()
+            const existing = existingMap.get(lowerName)
+
+            if (!existing) {
+              // CREAR categoría nueva
+              setProgressDetail(prev => ({ 
+                ...prev, 
+                message: `Creando categoría (${i + 1}/${categoriesToHandle.length}): ${name}...` 
+              }))
+              try {
+                await categoriesAPI.create({ 
+                  name, 
+                  description: 'Creada automáticamente durante importación masiva' 
+                })
+                createdCount++
+                console.log(`[Importar CSV] Categoría creada: ${name}`)
+              } catch (catErr) {
+                console.warn(`[Importar CSV] No se pudo crear categoría "${name}":`, catErr)
+              }
+            } else if (existing.is_active === false) {
+              // REACTIVAR categoría existente si está inactiva
+              setProgressDetail(prev => ({ 
+                ...prev, 
+                message: `Reactivando categoría (${i + 1}/${categoriesToHandle.length}): ${name}...` 
+              }))
+              try {
+                // El backend permite PUT a /v1/categories/:id con is_active: true
+                await categoriesAPI.reactivate(existing.id)
+                reactivatedCount++
+                console.log(`[Importar CSV] Categoría reactivada: ${name}`)
+              } catch (reactErr) {
+                console.warn(`[Importar CSV] No se pudo reactivar categoría "${name}":`, reactErr)
+              }
+            }
+          }
+
+          if (createdCount > 0 || reactivatedCount > 0) {
+            const msg = `Resumen: ${createdCount > 0 ? `${createdCount} creadas` : ''}${createdCount > 0 && reactivatedCount > 0 ? ', ' : ''}${reactivatedCount > 0 ? `${reactivatedCount} reactivadas` : ''}.`
+            setProgressDetail(prev => ({ ...prev, message: msg }))
+            // Pausa para asegurar sincronización con el backend
+            await new Promise(r => setTimeout(r, 800))
+          } else {
+            console.log('[Importar CSV] No se requirieron cambios en las categorías.')
+          }
+
+          resolve()
+        } catch (error) {
+          console.error('[Importar CSV] Error crítico en ensureCategoriesExist:', error)
+          reject(new Error('Error al preparar las categorías: ' + (error.message || 'Error desconocido')))
+        }
+      }
+      reader.onerror = () => reject(new Error('No se pudo leer el archivo para verificar categorías.'))
+      reader.readAsText(file, 'UTF-8')
+    })
+  }
+
   // POST /v1/products/import que responde directamente con SSE
   const handleUpload = async () => {
     if (!file) return
@@ -272,6 +424,16 @@ function ImportModal({ onClose, onImportComplete }) {
 
     setUploading(true)
     setUploadProgress(0)
+
+    // NUEVO: Asegurar que las categorías existan antes de enviar el archivo al backend
+    try {
+      await ensureCategoriesExist(file)
+    } catch (err) {
+      console.error('[Importar CSV] Error asegurando categorías:', err)
+      setError(err.message || 'Error al preparar las categorías necesarias.')
+      setUploading(false)
+      return
+    }
 
     const formData = new FormData()
     formData.append('file', file)
