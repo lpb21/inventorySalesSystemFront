@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { Lock, User, Eye, EyeOff } from 'lucide-react'
+import { User, Lock, Eye, EyeOff } from 'lucide-react'
+import { useGlobalContext } from './context/GlobalContext'
 import { authAPI, setToken, setUser } from './api/config'
 
-export default function Login({ onLogin, error }) {
+export default function Login({ error }) {
+  const { login } = useGlobalContext()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -20,7 +22,6 @@ export default function Login({ onLogin, error }) {
         password: password
       })
       
-      // El backend devuelve { success: true, data: { token, user } }
       const token = response.data?.token || response.token
       const user  = response.data?.user  || response.user
       
@@ -30,12 +31,10 @@ export default function Login({ onLogin, error }) {
         return
       }
       
-      // Guardar token y usuario
       setToken(token)
       setUser(user)
       
-      // Notificar al componente padre
-      onLogin(user)
+      login(user, token)
     } catch (err) {
       setLocalError(err.message || 'Usuario o contraseña incorrectos')
       setLoading(false)

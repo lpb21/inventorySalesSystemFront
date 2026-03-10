@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { X, DollarSign, User, ShoppingCart, History, CreditCard, AlertCircle } from 'lucide-react'
-import { customersAPI, ApiNormalizers } from '../api/config'
+import { customersAPI, ApiNormalizers } from '../../api/config'
+import { useGlobalContext } from '../../context/GlobalContext'
 
-function CreditModal({ customers, onClose, onUpdateCredit }) {
+function CreditModal({ onClose, onUpdateCredit }) {
+  const { customers } = useGlobalContext()
   const [customersWithCredit, setCustomersWithCredit] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedCustomer, setSelectedCustomer] = useState(null)

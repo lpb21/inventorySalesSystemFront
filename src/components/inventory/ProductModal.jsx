@@ -3,40 +3,39 @@ import { X, Plus, Save } from 'lucide-react'
 
 function ProductModal({ product, categories, onSave, onClose, onAddCategory }) {
   const [formData, setFormData] = useState(product
-    ? { 
-        ...product, 
-        price: product.price ?? '', 
-        cost: product.cost ?? '', 
-        stock: product.stock ?? '', 
+    ? {
+        ...product,
+        price: product.price ?? '',
+        cost: product.cost ?? '',
+        stock: product.stock ?? '',
         min_stock: product.min_stock ?? '',
         description: product.description ?? '',
         barcode: product.barcode ?? '',
         expiry_date: product.expiry_date ?? ''
       }
     : {
-    name: '',
-    description: '',
-    barcode: '',
-    category_id: categories[0]?.id || '',
-    price: '',
-    cost: '',
-    stock: '',
-    min_stock: '',
-    unit: 'kg',
-    type: 'weight',
-    is_active: true,
-    expiry_date: ''
-  })
-
+        name: '',
+        description: '',
+        barcode: '',
+        category_id: categories[0]?.id || '',
+        price: '',
+        cost: '',
+        stock: '',
+        min_stock: '',
+        unit: 'kg',
+        type: 'weight',
+        is_active: true,
+        expiry_date: ''
+      })
 
   const handleSubmit = (e) => {
     e.preventDefault()
     onSave({
       ...formData,
-      price:     parseFloat(formData.price)     || 0,
-      cost:      parseFloat(formData.cost)      || 0,
-      stock:     parseFloat(formData.stock)     || 0,
-      min_stock: parseFloat(formData.min_stock) || 0,
+      price: parseFloat(formData.price) || 0,
+      cost: parseFloat(formData.cost) || 0,
+      stock: parseFloat(formData.stock) || 0,
+      min_stock: parseFloat(formData.min_stock) || 0
     })
   }
 
@@ -53,8 +52,8 @@ function ProductModal({ product, categories, onSave, onClose, onAddCategory }) {
           <div className="modal-body">
             <div className="form-group">
               <label className="form-label">Nombre del Producto</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 className="form-input"
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
@@ -62,19 +61,19 @@ function ProductModal({ product, categories, onSave, onClose, onAddCategory }) {
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Descripción</label>
-              <textarea 
+              <label className="form-label">DescripciÃ³n</label>
+              <textarea
                 className="form-input"
                 value={formData.description}
                 onChange={e => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Descripción opcional del producto"
+                placeholder="DescripciÃ³n opcional del producto"
                 rows={2}
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Código de Barras</label>
-              <input 
-                type="text" 
+              <label className="form-label">CÃ³digo de Barras</label>
+              <input
+                type="text"
                 className="form-input"
                 value={formData.barcode}
                 onChange={e => setFormData({ ...formData, barcode: e.target.value })}
@@ -83,17 +82,17 @@ function ProductModal({ product, categories, onSave, onClose, onAddCategory }) {
             </div>
             <div className="form-group">
               <label className="form-label">Fecha de Vencimiento</label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 className="form-input"
                 value={formData.expiry_date}
                 onChange={e => setFormData({ ...formData, expiry_date: e.target.value })}
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Categoría</label>
+              <label className="form-label">CategorÃ­a</label>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <select 
+                <select
                   className="form-select"
                   style={{ flex: 1 }}
                   value={formData.category_id}
@@ -116,8 +115,8 @@ function ProductModal({ product, categories, onSave, onClose, onAddCategory }) {
             <div className="grid-2">
               <div className="form-group">
                 <label className="form-label">Precio de Venta</label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   className="form-input"
                   value={formData.price}
                   onChange={e => setFormData({ ...formData, price: e.target.value })}
@@ -127,35 +126,11 @@ function ProductModal({ product, categories, onSave, onClose, onAddCategory }) {
               </div>
               <div className="form-group">
                 <label className="form-label">Precio de Costo</label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   className="form-input"
                   value={formData.cost}
                   onChange={e => setFormData({ ...formData, cost: e.target.value })}
-                  placeholder="0"
-                  required
-                />
-              </div>
-            </div>
-            <div className="grid-2">
-              <div className="form-group">
-                <label className="form-label">Stock Actual</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  value={formData.stock}
-                  onChange={e => setFormData({ ...formData, stock: e.target.value })}
-                  placeholder="0"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Stock Mínimo</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  value={formData.min_stock}
-                  onChange={e => setFormData({ ...formData, min_stock: e.target.value })}
                   placeholder="0"
                   required
                 />
@@ -168,9 +143,9 @@ function ProductModal({ product, categories, onSave, onClose, onAddCategory }) {
                   className="form-select"
                   value={formData.unit}
                   onChange={e => {
-                    const newUnit = e.target.value;
-                    const newType = (newUnit === 'und' || newUnit === 'paq') ? 'unit' : 'weight';
-                    setFormData({ ...formData, unit: newUnit, type: newType });
+                    const newUnit = e.target.value
+                    const newType = (newUnit === 'und' || newUnit === 'paq') ? 'unit' : 'weight'
+                    setFormData({ ...formData, unit: newUnit, type: newType })
                   }}
                 >
                   <option value="kg">Kilogramos (kg)</option>
@@ -181,12 +156,42 @@ function ProductModal({ product, categories, onSave, onClose, onAddCategory }) {
               </div>
               <div className="form-group">
                 <label className="form-label">Tipo de Producto</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   className="form-input"
                   value={formData.type === 'weight' ? 'Por Peso' : 'Por Unidad'}
                   disabled
                   style={{ background: 'var(--surface)' }}
+                />
+              </div>
+            </div>
+            <div className="grid-2">
+              <div className="form-group">
+                <label className="form-label">
+                  {formData.type === 'weight' ? `Stock Actual (${formData.unit})` : 'Stock Actual'}
+                </label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={formData.stock}
+                  onChange={e => setFormData({ ...formData, stock: e.target.value })}
+                  placeholder="0"
+                  step={formData.type === 'weight' ? '0.001' : '1'}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">
+                  {formData.type === 'weight' ? `Stock MÃ­nimo (${formData.unit})` : 'Stock MÃ­nimo'}
+                </label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={formData.min_stock}
+                  onChange={e => setFormData({ ...formData, min_stock: e.target.value })}
+                  placeholder="0"
+                  step={formData.type === 'weight' ? '0.001' : '1'}
+                  required
                 />
               </div>
             </div>

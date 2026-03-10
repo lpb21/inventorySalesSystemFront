@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { ShoppingCart } from 'lucide-react'
+import { formatQuantity, getPriceForSaleUnit, isWeightProduct } from './utils/measurements'
 
 function CustomerPage() {
   const [cart, setCart] = useState([])
@@ -63,6 +64,11 @@ function CustomerPage() {
           </h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'center', marginBottom: '32px' }}>
             {cart.map(item => (
+              (() => {
+                const saleUnit = isWeightProduct(item) ? (item.sale_unit || item.unit) : item.unit
+                const visibleUnitPrice = isWeightProduct(item) ? getPriceForSaleUnit(item, saleUnit) : item.price
+
+                return (
               <div key={item.id} style={{ 
                 background: '#1f1f3a', 
                 padding: '16px 32px', 
@@ -73,9 +79,13 @@ function CustomerPage() {
                 fontSize: '22px'
               }}>
               <span style={{ fontWeight: 600 }}>{item.name}</span>
-                <span style={{ color: '#a0a0b0', fontSize: '18px' }}>${item.price.toLocaleString()} x {item.quantity}</span>
+                <span style={{ color: '#a0a0b0', fontSize: '18px' }}>
+                  ${visibleUnitPrice.toLocaleString()} x {formatQuantity(item.display_quantity ?? item.quantity)} {saleUnit}
+                </span>
                 <span style={{ color: '#00d9a5', fontWeight: 700, fontSize: '24px' }}>${(item.price * item.quantity).toLocaleString()}</span>
               </div>
+                )
+              })()
             ))}
           </div>
           <div style={{ 

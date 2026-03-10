@@ -1,9 +1,11 @@
 import { ShoppingCart, DollarSign, Package, History, TrendingDown } from 'lucide-react'
-import { can } from '../utils/permissions'
-import { reportsAPI } from '../api/config'
+import { can } from '../../utils/permissions'
+import { reportsAPI } from '../../api/config'
 import { useState, useEffect } from 'react'
+import { useGlobalContext } from '../../context/GlobalContext'
 
-function ReportsView({ sales, products, currentUser }) {
+function ReportsView() {
+  const { sales, products, currentUser } = useGlobalContext()
   const [lowRotationProducts, setLowRotationProducts] = useState([])
   const [loadingLowRotation, setLoadingLowRotation] = useState(true)
   

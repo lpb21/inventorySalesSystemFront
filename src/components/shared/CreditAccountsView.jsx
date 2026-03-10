@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { DollarSign, User, History, CreditCard, AlertCircle, Search, Filter } from 'lucide-react'
-import { customersAPI, ApiNormalizers } from '../api/config'
+import { customersAPI, ApiNormalizers } from '../../api/config'
+import { useGlobalContext } from '../../context/GlobalContext'
 
 function CreditAccountsView({ onUpdateCredit }) {
+  const { customers } = useGlobalContext()
   const [customersWithCredit, setCustomersWithCredit] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedCustomer, setSelectedCustomer] = useState(null)

@@ -2,24 +2,40 @@ import {
   LayoutDashboard, Package, ShoppingCart, Settings, 
   Search, BarChart3, RefreshCw, LogOut, Eye, User
 } from 'lucide-react'
-import { can, ROLE_LABELS } from '../utils/permissions'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { can, ROLE_LABELS } from '../../utils/permissions'
 
 /**
  * Layout principal de la aplicación.
  * Contiene sidebar (navegación) y header (búsqueda, usuario).
- *
- * @param {object} props
- * @param {string}   props.currentView     - Vista activa
- * @param {Function} props.setCurrentView  - Cambia la vista activa
- * @param {object}   props.currentUser     - Usuario autenticado
- * @param {string}   props.searchTerm      - Término de búsqueda
- * @param {Function} props.setSearchTerm   - Setter del término de búsqueda
- * @param {number}   props.lowStockCount   - Cantidad de productos con stock bajo
- * @param {Function} props.onRefresh       - Recarga datos
- * @param {Function} props.onLogout        - Cierra sesión
- * @param {React.ReactNode} props.children - Contenido principal
  */
-function AppLayout({ currentView, setCurrentView, currentUser, searchTerm, setSearchTerm, lowStockCount, onRefresh, onLogout, children }) {
+function AppLayout({ currentUser, searchTerm, setSearchTerm, lowStockCount, onRefresh, onLogout, children }) {
+  const navigate = useNavigate()
+  const location = useLocation()
+  
+  const currentPath = location.pathname
+
+  const navItems = [
+    { id: 'dashboard', path: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'inventory', path: '/inventory', label: 'Inventario', icon: Package },
+    { id: 'sales', path: '/sales', label: 'Punto de Venta', icon: ShoppingCart },
+    { id: 'credit-accounts', path: '/credit-accounts', label: 'Cuentas por Cobrar', icon: User, permission: 'canViewCreditAccounts' },
+    { id: 'reports', path: '/reports', label: 'Reportes', icon: BarChart3, permission: 'canViewFullReports' },
+    { id: 'settings', path: '/settings', label: 'Configuración', icon: Settings, permission: 'canAccessSettings' },
+  ]
+
+  const getTitle = () => {
+    switch (currentPath) {
+      case '/': return 'Panel Principal'
+      case '/inventory': return 'Gestión de Inventario'
+      case '/sales': return 'Punto de Venta'
+      case '/reports': return 'Reportes'
+      case '/settings': return 'Configuración'
+      case '/credit-accounts': return 'Cuentas por Cobrar'
+      default: return 'Panel Principal'
+    }
+  }
+
   return (
     <div className="app-container">
       <aside className="sidebar">
@@ -32,37 +48,20 @@ function AppLayout({ currentView, setCurrentView, currentUser, searchTerm, setSe
         </div>
         
         <nav className="sidebar-nav">
-          <button className={`nav-item ${currentView === 'dashboard' ? 'active' : ''}`} onClick={() => setCurrentView('dashboard')}>
-            <LayoutDashboard />
-            Dashboard
-          </button>
-          <button className={`nav-item ${currentView === 'inventory' ? 'active' : ''}`} onClick={() => setCurrentView('inventory')}>
-            <Package />
-            Inventario
-          </button>
-          <button className={`nav-item ${currentView === 'sales' ? 'active' : ''}`} onClick={() => setCurrentView('sales')}>
-            <ShoppingCart />
-            Punto de Venta
-          </button>
-          {can(currentUser, 'canViewCreditAccounts') && (
-            <button className={`nav-item ${currentView === 'credit-accounts' ? 'active' : ''}`} onClick={() => setCurrentView('credit-accounts')}>
-              <User />
-              Cuentas por Cobrar
-            </button>
-          )}
-          {can(currentUser, 'canViewFullReports') && (
-            <button className={`nav-item ${currentView === 'reports' ? 'active' : ''}`} onClick={() => setCurrentView('reports')}>
-              <BarChart3 />
-              Reportes
-            </button>
-          )}
-
-          {can(currentUser, 'canAccessSettings') && (
-            <button className={`nav-item ${currentView === 'settings' ? 'active' : ''}`} onClick={() => setCurrentView('settings')}>
-              <Settings />
-              Configuración
-            </button>
-          )}
+          {navItems.map(item => {
+            if (item.permission && !can(currentUser, item.permission)) return null
+            const isActive = currentPath === item.path
+            return (
+              <button 
+                key={item.id}
+                className={`nav-item ${isActive ? 'active' : ''}`} 
+                onClick={() => navigate(item.path)}
+              >
+                <item.icon />
+                {item.label}
+              </button>
+            )
+          })}
         </nav>
 
         <div style={{ marginTop: 'auto', paddingTop: '20px' }}>
@@ -80,14 +79,7 @@ function AppLayout({ currentView, setCurrentView, currentUser, searchTerm, setSe
       <main className="main-content">
         <header className="header">
           <div className="header-left">
-            <h1 className="header-title">
-              {currentView === 'dashboard' && 'Panel Principal'}
-              {currentView === 'inventory' && 'Gestión de Inventario'}
-              {currentView === 'sales' && 'Punto de Venta'}
-              {currentView === 'reports' && 'Reportes'}
-              {currentView === 'settings' && 'Configuración'}
-              {currentView === 'credit-accounts' && 'Cuentas por Cobrar'}
-            </h1>
+            <h1 className="header-title">{getTitle()}</h1>
           </div>
           
           <div className="header-right">

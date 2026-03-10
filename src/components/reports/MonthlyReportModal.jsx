@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { X, Download, FileText, Calendar, DollarSign, ShoppingCart } from 'lucide-react'
+import { useGlobalContext } from '../../context/GlobalContext'
 
-function MonthlyReportModal({ sales, products, onClose, onGenerateReport }) {
+function MonthlyReportModal({ onClose, onGenerateReport }) {
+  const { sales, products } = useGlobalContext()
   const [reportData, setReportData] = useState(null)
   const [generating, setGenerating] = useState(false)
 

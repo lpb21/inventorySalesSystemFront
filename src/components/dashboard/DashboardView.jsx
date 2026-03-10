@@ -2,15 +2,28 @@ import {
   TrendingUp, AlertTriangle, DollarSign, Package,
   ShoppingCart, History, ChevronRight, BarChart3, Calendar
 } from 'lucide-react'
-import { getProductsNearingExpiration, getExpirationStatus } from '../utils/expiration'
-import { can } from '../utils/permissions'
+import { getProductsNearingExpiration, getExpirationStatus } from '../../utils/expiration'
+import { can } from '../../utils/permissions'
+import { useGlobalContext } from '../../context/GlobalContext'
+import { useNavigate } from 'react-router-dom'
 
-function DashboardView({ products, sales, todaySales, todayProfit, lowStockProducts, onNavigate, loading, currentUser }) {
+function DashboardView() {
+  const navigate = useNavigate()
+  const {
+    products,
+    sales,
+    dashboardData,
+    status,
+    currentUser
+  } = useGlobalContext()
+
+  const { todaySales, todayProfit } = dashboardData
+  const loading = status.dashboard.loading || status.products.loading || status.sales.loading
+
   const totalProducts = products.length
   const localLowStock = products.filter(p => (p.stock || 0) <= (p.min_stock || p.minStock || 0)).length
   const nearingExpiration = getProductsNearingExpiration(products, 7)
   
-  // Determinar si mostrar las tarjetas de ventas y ganancias
   const showSalesCards = can(currentUser, 'canViewFullReports')
   
   return (
@@ -67,7 +80,7 @@ function DashboardView({ products, sales, todaySales, todayProfit, lowStockProdu
         <div className="card">
           <div className="card-header">
             <h3 className="card-title">Productos con Stock Bajo</h3>
-            <button className="btn btn-sm btn-secondary" onClick={() => onNavigate('inventory')}>
+            <button className="btn btn-sm btn-secondary" onClick={() => navigate('/inventory')}>
               Ver Todos
             </button>
           </div>
@@ -104,7 +117,7 @@ function DashboardView({ products, sales, todaySales, todayProfit, lowStockProdu
         <div className="card">
           <div className="card-header">
             <h3 className="card-title">Productos Próximos a Vencer</h3>
-            <button className="btn btn-sm btn-secondary" onClick={() => onNavigate('inventory')}>
+            <button className="btn btn-sm btn-secondary" onClick={() => navigate('/inventory')}>
               Ver Todos
             </button>
           </div>
@@ -203,7 +216,7 @@ function DashboardView({ products, sales, todaySales, todayProfit, lowStockProdu
       </div>
 
       <div className="quick-actions" style={{ marginTop: '24px' }}>
-        <div className="action-card" onClick={() => onNavigate('sales')}>
+        <div className="action-card" onClick={() => navigate('/sales')}>
           <div className="action-icon" style={{ background: 'rgba(233, 69, 96, 0.15)', color: 'var(--accent)' }}>
             <ShoppingCart />
           </div>
@@ -214,7 +227,7 @@ function DashboardView({ products, sales, todaySales, todayProfit, lowStockProdu
           <ChevronRight style={{ color: 'var(--text-secondary)' }} />
         </div>
         
-        <div className="action-card" onClick={() => onNavigate('inventory')}>
+        <div className="action-card" onClick={() => navigate('/inventory')}>
           <div className="action-icon" style={{ background: 'rgba(0, 217, 165, 0.15)', color: 'var(--success)' }}>
             <Package />
           </div>
@@ -226,7 +239,7 @@ function DashboardView({ products, sales, todaySales, todayProfit, lowStockProdu
         </div>
         
         {can(currentUser, 'canViewFullReports') && (
-          <div className="action-card" onClick={() => onNavigate('reports')}>
+          <div className="action-card" onClick={() => navigate('/reports')}>
             <div className="action-icon" style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6' }}>
               <BarChart3 />
             </div>

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { X, Upload, FileText, Check, AlertCircle, Download, Trash2 } from 'lucide-react'
-import { API_URL, getToken, categoriesAPI, ApiNormalizers } from '../api/config'
+import { API_URL, getToken, categoriesAPI, ApiNormalizers } from '../../api/config'
 
 // Columnas OBLIGATORIAS a nivel de estructura (el backend exige al menos "name")
 const REQUIRED_CSV_HEADERS = ['name']

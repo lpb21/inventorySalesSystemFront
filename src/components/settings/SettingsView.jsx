@@ -1,31 +1,105 @@
 import { useState } from 'react'
 import { Settings, Users, User, Edit, Trash2, Plus, Save, Download, Upload, Package2, Phone, Mail, Ban, CheckCircle, AlertTriangle, Eye, EyeOff } from 'lucide-react'
-import { can, ROLE_LABELS } from '../utils/permissions'
-import ImportModal from './ImportModal'
-import { ICON_OPTIONS } from './CategoryModal'
+import { can, ROLE_LABELS } from '../../utils/permissions'
+import ImportModal from '../inventory/ImportModal'
+import { ICON_OPTIONS } from '../inventory/CategoryModal'
+import { useGlobalContext } from '../../context/GlobalContext'
+import { useUsers } from '../../hooks/useUsers'
+import { useCustomers } from '../../hooks/useCustomers'
+import UserModal from '../shared/UserModal'
+import CustomerModal from '../shared/CustomerModal'
+import CategoryModal from '../inventory/CategoryModal'
+import { categoriesAPI } from '../../api/config'
 
-function SettingsView({ 
-  categories, 
-  onAddCategory, 
-  onEditCategory,
-  onToggleCategoryStatus,
-  onToggleShowInactiveCategories,
-  showInactiveCategories,
-  currentUser, 
-  users, 
-  onAddUser, 
-  onEditUser, 
-  onToggleUserStatus, 
-  customers, 
-  onAddCustomer, 
-  onEditCustomer, 
-  onDeleteCustomer, 
-  businessData, 
-  onUpdateBusiness, 
-  onRefreshProducts 
-}) {
-  const canManageUsers = can(currentUser, 'canManageUsers')
+function SettingsView() {
+  const {
+    categories,
+    currentUser,
+    users,
+    customers,
+    businessData,
+    addToast,
+    loadCategories,
+    loadUsers,
+    loadCustomers,
+    loadProducts
+  } = useGlobalContext()
+
   const [showImportModal, setShowImportModal] = useState(false)
+  const [showCategoryModal, setShowCategoryModal] = useState(false)
+  const [editingCategory, setEditingCategory] = useState(null)
+  const [showInactiveCategories, setShowInactiveCategories] = useState(false)
+
+  const [showUserModal, setShowUserModal] = useState(false)
+  const [editingUser, setEditingUser] = useState(null)
+
+  const [showCustomerModal, setShowCustomerModal] = useState(false)
+  const [editingCustomer, setEditingCustomer] = useState(null)
+
+  const {
+    saveUser,
+    toggleUserStatus
+  } = useUsers({ 
+    addToast, 
+    loadUsers, 
+    editingUser, 
+    setEditingUser, 
+    setShowUserModal 
+  })
+
+  const {
+    saveCustomer,
+    deleteCustomer
+  } = useCustomers({ 
+    addToast, 
+    loadCustomers, 
+    editingCustomer, 
+    setEditingCustomer, 
+    setShowCustomerModal 
+  })
+
+  // Handlers para categorías
+  const handleSaveCategory = async (categoryData) => {
+    try {
+      if (categoryData.id) {
+        await categoriesAPI.update(categoryData.id, {
+          name: categoryData.name,
+          description: categoryData.description || '',
+          icon: categoryData.icon || 'package'
+        })
+        addToast('Categoría editada con éxito', 'success')
+      } else {
+        await categoriesAPI.create({
+          name: categoryData.name,
+          description: categoryData.description || '',
+          icon: categoryData.icon || 'package'
+        })
+        addToast('Categoría creada', 'success')
+      }
+      setShowCategoryModal(false)
+      setEditingCategory(null)
+      await loadCategories()
+    } catch (error) {
+      addToast(categoryData.id ? 'Error al editar categoría' : 'Error al crear categoría', 'error')
+    }
+  }
+
+  const handleToggleCategoryStatus = async (category) => {
+    try {
+      if (category.is_active === false) {
+        await categoriesAPI.reactivate(category.id)
+        addToast('Categoría activada', 'success')
+      } else {
+        await categoriesAPI.deactivate(category.id)
+        addToast('Categoría desactivada', 'success')
+      }
+      await loadCategories()
+    } catch (error) {
+      addToast('Error al cambiar estado de categoría', 'error')
+    }
+  }
+
+  const canManageUsers = can(currentUser, 'canManageUsers')
   
   // Función helper para obtener datos del negocio desde múltiples fuentes
   const getBusinessInfo = () => {
@@ -133,7 +207,7 @@ function SettingsView({
       <div className="card" style={{ marginTop: '24px' }}>
         <div className="card-header">
           <h3 className="card-title">Gestión de Clientes</h3>
-          <button className="btn btn-primary btn-sm" onClick={onAddCustomer}>
+          <button className="btn btn-primary btn-sm" onClick={() => { setEditingCustomer(null); setShowCustomerModal(true) }}>
             <User size={16} />
             Nuevo Cliente
           </button>
@@ -202,7 +276,7 @@ function SettingsView({
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button 
                           className="btn btn-secondary btn-sm" 
-                          onClick={() => onEditCustomer(customer)}
+                          onClick={() => { setEditingCustomer(customer); setShowCustomerModal(true) }}
                           title="Editar cliente"
                         >
                           <Edit size={14} />
@@ -229,7 +303,7 @@ function SettingsView({
         <div className="card" style={{ marginTop: '24px' }}>
           <div className="card-header">
             <h3 className="card-title">Gestión de Usuarios</h3>
-            <button className="btn btn-primary btn-sm" onClick={onAddUser}>
+            <button className="btn btn-primary btn-sm" onClick={() => { setEditingUser(null); setShowUserModal(true) }}>
               <User size={16} />
               Nuevo Usuario
             </button>
@@ -307,7 +381,7 @@ function SettingsView({
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button 
                             className="btn btn-secondary btn-sm" 
-                            onClick={() => onEditUser(user)}
+                            onClick={() => { setEditingUser(user); setShowUserModal(true) }}
                             title="Editar usuario"
                           >
                             <Edit size={14} />
@@ -315,7 +389,7 @@ function SettingsView({
                           {user.id !== currentUser.id && (
                             <button 
                               className={`btn btn-sm ${user.is_active ? 'btn-danger' : 'btn-success'}`}
-                              onClick={() => onToggleUserStatus(user.id, user.is_active)}
+                              onClick={() => toggleUserStatus(user.id, user.is_active)}
                               title={user.is_active ? 'Desactivar usuario' : 'Activar usuario'}
                               style={user.is_active ? {} : { background: '#10b981', borderColor: '#10b981' }}
                             >
@@ -340,12 +414,12 @@ function SettingsView({
           <div style={{ display: 'flex', gap: '8px' }}>
             <button 
               className="btn btn-secondary btn-sm" 
-              onClick={onToggleShowInactiveCategories}
+              onClick={() => setShowInactiveCategories(!showInactiveCategories)}
             >
               {showInactiveCategories ? <EyeOff size={16} /> : <Eye size={16} />}
               {showInactiveCategories ? 'Ocultar Inactivas' : 'Categorías Inactivas'}
             </button>
-            <button className="btn btn-primary btn-sm" onClick={onAddCategory}>
+            <button className="btn btn-primary btn-sm" onClick={() => { setEditingCategory(null); setShowCategoryModal(true) }}>
               <Plus size={16} />
               Nueva Categoría
             </button>
@@ -387,7 +461,7 @@ function SettingsView({
                 )}
                 <div style={{ display: 'flex', gap: '4px' }}>
                   <button
-                    onClick={() => onEditCategory(cat)}
+                    onClick={() => { setEditingCategory(cat); setShowCategoryModal(true) }}
                     style={{
                       background: 'none',
                       border: 'none',
@@ -404,26 +478,24 @@ function SettingsView({
                   >
                     <Edit size={14} />
                   </button>
-                  {onToggleCategoryStatus && (
-                    <button
-                      onClick={() => onToggleCategoryStatus(cat)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: cat.is_active === false ? 'var(--success)' : 'var(--text-secondary)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        padding: '2px',
-                        borderRadius: '4px',
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.color = cat.is_active === false ? 'var(--success)' : 'var(--danger)'}
-                      onMouseLeave={e => e.currentTarget.style.color = cat.is_active === false ? 'var(--success)' : 'var(--text-secondary)'}
-                      title={cat.is_active === false ? `Activar categoría ${cat.name}` : `Desactivar categoría ${cat.name}`}
-                    >
-                      {cat.is_active === false ? <CheckCircle size={14} /> : <Ban size={14} />}
-                    </button>
-                  )}
+                  <button
+                    onClick={() => handleToggleCategoryStatus(cat)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: cat.is_active === false ? 'var(--success)' : 'var(--text-secondary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '2px',
+                      borderRadius: '4px',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.color = cat.is_active === false ? 'var(--success)' : 'var(--danger)'}
+                    onMouseLeave={e => e.currentTarget.style.color = cat.is_active === false ? 'var(--success)' : 'var(--text-secondary)'}
+                    title={cat.is_active === false ? `Activar categoría ${cat.name}` : `Desactivar categoría ${cat.name}`}
+                  >
+                    {cat.is_active === false ? <CheckCircle size={14} /> : <Ban size={14} />}
+                  </button>
                 </div>
               </div>
             ))}
@@ -431,12 +503,36 @@ function SettingsView({
         )}
       </div>
 
-      {/* Modal de importación de productos */}
+      {/* Modales locales */}
+      {showUserModal && (
+        <UserModal 
+          user={editingUser}
+          onSave={saveUser}
+          onClose={() => { setShowUserModal(false); setEditingUser(null) }}
+        />
+      )}
+
+      {showCustomerModal && (
+        <CustomerModal 
+          customer={editingCustomer}
+          onSave={saveCustomer}
+          onClose={() => { setShowCustomerModal(false); setEditingCustomer(null) }}
+        />
+      )}
+
+      {showCategoryModal && (
+        <CategoryModal
+          category={editingCategory}
+          onSave={handleSaveCategory}
+          onClose={() => { setShowCategoryModal(false); setEditingCategory(null) }}
+        />
+      )}
+
       {showImportModal && (
         <ImportModal 
           onClose={() => setShowImportModal(false)} 
           onImportComplete={() => {
-            if (onRefreshProducts) onRefreshProducts()
+            loadProducts()
           }}
         />
       )}

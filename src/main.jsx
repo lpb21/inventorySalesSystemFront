@@ -5,12 +5,14 @@ import App from './App'
 import CustomerPage from './CustomerPage'
 import './index.css'
 
+import { GlobalProvider } from './context/GlobalContext'
+
 function Router() {
   const location = useLocation()
   
   return (
     <Routes location={location}>
-      <Route path="/" element={<App />} />
+      <Route path="/*" element={<App />} />
       <Route path="/customer" element={<CustomerPage />} />
     </Routes>
   )
@@ -18,8 +20,10 @@ function Router() {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <Router />
-    </BrowserRouter>
+    <GlobalProvider>
+      <BrowserRouter>
+        <Router />
+      </BrowserRouter>
+    </GlobalProvider>
   </React.StrictMode>,
 )
