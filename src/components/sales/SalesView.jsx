@@ -4,7 +4,11 @@ import {
   Milk, Beef, Drumstick, Package, ArrowLeftRight
 } from 'lucide-react'
 import { useGlobalContext } from '../../context/GlobalContext'
-import { useSales } from '../../hooks/useSales'
+import { useSalesMutations } from '../../hooks/queries/useSales'
+import { useProducts } from '../../hooks/queries/useProducts'
+import { useCategories } from '../../hooks/queries/useCategories'
+import { useCustomers, useCustomerMutations } from '../../hooks/queries/useCustomers'
+import { useDashboardData } from '../../hooks/queries/useDashboard'
 import CustomerSelectModal from './CustomerSelectModal'
 import {
   convertWeightQuantity,
@@ -19,8 +23,6 @@ const POS_LAYOUT_STORAGE_KEY = 'invleo_pos_layout'
 
 function SalesView() {
   const {
-    products,
-    categories,
     cart,
     cartTotal,
     addToCart,
@@ -28,32 +30,114 @@ function SalesView() {
     updateCartWeight,
     removeFromCart,
     clearCart,
-    addToast,
-    loadProducts,
-    loadRecentSales,
-    loadDashboardData,
-    loadCustomers,
-    customers
+    addToast
   } = useGlobalContext()
 
-  const {
-    completingSale,
-    pendingCreditSale,
-    setPendingCreditSale,
-    showCustomerSelectModal,
-    setShowCustomerSelectModal,
-    completeSale,
-    processCreditSale
-  } = useSales({
-    cart,
-    cartTotal,
-    clearCart,
-    addToast,
-    loadProducts,
-    loadSales: loadRecentSales,
-    loadDashboard: loadDashboardData,
-    loadCustomers
-  })
+  const { data: products = [] } = useProducts()
+  const { data: categories = [] } = useCategories()
+  const { data: customers = [] } = useCustomers()
+  const { createSale } = useSalesMutations()
+  const { registerPayment } = useCustomerMutations()
+  
+  // Estados para el proceso de venta
+  const [completingSale, setCompletingSale] = useState(false)
+  const [pendingCreditSale, setPendingCreditSale] = useState(null)
+  const [showCustomerSelectModal, setShowCustomerSelectModal] = useState(false)
+
+  /**
+   * Completa una venta normal (efectivo, nequi, tarjeta).
+   * Si el método es 'credit', abre el modal de selección de cliente.
+   */
+  const completeSale = async (paymentMethod = 'cash', amountReceived = cartTotal) => {
+    if (cart.length === 0) return
+
+    // Venta a crédito: recolectar datos y pedir selección de cliente
+    if (paymentMethod === 'credit') {
+      const saleItems = cart.map(item => ({
+        product_id: item.id,
+        quantity: item.quantity,
+        unit_price: item.price,
+        subtotal: item.price * item.quantity
+      }))
+      setPendingCreditSale({ items: saleItems, subtotal: cartTotal, total: cartTotal })
+      setShowCustomerSelectModal(true)
+      return
+    }
+
+    // Venta con pago inmediato
+    setCompletingSale(true)
+    try {
+      const saleData = {
+        items: cart.map(item => ({
+          product_id: item.id,
+          quantity: item.quantity,
+          unit_price: item.price,
+          subtotal: item.price * item.quantity
+        })),
+        subtotal: cartTotal,
+        discount: 0,
+        total: cartTotal,
+        payment_method: paymentMethod,
+        amount_received: amountReceived,
+        change_given: Math.max(0, amountReceived - cartTotal),
+        customer_id: null
+      }
+
+      await createSale.mutateAsync(saleData)
+      clearCart()
+      addToast('Venta completada exitosamente!', 'success')
+      setShowPayment(false)
+      setPaymentAmount('')
+    } catch (error) {
+      addToast('Error al completar venta', 'error')
+    } finally {
+      setCompletingSale(false)
+    }
+  }
+
+  /**
+   * Procesa la venta a crédito una vez que el usuario seleccionó el cliente.
+   */
+  const processCreditSale = async (customer) => {
+    if (!pendingCreditSale || !customer) return
+
+    setShowCustomerSelectModal(false)
+    setCompletingSale(true)
+
+    try {
+      const customerId = customer?.id ? String(customer.id) : null
+      if (!customerId) throw new Error('El cliente seleccionado no tiene un ID válido')
+
+      const formattedItems = pendingCreditSale.items.map(item => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price
+      }))
+
+      const saleData = {
+        payment_method: 'credit',
+        customer_id: customerId,
+        customer_name: customer.name || '',
+        subtotal: pendingCreditSale.subtotal,
+        discount: 0,
+        tax: 0,
+        total: pendingCreditSale.total,
+        note: 'Venta a crédito',
+        items: formattedItems
+      }
+
+      await createSale.mutateAsync(saleData)
+      clearCart()
+      setPendingCreditSale(null)
+      addToast('Venta a crédito completada exitosamente!', 'success')
+    } catch (error) {
+      const errorData = error?.response?.data?.error
+      const errorMessage = errorData?.message || error?.message || 'Error al completar venta a crédito'
+      addToast(errorMessage, 'error')
+    } finally {
+      setCompletingSale(false)
+    }
+  }
 
   const [selectedCategory, setSelectedCategory] = useState('Todos')
   const [paymentAmount, setPaymentAmount] = useState('')

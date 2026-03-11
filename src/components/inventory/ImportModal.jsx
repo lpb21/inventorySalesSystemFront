@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { X, Upload, FileText, Check, AlertCircle, Download, Trash2 } from 'lucide-react'
-import { API_URL, getToken, categoriesAPI, ApiNormalizers } from '../../api/config'
+import { API_URL, getToken, categoriesAPI, suppliersAPI, ApiNormalizers } from '../../api/config'
 
 // Columnas OBLIGATORIAS a nivel de estructura (el backend exige al menos "name")
 const REQUIRED_CSV_HEADERS = ['name']
@@ -36,6 +36,13 @@ const HEADER_ALIASES = {
   type: 'type',
   fecha_vencimiento: 'expiry_date',
   expiry_date: 'expiry_date',
+  proveedor: 'supplier',
+  supplier: 'supplier',
+  proveedores: 'supplier',
+  suppliers: 'supplier',
+  notas: 'notes',
+  notes: 'notes',
+  nota: 'notes',
 }
 
 /**
@@ -404,6 +411,117 @@ function ImportModal({ onClose, onImportComplete }) {
     })
   }
 
+  /**
+   * Lee el archivo CSV, identifica proveedores únicos y los crea si no existen.
+   */
+  const ensureSuppliersExist = async (file) => {
+    setProgressDetail(prev => ({ ...prev, message: 'Analizando proveedores en el archivo...' }))
+    
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = async (e) => {
+        try {
+          const text = (e.target.result || '').toString()
+          const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0)
+          if (lines.length < 2) return resolve()
+
+          const headerLine = lines[0]
+          
+          // Detectar delimitador (punto y coma o coma)
+          let delimiter = ','
+          if (!headerLine.includes(',') && headerLine.includes(';')) {
+            delimiter = ';'
+            console.log('[Importar CSV] Detectado delimitador punto y coma (;)')
+          }
+
+          const cells = delimiter === ',' ? parseCSVLine(headerLine) : headerLine.split(';')
+          const normalizedHeaders = cells.map(h => normalizeHeader(h))
+          const supplierIdx = normalizedHeaders.indexOf('supplier')
+          
+          if (supplierIdx === -1) {
+            console.log('[Importar CSV] No se encontró columna de proveedor en:', normalizedHeaders)
+            return resolve()
+          }
+
+          const uniqueSuppliers = new Set()
+          for (let i = 1; i < lines.length; i++) {
+             const rowCells = delimiter === ',' ? parseCSVLine(lines[i]) : lines[i].split(';')
+             let supplierName = (rowCells[supplierIdx] || '').trim()
+             // Quitar comillas si vienen en el split simple del punto y coma
+             if (delimiter === ';') supplierName = supplierName.replace(/^"|"$/g, '')
+             if (supplierName) uniqueSuppliers.add(supplierName)
+          }
+
+          if (uniqueSuppliers.size === 0) {
+            console.log('[Importar CSV] No se encontraron nombres de proveedores en la columna', supplierIdx)
+            return resolve()
+          }
+
+          setProgressDetail(prev => ({ ...prev, message: `Verificando ${uniqueSuppliers.size} proveedores...` }))
+          
+          const existingResponse = await suppliersAPI.getAll()
+          const existingList = ApiNormalizers.normalizeList(existingResponse, ['suppliers', 'data'])
+          
+          // Crear un mapa de suppliers existentes para búsqueda rápida (case-insensitive)
+          const existingMap = new Map()
+          existingList.forEach(s => {
+            if (s.name) {
+              const key = s.name.trim().toLowerCase()
+              existingMap.set(key, s)
+            }
+          })
+
+          let createdCount = 0
+          const suppliersToHandle = Array.from(uniqueSuppliers)
+
+          for (let i = 0; i < suppliersToHandle.length; i++) {
+            const name = suppliersToHandle[i].trim()
+            if (!name) continue
+            
+            const lowerName = name.toLowerCase()
+            const existing = existingMap.get(lowerName)
+
+            if (!existing) {
+              // CREAR proveedor nuevo
+              setProgressDetail(prev => ({ 
+                ...prev, 
+                message: `Creando proveedor (${i + 1}/${suppliersToHandle.length}): ${name}...` 
+              }))
+              try {
+                await suppliersAPI.create({ 
+                  name,
+                  contact_name: null,
+                  document: null,
+                  email: null
+                })
+                createdCount++
+                console.log(`[Importar CSV] Proveedor creado: ${name}`)
+              } catch (suppErr) {
+                console.warn(`[Importar CSV] No se pudo crear proveedor "${name}":`, suppErr)
+              }
+            }
+          }
+
+          if (createdCount > 0) {
+            const msg = `Proveedores: ${createdCount} creados.`
+            setProgressDetail(prev => ({ ...prev, message: msg }))
+            // Pausa para asegurar sincronización con el backend
+            await new Promise(r => setTimeout(r, 800))
+          } else {
+            console.log('[Importar CSV] No se requirieron cambios en los proveedores.')
+          }
+
+          resolve()
+        } catch (error) {
+          console.error('[Importar CSV] Error crítico en ensureSuppliersExist:', error)
+          reject(new Error('Error al preparar los proveedores: ' + (error.message || 'Error desconocido')))
+        }
+      }
+      reader.onerror = () => reject(new Error('No se pudo leer el archivo para verificar proveedores.'))
+      reader.readAsText(file, 'UTF-8')
+    })
+  }
+
   // POST /v1/products/import que responde directamente con SSE
   const handleUpload = async () => {
     if (!file) return
@@ -425,12 +543,13 @@ function ImportModal({ onClose, onImportComplete }) {
     setUploading(true)
     setUploadProgress(0)
 
-    // NUEVO: Asegurar que las categorías existan antes de enviar el archivo al backend
+    // NUEVO: Asegurar que las categorías y proveedores existan antes de enviar el archivo al backend
     try {
       await ensureCategoriesExist(file)
+      await ensureSuppliersExist(file)
     } catch (err) {
-      console.error('[Importar CSV] Error asegurando categorías:', err)
-      setError(err.message || 'Error al preparar las categorías necesarias.')
+      console.error('[Importar CSV] Error asegurando categorías o proveedores:', err)
+      setError(err.message || 'Error al preparar las categorías y proveedores necesarios.')
       setUploading(false)
       return
     }
@@ -617,12 +736,12 @@ function ImportModal({ onClose, onImportComplete }) {
 
   // Descargar ejemplo de CSV
   const downloadExample = () => {
-    const csvContent = `name,description,sku,barcode,category,price,cost,stock,min_stock,unit,type,expiry_date
-"Arroz Diana 500g","Arroz blanco premium","ARZ001","789123456001","Granos",2500,1800,50,10,"und","unit","2025-12-31"
-"Jamón de Pierna","Jamón de cerdo procesado","JAM001","7701234567890","Carnes Frías",25000,18000,30,5,"kg","weight","2025-11-30"
-"Queso Mozzarella","Qqueso mozzarella italiano","QMO001","7701234567891","Quesos",28000,20000,25,10,"kg","weight","2025-09-30"
-"Salchicha Vienesa","Salchicha tipo vienesa","SAL001","7701234567892","Embutidos",15000,10000,50,15,"kg","weight","2025-06-30"
-"Pollo Entero","Pollo entero de mercado","POL001",,"Pollos",18000,14000,40,10,"unit","unit",`
+    const csvContent = `name,category,supplier,description,sku,barcode,price,cost,stock,min_stock,unit,type,notes,expiry_date
+"Monitor Samsung 24","Tecnología","Samsung Electronics","Monitor LED 24 pulgadas","MON-SAM-24","7891234567801",299.99,220.00,15,5,"und","unit","","2026-12-31"
+"Laptop HP","Tecnología","HP Inc","Laptop HP Pavilion 15","LAP-HP-PAV","7891234567802",899.99,650.00,8,2,"und","unit","","2026-12-31"
+"Papel Higiénico 12 rollos","Limpieza","Familia","Papel higiénico doble hoja x 12 rollos","PAP-FAM-12R","7890123456780",15.99,10.80,25,8,"paq","unit","","2025-09-15"
+"Arroz Diana 500g","Granos","Molinos Diana","Arroz blanco premium 500g","ARZ-DIA-500","7891234567803",2.50,1.80,50,10,"und","unit","","2025-12-31"
+"Queso Mozzarella","Quesos","","Queso mozzarella italiano importado","QUE-MOZ-01","7891234567804",28.00,20.00,25,10,"kg","weight","Sin proveedor","2025-09-30"`
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
@@ -697,7 +816,11 @@ function ImportModal({ onClose, onImportComplete }) {
               El archivo CSV puede contener las siguientes columnas (mínimo <strong>name</strong>):
             </p>
             <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '8px 0 0 0', fontFamily: 'monospace' }}>
-              name, description, sku, barcode, category, price, cost, stock, min_stock, unit, type, expiry_date
+              name, category, supplier, description, sku, barcode, price, cost, stock, min_stock, unit, type, notes, expiry_date
+            </p>
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '8px 0 0 0', lineHeight: '1.4' }}>
+              📋 <strong>supplier</strong>: Si no existe → se crea automáticamente, si está vacío → producto sin proveedor<br/>
+              📦 <strong>unit</strong>: "kg", "lb", "und", "paq" | <strong>type</strong>: se asigna automáticamente según unit
             </p>
             <button 
               onClick={downloadExample}

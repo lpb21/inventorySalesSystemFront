@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { 
     productsAPI, categoriesAPI, salesAPI, usersAPI, 
-    customersAPI, tenantAPI, reportsAPI, ApiNormalizers, 
+    customersAPI, tenantAPI, reportsAPI, suppliersAPI, ApiNormalizers, 
     getToken, getUser 
 } from '../api/config'
 import { useToasts } from '../hooks/useToasts'
@@ -18,33 +19,21 @@ export const useGlobalContext = () => {
 }
 
 export const GlobalProvider = ({ children }) => {
+    // React Query client para limpiar cache
+    const queryClient = useQueryClient()
+    
     // Auth state (managed here for now, could be its own AuthContext)
     const [isLoggedIn, setIsLoggedIn] = useState(false)
     const [currentUser, setCurrentUser] = useState(null)
     const [authChecked, setAuthChecked] = useState(false)
 
     // Data state
-    const [products, setProducts] = useState([])
-    const [categories, setCategories] = useState([])
     const [users, setUsers] = useState([])
-    const [customers, setCustomers] = useState([])
-    const [sales, setSales] = useState([])
     const [businessData, setBusinessData] = useState(null)
-    const [dashboardData, setDashboardData] = useState({
-        todaySales: 0,
-        todayProfit: 0,
-        lowStockCount: 0,
-        totalProducts: 0
-    })
 
     // Loading & Status
     const [status, setStatus] = useState({
-        products: { loading: false, error: null },
-        categories: { loading: false, error: null },
-        sales: { loading: false, error: null },
-        users: { loading: false, error: null },
-        customers: { loading: false, error: null },
-        dashboard: { loading: false, error: null }
+        users: { loading: false, error: null }
     })
 
     // Hooks
@@ -69,85 +58,27 @@ export const GlobalProvider = ({ children }) => {
     }, [])
 
     const login = useCallback((userData, token) => {
-        // Assume getToken/setUser already handled by Login component for now, 
-        // but we update context state
+        // Limpiar cache previo para evitar datos de usuario anterior
+        queryClient.clear()
+        
+        // Actualizar estado del contexto
         setIsLoggedIn(true)
         setCurrentUser(userData)
-    }, [])
+    }, [queryClient])
 
     const logout = useCallback(() => {
+        // Limpiar sesión del localStorage
         import('../api/config').then(api => api.clearSession())
+        
+        // Limpiar todo el cache de React Query al cambiar de usuario
+        queryClient.clear()
+        
+        // Actualizar estado local
         setIsLoggedIn(false)
         setCurrentUser(null)
-    }, [])
+    }, [queryClient])
 
     // ── Actions ──────────────────────────────────────────────────────────
-
-    const loadProducts = useCallback(async () => {
-        setStatus(prev => ({ ...prev, products: { loading: true, error: null } }))
-        try {
-            const response = await productsAPI.getAll({ limit: 100 })
-            const data = ApiNormalizers.normalizeList(response, ['products'])
-            setProducts(
-                data.map(p => ({
-                    ...p,
-                    price: Number(p.price) || 0,
-                    cost: Number(p.cost) || 0,
-                    stock: Number(p.stock) || 0,
-                    min_stock: Number(p.min_stock) || 0,
-                    unit: p.unit || 'und'
-                }))
-            )
-            setStatus(prev => ({ ...prev, products: { loading: false, error: null } }))
-        } catch (error) {
-            console.error('Error cargando productos:', error)
-            setStatus(prev => ({ ...prev, products: { loading: false, error } }))
-            addToast('Error al cargar productos', 'error')
-        }
-    }, [addToast])
-
-    const loadCategories = useCallback(async (includeInactive = false) => {
-        setStatus(prev => ({ ...prev, categories: { loading: true, error: null } }))
-        try {
-            const response = includeInactive ? await categoriesAPI.getAllWithInactive() : await categoriesAPI.getAll()
-            const list = ApiNormalizers.normalizeList(response, ['categories', 'data'])
-            setCategories(list)
-            setStatus(prev => ({ ...prev, categories: { loading: false, error: null } }))
-        } catch (error) {
-            console.error('Error cargando categorías:', error)
-            setStatus(prev => ({ ...prev, categories: { loading: false, error } }))
-            addToast('Error al cargar categorías', 'error')
-        }
-    }, [addToast])
-
-    const loadDashboardData = useCallback(async () => {
-        setStatus(prev => ({ ...prev, dashboard: { loading: true, error: null } }))
-        try {
-            const [salesRes, summaryRes] = await Promise.all([
-                salesAPI.getToday(),
-                reportsAPI.getDashboard()
-            ])
-
-            const todaySalesList = ApiNormalizers.normalizeList(salesRes, ['sales'])
-            const todaySales = todaySalesList.reduce((sum, s) => sum + (Number(s.total) || 0), 0)
-            const todayProfit = todaySalesList.reduce((sum, s) => sum + (Number(s.profit) || 0), 0)
-
-            // summaryRes is the dashboardData from backend (normalized by apiRequest)
-            // It contains { summary: { todayRevenue, todayProfit, ..., lowStockCount, totalProducts }, ... }
-            const summary = summaryRes?.summary || {}
-
-            setDashboardData({
-                todaySales: todaySales || summary.todayRevenue || 0,
-                todayProfit: todayProfit || summary.todayProfit || 0,
-                lowStockCount: summary.lowStockCount || 0,
-                totalProducts: summary.totalProducts || 0
-            })
-            setStatus(prev => ({ ...prev, dashboard: { loading: false, error: null } }))
-        } catch (error) {
-            console.error('Error cargando dashboard:', error)
-            setStatus(prev => ({ ...prev, dashboard: { loading: false, error } }))
-        }
-    }, [])
 
     const loadBusinessData = useCallback(async () => {
         try {
@@ -173,32 +104,6 @@ export const GlobalProvider = ({ children }) => {
         }
     }, [])
 
-    const loadCustomers = useCallback(async () => {
-        setStatus(prev => ({ ...prev, customers: { loading: true, error: null } }))
-        try {
-            const response = await customersAPI.getAll()
-            const list = ApiNormalizers.normalizeList(response, ['customers'])
-            setCustomers(list)
-            setStatus(prev => ({ ...prev, customers: { loading: false, error: null } }))
-        } catch (error) {
-            console.error('Error cargando clientes:', error)
-            setStatus(prev => ({ ...prev, customers: { loading: false, error } }))
-        }
-    }, [])
-
-    const loadRecentSales = useCallback(async () => {
-        setStatus(prev => ({ ...prev, sales: { loading: true, error: null } }))
-        try {
-            const response = await salesAPI.getAll({ limit: 50 })
-            const list = ApiNormalizers.normalizeList(response, ['sales'])
-            setSales(list)
-            setStatus(prev => ({ ...prev, sales: { loading: false, error: null } }))
-        } catch (error) {
-            console.error('Error cargando ventas:', error)
-            setStatus(prev => ({ ...prev, sales: { loading: false, error } }))
-        }
-    }, [])
-
     // Initial load
     useEffect(() => {
         checkAuth()
@@ -206,28 +111,18 @@ export const GlobalProvider = ({ children }) => {
 
     useEffect(() => {
         if (isLoggedIn) {
-            loadProducts()
-            loadCategories()
-            loadDashboardData()
             loadBusinessData()
             loadUsers()
-            loadCustomers()
-            loadRecentSales()
         }
-    }, [isLoggedIn, loadProducts, loadCategories, loadDashboardData, loadBusinessData, loadUsers, loadCustomers, loadRecentSales])
+    }, [isLoggedIn, loadBusinessData, loadUsers])
 
     const value = {
         isLoggedIn, setIsLoggedIn,
         currentUser, setCurrentUser,
         authChecked, setAuthChecked,
         checkAuth, login, logout,
-        products, setProducts, loadProducts,
-        categories, setCategories, loadCategories,
         users, setUsers, loadUsers,
-        customers, setCustomers, loadCustomers,
-        sales, setSales, loadRecentSales,
         businessData, setBusinessData, loadBusinessData,
-        dashboardData, loadDashboardData,
         status, setStatus,
         toasts, addToast, removeToast,
         cart: cartState.cart,

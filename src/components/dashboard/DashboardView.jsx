@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   TrendingUp, AlertTriangle, DollarSign, Package,
   ShoppingCart, History, ChevronRight, BarChart3, Calendar
@@ -6,19 +7,22 @@ import { getProductsNearingExpiration, getExpirationStatus } from '../../utils/e
 import { can } from '../../utils/permissions'
 import { useGlobalContext } from '../../context/GlobalContext'
 import { useNavigate } from 'react-router-dom'
+import { useProducts } from '../../hooks/queries/useProducts'
+import { useDashboardData } from '../../hooks/queries/useDashboard'
 
 function DashboardView() {
+  const [expandedSaleId, setExpandedSaleId] = useState(null)
   const navigate = useNavigate()
-  const {
-    products,
-    sales,
-    dashboardData,
-    status,
-    currentUser
-  } = useGlobalContext()
+  const { currentUser } = useGlobalContext()
+  
+  const { data: products = [], isLoading: loadingProducts } = useProducts()
+  const { data: dashboardData, isLoading: loadingDashboard } = useDashboardData()
 
-  const { todaySales, todayProfit } = dashboardData
-  const loading = status.dashboard.loading || status.products.loading || status.sales.loading
+  const todaySales = dashboardData?.metrics?.todaySales || 0
+  const todayProfit = dashboardData?.metrics?.todayProfit || 0
+  const sales = dashboardData?.recentSales || []
+
+  const loading = loadingProducts || loadingDashboard
 
   const totalProducts = products.length
   const localLowStock = products.filter(p => (p.stock || 0) <= (p.min_stock || p.minStock || 0)).length
@@ -26,6 +30,14 @@ function DashboardView() {
   
   const showSalesCards = can(currentUser, 'canViewFullReports')
   
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <div className="spinner" style={{ width: '40px', height: '40px' }}></div>
+      </div>
+    )
+  }
+
   return (
 
     <div>
@@ -186,27 +198,67 @@ function DashboardView() {
                 </div>
               ) : (
                 sales.slice(0, 10).map(sale => (
-                  <div 
-                    key={sale.id}
-                    style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center',
-                      padding: '12px',
-                      borderBottom: '1px solid var(--border)'
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontWeight: 600 }}>Venta #{sale.ticket_number || sale.id?.slice(-6)}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                        {new Date(sale.created_at).toLocaleString()}
+                  <div key={sale.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <div 
+                      onClick={() => setExpandedSaleId(prev => prev === sale.id ? null : sale.id)}
+                      style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        padding: '12px',
+                        cursor: 'pointer',
+                        background: expandedSaleId === sale.id ? 'var(--bg-primary)' : 'transparent',
+                        transition: 'background 0.2s'
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 600 }}>Venta #{sale.ticket_number || sale.id?.slice(-6)}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                          {new Date(sale.created_at).toLocaleString()}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ fontWeight: 600, color: 'var(--accent)' }}>
+                          ${(sale.total || 0).toLocaleString()}
+                        </div>
+                        <ChevronRight 
+                          size={16} 
+                          style={{ 
+                            color: 'var(--text-secondary)',
+                            transform: expandedSaleId === sale.id ? 'rotate(90deg)' : 'rotate(0deg)',
+                            transition: 'transform 0.2s'
+                          }} 
+                        />
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontWeight: 600, color: 'var(--accent)' }}>
-                        ${(sale.total || 0).toLocaleString()}
+                    
+                    {expandedSaleId === sale.id && (
+                      <div style={{ 
+                        padding: '12px', 
+                        background: 'var(--bg-primary)'
+                      }}>
+                        <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>
+                          Detalle de productos:
+                        </div>
+                        {sale.items && sale.items.length > 0 ? (
+                          sale.items.map((item, idx) => (
+                            <div key={item.id || idx} style={{ 
+                              display: 'flex', 
+                              justifyContent: 'space-between',
+                              fontSize: '13px',
+                              marginBottom: '4px'
+                            }}>
+                              <span>{item.product?.name || item.product_name || item.name || 'Producto Desconocido'} (x{Number(item.quantity)})</span>
+                              <span>${(item.subtotal || item.unit_price * item.quantity || 0).toLocaleString()}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                            No hay detalle disponible
+                          </div>
+                        )}
                       </div>
-                    </div>
+                    )}
                   </div>
                 ))
               )}

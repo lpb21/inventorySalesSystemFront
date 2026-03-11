@@ -1,7 +1,7 @@
-name,description,sku,barcode,category,price,cost,stock,min_stock,unit,type,expiry_date
-"Arroz Diana 500g","Arroz blanco premium","ARZ001","789123456001","Granos",2500,1800,50,10,"und","unit","2025-12-31"
-"Jamón de Pierna","Jamón de cerdo procesado","JAM001","7701234567890","Carnes Frías",25000,18000,30,5,"kg","weight","2025-11-30"
-"Queso Mozzarella","Queso mozzarella italiano","QMO001","7701234567891","Quesos",28000,20000,25,10,"kg","weight","2025-09-30"
-"Salchicha Vienesa","Salchicha tipo vienesa","SAL001","7701234567892","Embutidos",15000,10000,50,15,"kg","weight","2025-06-30"
-"Pollo Entero","Pollo entero de mercado","POL001",,"Pollos",18000,14000,40,10,"unit","unit",
+name,category,supplier,description,sku,barcode,price,cost,stock,min_stock,unit,type,notes,expiry_date
+"Monitor Samsung 24","Tecnología","Samsung Electronics","Monitor LED 24 pulgadas","MON-SAM-24","7891234567801",299.99,220.00,15,5,"und","unit","","2026-12-31"
+"Laptop HP","Tecnología","HP Inc","Laptop HP Pavilion 15","LAP-HP-PAV","7891234567802",899.99,650.00,8,2,"und","unit","","2026-12-31"
+"Papel Higiénico 12 rollos","Limpieza","Familia","Papel higiénico doble hoja x 12 rollos","PAP-FAM-12R","7890123456780",15.99,10.80,25,8,"paq","unit","","2025-09-15"
+"Arroz Diana 500g","Granos","Molinos Diana","Arroz blanco premium 500g","ARZ-DIA-500","7891234567803",2.50,1.80,50,10,"und","unit","","2025-12-31"
+"Queso Mozzarella","Quesos","","Queso mozzarella italiano importado","QUE-MOZ-01","7891234567804",28.00,20.00,25,10,"kg","weight","Sin proveedor","2025-09-30"
 

@@ -1,40 +1,50 @@
 import { useState } from 'react'
-import { Settings, Users, User, Edit, Trash2, Plus, Save, Download, Upload, Package2, Phone, Mail, Ban, CheckCircle, AlertTriangle, Eye, EyeOff } from 'lucide-react'
+import { Settings, Users, User, Edit, Trash2, Plus, Save, Download, Upload, Package2, Phone, Mail, Ban, CheckCircle, AlertTriangle, Eye, EyeOff, Building2 } from 'lucide-react'
 import { can, ROLE_LABELS } from '../../utils/permissions'
 import ImportModal from '../inventory/ImportModal'
 import { ICON_OPTIONS } from '../inventory/CategoryModal'
 import { useGlobalContext } from '../../context/GlobalContext'
 import { useUsers } from '../../hooks/useUsers'
-import { useCustomers } from '../../hooks/useCustomers'
+import { useCustomers, useCustomerMutations } from '../../hooks/queries/useCustomers'
+import { useSuppliers, useSupplierMutations } from '../../hooks/queries/useSuppliers'
+import { useCategories, useCategoryMutations } from '../../hooks/queries/useCategories'
+import { useProducts } from '../../hooks/queries/useProducts'
 import UserModal from '../shared/UserModal'
 import CustomerModal from '../shared/CustomerModal'
+import SupplierModal from '../inventory/SupplierModal'
 import CategoryModal from '../inventory/CategoryModal'
 import { categoriesAPI } from '../../api/config'
 
 function SettingsView() {
   const {
-    categories,
     currentUser,
     users,
-    customers,
     businessData,
     addToast,
-    loadCategories,
-    loadUsers,
-    loadCustomers,
-    loadProducts
+    loadUsers
   } = useGlobalContext()
+
+  const [showInactiveSuppliers, setShowInactiveSuppliers] = useState(false)
+  const [showInactiveCategories, setShowInactiveCategories] = useState(false)
+  
+  const { data: categories = [] } = useCategories({ includeInactive: showInactiveCategories })
+  const { data: customers = [] } = useCustomers()
+  const { data: suppliers = [] } = useSuppliers({ includeInactive: showInactiveSuppliers })
+  const { refetch: loadProducts } = useProducts()
 
   const [showImportModal, setShowImportModal] = useState(false)
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
-  const [showInactiveCategories, setShowInactiveCategories] = useState(false)
 
   const [showUserModal, setShowUserModal] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
 
   const [showCustomerModal, setShowCustomerModal] = useState(false)
   const [editingCustomer, setEditingCustomer] = useState(null)
+
+  const [showSupplierModal, setShowSupplierModal] = useState(false)
+  const [editingSupplier, setEditingSupplier] = useState(null)
+  const [isSavingSupplier, setIsSavingSupplier] = useState(false)
 
   const {
     saveUser,
@@ -47,56 +57,64 @@ function SettingsView() {
     setShowUserModal 
   })
 
-  const {
-    saveCustomer,
-    deleteCustomer
-  } = useCustomers({ 
-    addToast, 
-    loadCustomers, 
-    editingCustomer, 
-    setEditingCustomer, 
-    setShowCustomerModal 
-  })
+  const { createCustomer: saveCustomer, deleteCustomer } = useCustomerMutations()
+  const { createSupplier: saveSupplier, deactivateSupplier, reactivateSupplier } = useSupplierMutations()
+  const { createCategory, updateCategory, deactivateCategory, reactivateCategory } = useCategoryMutations()
+  
+  const toggleSupplierStatus = (supplier) => {
+    if (supplier.is_active === false) {
+      reactivateSupplier.mutate(supplier.id)
+    } else {
+      deactivateSupplier.mutate(supplier.id)
+    }
+  }
 
-  // Handlers para categorías
   const handleSaveCategory = async (categoryData) => {
     try {
       if (categoryData.id) {
-        await categoriesAPI.update(categoryData.id, {
-          name: categoryData.name,
-          description: categoryData.description || '',
-          icon: categoryData.icon || 'package'
-        })
+        await updateCategory.mutateAsync({ id: categoryData.id, data: { name: categoryData.name, description: categoryData.description || '', icon: categoryData.icon || 'package' } })
         addToast('Categoría editada con éxito', 'success')
       } else {
-        await categoriesAPI.create({
-          name: categoryData.name,
-          description: categoryData.description || '',
-          icon: categoryData.icon || 'package'
-        })
+        await createCategory.mutateAsync({ name: categoryData.name, description: categoryData.description || '', icon: categoryData.icon || 'package' })
         addToast('Categoría creada', 'success')
       }
       setShowCategoryModal(false)
       setEditingCategory(null)
-      await loadCategories()
     } catch (error) {
-      addToast(categoryData.id ? 'Error al editar categoría' : 'Error al crear categoría', 'error')
+      const errorResponse = error.response?.data
+      if (errorResponse && errorResponse.success === false && errorResponse.error?.message) {
+        addToast(errorResponse.error.message, 'error')
+      } else {
+        addToast(categoryData.id ? 'Error al editar categoría' : 'Error al crear categoría', 'error')
+      }
     }
   }
 
   const handleToggleCategoryStatus = async (category) => {
     try {
       if (category.is_active === false) {
-        await categoriesAPI.reactivate(category.id)
+        await reactivateCategory.mutateAsync(category.id)
         addToast('Categoría activada', 'success')
       } else {
-        await categoriesAPI.deactivate(category.id)
+        await deactivateCategory.mutateAsync(category.id)
         addToast('Categoría desactivada', 'success')
       }
-      await loadCategories()
     } catch (error) {
-      addToast('Error al cambiar estado de categoría', 'error')
+      const errorResponse = error.response?.data
+      if (errorResponse && errorResponse.success === false && errorResponse.error?.message) {
+        addToast(errorResponse.error.message, 'error')
+      } else {
+        addToast('Error al cambiar estado de categoría', 'error')
+      }
     }
+  }
+
+  const handleToggleInactiveSuppliers = (show) => {
+    setShowInactiveSuppliers(show)
+  }
+
+  const handleToggleInactiveCategories = (show) => {
+    setShowInactiveCategories(show)
   }
 
   const canManageUsers = can(currentUser, 'canManageUsers')
@@ -283,7 +301,11 @@ function SettingsView() {
                         </button>
                         <button 
                           className="btn btn-danger btn-sm" 
-                          onClick={() => onDeleteCustomer(customer.id)}
+                          onClick={() => {
+                            if (window.confirm('¿Seguro que deseas eliminar este cliente?')) {
+                              deleteCustomer.mutate(customer.id)
+                            }
+                          }}
                           title="Eliminar cliente"
                         >
                           <Trash2 size={14} />
@@ -298,6 +320,157 @@ function SettingsView() {
         )}
       </div>
 
+      {/* Gestión de Proveedores */}
+      <div className="card" style={{ marginTop: '24px' }}>
+        <div className="card-header" style={{ justifyContent: 'space-between' }}>
+          <h3 className="card-title">Gestión de Proveedores</h3>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button 
+              className="btn btn-secondary btn-sm" 
+              onClick={() => handleToggleInactiveSuppliers(!showInactiveSuppliers)}
+            >
+              {showInactiveSuppliers ? <EyeOff size={16} /> : <Eye size={16} />}
+              {showInactiveSuppliers ? 'Ocultar Inactivos' : 'Proveedores Inactivos'}
+            </button>
+            <button className="btn btn-primary btn-sm" onClick={() => { setEditingSupplier(null); setShowSupplierModal(true) }}>
+              <Building2 size={16} />
+              Nuevo Proveedor
+            </button>
+          </div>
+        </div>
+        {suppliers.length === 0 ? (
+          <div className="empty-state" style={{ padding: '40px' }}>
+            <Building2 size={48} />
+            <h4>Sin proveedores</h4>
+            <p>No hay proveedores registrados aún</p>
+          </div>
+        ) : (
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Proveedor</th>
+                  <th>Contacto</th>
+                  <th>Documento</th>
+                  <th>Email</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {suppliers.map(supplier => (
+                  <tr key={supplier.id} style={{ 
+                    opacity: supplier.is_active === false ? 0.6 : 1,
+                    background: supplier.is_active === false ? 'rgba(233, 69, 96, 0.05)' : 'transparent'
+                  }}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ 
+                          width: '32px', 
+                          height: '32px', 
+                          borderRadius: '8px', 
+                          background: supplier.is_active === false ? 'rgba(233, 69, 96, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+                          border: supplier.is_active === false ? '1px solid rgba(233, 69, 96, 0.2)' : '1px solid rgba(59, 130, 246, 0.2)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: supplier.is_active === false ? '#e94560' : '#3b82f6'
+                        }}>
+                          <Building2 size={16} />
+                        </div>
+                        <div>
+                          <div style={{ 
+                            fontWeight: '500',
+                            color: supplier.is_active === false ? 'var(--text-secondary)' : 'var(--text-primary)'
+                          }}>
+                            {supplier.name}
+                            {supplier.is_active === false && (
+                              <span style={{ fontSize: '10px', color: 'var(--danger)', fontWeight: 'bold', marginLeft: '8px' }}>INACTIVO</span>
+                            )}
+                          </div>
+                          {supplier.contact_name && (
+                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                              {supplier.contact_name}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                        {supplier.phone && <div><Phone size={12} style={{ display: 'inline', marginRight: '4px' }} />{supplier.phone}</div>}
+                        {supplier.address && (
+                          <div style={{ fontSize: '11px', opacity: 0.8 }}>
+                            {supplier.address.length > 30 
+                              ? `${supplier.address.substring(0, 30)}...`
+                              : supplier.address
+                            }
+                          </div>
+                        )}
+                        {!supplier.phone && !supplier.address && <span>Sin contacto</span>}
+                      </div>
+                    </td>
+                    <td>
+                      {supplier.document ? (
+                        <span style={{ 
+                          fontFamily: 'monospace', 
+                          fontSize: '12px', 
+                          background: 'var(--surface)', 
+                          padding: '2px 6px', 
+                          borderRadius: '4px' 
+                        }}>
+                          {supplier.document}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>Sin documento</span>
+                      )}
+                    </td>
+                    <td>
+                      {supplier.email ? (
+                        <span style={{ fontSize: '13px' }}>{supplier.email}</span>
+                      ) : (
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>Sin email</span>
+                      )}
+                    </td>
+                    <td>
+                      <span style={{
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        background: supplier.is_active !== false ? 'rgba(0, 217, 165, 0.15)' : 'rgba(233, 69, 96, 0.15)',
+                        color: supplier.is_active !== false ? 'var(--success)' : 'var(--danger)'
+                      }}>
+                        {supplier.is_active !== false ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button 
+                          className="btn btn-secondary btn-sm" 
+                          onClick={() => { setEditingSupplier(supplier); setShowSupplierModal(true) }}
+                          title="Editar proveedor"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button 
+                          className={`btn btn-sm ${supplier.is_active !== false ? 'btn-danger' : 'btn-success'}`}
+                          onClick={() => toggleSupplierStatus(supplier)}
+                          title={supplier.is_active !== false ? 'Desactivar proveedor' : 'Activar proveedor'}
+                          style={supplier.is_active === false ? { background: '#10b981', borderColor: '#10b981' } : {}}
+                        >
+                          {supplier.is_active !== false ? <Ban size={14} /> : <CheckCircle size={14} />}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      
       {/* Gestión de Usuarios - Solo para admin/owner */}
       {canManageUsers && (
         <div className="card" style={{ marginTop: '24px' }}>
@@ -414,7 +587,7 @@ function SettingsView() {
           <div style={{ display: 'flex', gap: '8px' }}>
             <button 
               className="btn btn-secondary btn-sm" 
-              onClick={() => setShowInactiveCategories(!showInactiveCategories)}
+              onClick={() => handleToggleInactiveCategories(!showInactiveCategories)}
             >
               {showInactiveCategories ? <EyeOff size={16} /> : <Eye size={16} />}
               {showInactiveCategories ? 'Ocultar Inactivas' : 'Categorías Inactivas'}
@@ -433,7 +606,9 @@ function SettingsView() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', padding: '8px 0' }}>
-            {categories.map(cat => (
+            {categories
+              .filter(cat => showInactiveCategories || cat.is_active !== false)
+              .map(cat => (
               <div
                 key={cat.id}
                 style={{
@@ -515,8 +690,33 @@ function SettingsView() {
       {showCustomerModal && (
         <CustomerModal 
           customer={editingCustomer}
-          onSave={saveCustomer}
+          onSave={async (data) => {
+            try {
+              if (editingCustomer) await saveCustomer.mutateAsync({ id: editingCustomer.id, data })
+              else await saveCustomer.mutateAsync(data)
+              setShowCustomerModal(false)
+              setEditingCustomer(null)
+            } catch (error) {}
+          }}
           onClose={() => { setShowCustomerModal(false); setEditingCustomer(null) }}
+        />
+      )}
+
+      {showSupplierModal && (
+        <SupplierModal
+          isOpen={showSupplierModal}
+          editingSupplier={editingSupplier}
+          onSave={async (data) => {
+            setIsSavingSupplier(true)
+            try {
+              if (editingSupplier) await saveSupplier.mutateAsync({ id: editingSupplier.id, data })
+              else await saveSupplier.mutateAsync(data)
+              setShowSupplierModal(false)
+              setEditingSupplier(null)
+            } catch (error) {} finally { setIsSavingSupplier(false) }
+          }}
+          onClose={() => { setShowSupplierModal(false); setEditingSupplier(null) }}
+          isSaving={isSavingSupplier}
         />
       )}
 

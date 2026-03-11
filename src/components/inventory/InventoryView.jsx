@@ -1,66 +1,54 @@
 import { Plus, Edit, Trash2, Package2, Milk, Beef, Drumstick, ArrowDownCircle, Eye, EyeOff } from 'lucide-react'
 import { can } from '../../utils/permissions'
 import { useGlobalContext } from '../../context/GlobalContext'
-import { useProducts } from '../../hooks/useProducts'
+import { useProducts, useProductMutations } from '../../hooks/queries/useProducts'
+import { useCategories, useCategoryMutations } from '../../hooks/queries/useCategories'
+import { useSuppliers, useSupplierMutations } from '../../hooks/queries/useSuppliers'
 import { useState } from 'react'
 import ProductModal from './ProductModal'
 import CategoryModal from './CategoryModal'
+import SupplierModal from './SupplierModal'
 import OutputModal from './OutputModal'
 import { categoriesAPI } from '../../api/config'
 
 function InventoryView({ searchTerm }) {
   const { 
-    products, 
-    categories, 
     currentUser, 
     addToast, 
-    loadProducts, 
-    loadCategories, 
     loadDashboardData 
   } = useGlobalContext()
+
+  const { data: products = [] } = useProducts()
+  const { data: categories = [] } = useCategories()
+  const { data: suppliers = [] } = useSuppliers()
 
   const [selectedCategory, setSelectedCategory] = useState('Todos')
   const [showProductModal, setShowProductModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
+  const [showSupplierModal, setShowSupplierModal] = useState(false)
+  const [editingSupplier, setEditingSupplier] = useState(null)
   const [showOutputModal, setShowOutputModal] = useState(false)
   const [showInactiveProducts, setShowInactiveProducts] = useState(false)
   const [showInactiveCategories, setShowInactiveCategories] = useState(false)
 
-  const {
-    saveProduct,
-    toggleProductStatus,
-    deleteProduct
-  } = useProducts({ 
-    addToast, 
-    loadProducts, 
-    editingProduct, 
-    setEditingProduct, 
-    setShowProductModal 
-  })
+  // Replace custom hooks handling modals with internal state + mutations
+  const { createProduct: saveProduct, deleteProduct, updateProduct: toggleProductStatus } = useProductMutations()
+  const { createSupplier: saveSupplier, deleteSupplier } = useSupplierMutations()
+  const { createCategory, updateCategory, reactivateCategory, deactivateCategory } = useCategoryMutations()
 
-  // Handlers locales para categorías (podrían moverse a useCategories hook si existiera, pero lo dejamos aquí por ahora)
   const handleSaveCategory = async (categoryData) => {
     try {
       if (categoryData.id) {
-        await categoriesAPI.update(categoryData.id, {
-          name: categoryData.name,
-          description: categoryData.description || '',
-          icon: categoryData.icon || 'package'
-        })
+        await updateCategory.mutateAsync({ id: categoryData.id, data: { name: categoryData.name, description: categoryData.description || '', icon: categoryData.icon || 'package' } })
         addToast('Categoría editada con éxito', 'success')
       } else {
-        await categoriesAPI.create({
-          name: categoryData.name,
-          description: categoryData.description || '',
-          icon: categoryData.icon || 'package'
-        })
+        await createCategory.mutateAsync({ name: categoryData.name, description: categoryData.description || '', icon: categoryData.icon || 'package' })
         addToast('Categoría creada', 'success')
       }
       setShowCategoryModal(false)
       setEditingCategory(null)
-      await loadCategories()
     } catch (error) {
       addToast(categoryData.id ? 'Error al editar categoría' : 'Error al crear categoría', 'error')
     }
@@ -69,13 +57,12 @@ function InventoryView({ searchTerm }) {
   const handleToggleCategoryStatus = async (category) => {
     try {
       if (category.is_active === false) {
-        await categoriesAPI.reactivate(category.id)
+        await reactivateCategory.mutateAsync(category.id)
         addToast('Categoría activada', 'success')
       } else {
-        await categoriesAPI.deactivate(category.id)
+        await deactivateCategory.mutateAsync(category.id)
         addToast('Categoría desactivada', 'success')
       }
-      await loadCategories()
     } catch (error) {
       addToast('Error al cambiar estado de categoría', 'error')
     }
@@ -86,7 +73,8 @@ function InventoryView({ searchTerm }) {
       const { inventoryAPI } = await import('../../api/config')
       await inventoryAPI.createOutput(outputData)
       addToast('Salida registrada exitosamente', 'success')
-      await Promise.all([loadProducts(), loadDashboardData()])
+      await loadDashboardData()
+      // Note: products query will auto-refresh via invalidation if set up or next polling
       setShowOutputModal(false)
     } catch (error) {
       addToast('Error al registrar salida', 'error')
@@ -186,7 +174,10 @@ function InventoryView({ searchTerm }) {
                   </button>
                 )}
                 {canDelete && (
-                  <button className="btn btn-danger btn-sm" onClick={() => deleteProduct(product.id)}>
+                  <button className="btn btn-danger btn-sm" onClick={() => {
+                    const confirm = window.confirm('¿Seguro que deseas eliminar este producto?')
+                    if(confirm) deleteProduct.mutate(product.id)
+                  }}>
                     <Trash2 size={14} />
                   </button>
                 )}
@@ -201,9 +192,19 @@ function InventoryView({ searchTerm }) {
         <ProductModal 
           product={editingProduct}
           categories={categories}
-          onSave={saveProduct}
+          suppliers={suppliers}
+          onSave={async (data) => {
+            try {
+              if (editingProduct) await toggleProductStatus.mutateAsync({ id: editingProduct.id, data })
+              else await saveProduct.mutateAsync(data)
+              addToast('Producto guardado', 'success')
+              setShowProductModal(false)
+              setEditingProduct(null)
+            } catch (e) { addToast('Error guardando', 'error') }
+          }}
           onClose={() => { setShowProductModal(false); setEditingProduct(null) }}
           onAddCategory={() => setShowCategoryModal(true)}
+          onAddSupplier={() => setShowSupplierModal(true)}
         />
       )}
 
@@ -212,6 +213,23 @@ function InventoryView({ searchTerm }) {
           category={editingCategory}
           onSave={handleSaveCategory}
           onClose={() => { setShowCategoryModal(false); setEditingCategory(null) }}
+        />
+      )}
+
+      {showSupplierModal && (
+        <SupplierModal
+          isOpen={showSupplierModal}
+          editingSupplier={editingSupplier}
+          onSave={async(data) => {
+             // Supplier API structure logic here or inside SupplierModal depending on the saveSupplier shape
+             try{ 
+               await saveSupplier.mutateAsync(data)
+               setShowSupplierModal(false)
+               setEditingSupplier(null)
+               addToast('Proveedor guardado', 'success')
+             }catch(e){ addToast('Error guardando', 'error')}
+          }}
+          onClose={() => { setShowSupplierModal(false); setEditingSupplier(null) }}
         />
       )}
 

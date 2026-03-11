@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { AlertTriangle, Check, X } from 'lucide-react'
 import Login from './Login'
 import { useGlobalContext } from './context/GlobalContext'
+import { useDashboardData } from './hooks/queries/useDashboard'
 
 import AppLayout         from './components/layout/AppLayout'
 import DashboardView     from './components/dashboard/DashboardView'
@@ -17,17 +18,21 @@ import CreditAccountsView from './components/shared/CreditAccountsView'
 function App() {
   const {
     isLoggedIn, currentUser, authChecked,
-    addToast, logout, loadDashboardData,
-    products, toasts, removeToast
+    addToast, logout,
+    toasts, removeToast
   } = useGlobalContext()
+
+  const { data: dashboardData, refetch: refreshDashboard } = useDashboardData({
+    enabled: isLoggedIn && authChecked
+  })
 
   const [searchTerm, setSearchTerm] = useState('')
   const [showMonthlyReport, setShowMonthlyReport] = useState(false)
   
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '' })
 
-  // Derived stock count (for Badge in Layout)
-  const lowStockCount = products.filter(p => (p.stock || 0) <= (p.min_stock || p.minStock || 0)).length
+  // Derived stock count (from dashboard stats)
+  const lowStockCount = dashboardData?.metrics?.lowStockCount || 0
 
   const handleLogout = () => {
     logout()
@@ -89,7 +94,7 @@ function App() {
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         lowStockCount={lowStockCount}
-        onRefresh={() => loadDashboardData()}
+        onRefresh={() => refreshDashboard()}
         onLogout={handleLogout}
       >
         <Routes>

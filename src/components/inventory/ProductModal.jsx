@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { X, Plus, Save } from 'lucide-react'
 
-function ProductModal({ product, categories, onSave, onClose, onAddCategory }) {
+function ProductModal({ product, categories, suppliers = [], onSave, onClose, onAddCategory, onAddSupplier }) {
   const [formData, setFormData] = useState(product
     ? {
         ...product,
@@ -11,13 +11,15 @@ function ProductModal({ product, categories, onSave, onClose, onAddCategory }) {
         min_stock: product.min_stock ?? '',
         description: product.description ?? '',
         barcode: product.barcode ?? '',
-        expiry_date: product.expiry_date ?? ''
+        expiry_date: product.expiry_date ?? '',
+        supplier_id: product.supplier_id ?? ''
       }
     : {
         name: '',
         description: '',
         barcode: '',
         category_id: categories[0]?.id || '',
+        supplier_id: '',
         price: '',
         cost: '',
         stock: '',
@@ -35,7 +37,8 @@ function ProductModal({ product, categories, onSave, onClose, onAddCategory }) {
       price: parseFloat(formData.price) || 0,
       cost: parseFloat(formData.cost) || 0,
       stock: parseFloat(formData.stock) || 0,
-      min_stock: parseFloat(formData.min_stock) || 0
+      min_stock: parseFloat(formData.min_stock) || 0,
+      supplier_id: formData.supplier_id || null
     })
   }
 
@@ -110,6 +113,32 @@ function ProductModal({ product, categories, onSave, onClose, onAddCategory }) {
                 >
                   <Plus size={16} /> Nueva
                 </button>
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Proveedor</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <select
+                  className="form-select"
+                  style={{ flex: 1 }}
+                  value={formData.supplier_id}
+                  onChange={e => setFormData({ ...formData, supplier_id: e.target.value })}
+                >
+                  <option value="">Sin proveedor</option>
+                  {suppliers.map(supplier => (
+                    <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
+                  ))}
+                </select>
+                {onAddSupplier && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={onAddSupplier}
+                    style={{ whiteSpace: 'nowrap', padding: '0 12px' }}
+                  >
+                    <Plus size={16} /> Nuevo
+                  </button>
+                )}
               </div>
             </div>
             <div className="grid-2">

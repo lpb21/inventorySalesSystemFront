@@ -3,11 +3,19 @@ import { can } from '../../utils/permissions'
 import { reportsAPI } from '../../api/config'
 import { useState, useEffect } from 'react'
 import { useGlobalContext } from '../../context/GlobalContext'
+import { useProducts } from '../../hooks/queries/useProducts'
+import { useDashboardData } from '../../hooks/queries/useDashboard'
+import ExportSalesModal from './ExportSalesModal'
 
 function ReportsView() {
-  const { sales, products, currentUser } = useGlobalContext()
+  const { currentUser } = useGlobalContext()
+  const { data: products = [] } = useProducts()
+  const { data: dashboardData } = useDashboardData()
+  const sales = dashboardData?.recentSales || []
+  
   const [lowRotationProducts, setLowRotationProducts] = useState([])
   const [loadingLowRotation, setLoadingLowRotation] = useState(true)
+  const [showExportModal, setShowExportModal] = useState(false)
   
   const showFullReports = can(currentUser, 'canViewFullReports')
   
@@ -39,7 +47,7 @@ function ReportsView() {
     }
   }, [showFullReports])
   
-  const totalRevenue = sales.reduce((sum, s) => sum + Number(s.total || 0), 0)
+  const totalRevenue = dashboardData?.metrics?.todaySales || 0
   const totalSales   = sales.length
 
   const topProducts = products
@@ -80,6 +88,15 @@ function ReportsView() {
           <div className="stat-value">{products.filter(p => p.is_active !== false).length}</div>
           <div className="stat-label">Productos Activos</div>
         </div>
+      </div>
+      
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
+        <button 
+          className="btn btn-primary" 
+          onClick={() => setShowExportModal(true)}
+        >
+          Exportar Ventas CSV
+        </button>
       </div>
 
       <div className="grid-2">
@@ -208,6 +225,10 @@ function ReportsView() {
             )}
           </div>
         </div>
+      )}
+      
+      {showExportModal && (
+        <ExportSalesModal onClose={() => setShowExportModal(false)} />
       )}
     </div>
   )

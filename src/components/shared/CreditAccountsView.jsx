@@ -2,47 +2,21 @@ import { useState, useEffect } from 'react'
 import { DollarSign, User, History, CreditCard, AlertCircle, Search, Filter } from 'lucide-react'
 import { customersAPI, ApiNormalizers } from '../../api/config'
 import { useGlobalContext } from '../../context/GlobalContext'
+import { useCustomersWithCredit, useCustomerMutations } from '../../hooks/queries/useCustomers'
 
 function CreditAccountsView({ onUpdateCredit }) {
-  const { customers } = useGlobalContext()
-  const [customersWithCredit, setCustomersWithCredit] = useState([])
-  const [loading, setLoading] = useState(true)
+  const { addToast } = useGlobalContext()
+  
   const [selectedCustomer, setSelectedCustomer] = useState(null)
   const [paymentAmount, setPaymentAmount] = useState('')
   const [paymentNote, setPaymentNote] = useState('')
   const [customerDetails, setCustomerDetails] = useState(null)
-  const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [showPaymentForm, setShowPaymentForm] = useState(false)
 
-  // Cargar clientes con crédito al montar el componente
-  useEffect(() => {
-    loadCustomersWithCredit()
-  }, [])
-
-  const loadCustomersWithCredit = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const response = await customersAPI.getWithCredit()
-      // normalizeList ya maneja body.data || body y busca claves comunes
-      const rawList = ApiNormalizers.normalizeList(response, ['customers'])
-      
-      // Normalizar cada objeto cliente para asegurar que tenga credit_balance
-      const list = rawList.map(c => ({
-        ...c,
-        credit_balance: c.credit_balance ?? c.total_credit ?? c.balance ?? 0
-      }))
-      
-      setCustomersWithCredit(list)
-    } catch (err) {
-      console.error('Error cargando clientes con crédito:', err)
-      setError('Error al cargar los clientes con crédito')
-      setCustomersWithCredit([])
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { data: customersWithCredit = [], isLoading: loading, error: queryError, refetch: loadCustomersWithCredit } = useCustomersWithCredit()
+  const error = queryError?.message || null
+  const { registerPayment } = useCustomerMutations()
 
   const loadCustomerDetails = async (customerId) => {
     try {
@@ -109,14 +83,36 @@ function CreditAccountsView({ onUpdateCredit }) {
     }
 
     try {
-      await onUpdateCredit(selectedCustomer.id, amount, paymentNote)
+      let paymentResult = null
+      
+      // Usar la mutación si existe una provista internacionalmente, sino usar el hook
+      if (onUpdateCredit) {
+         paymentResult = await onUpdateCredit(selectedCustomer.id, amount, paymentNote)
+      } else {
+         paymentResult = await registerPayment.mutateAsync({ id: selectedCustomer.id, data: { amount, note: paymentNote } })
+      }
+      
+      // Mostrar toast con la información del backend
+      if (paymentResult?.message) {
+        // Si el backend devuelve un mensaje personalizado
+        const data = paymentResult.data
+        const detailedMessage = data ? 
+          `${paymentResult.message}. Saldo: $${data.previous_balance?.toLocaleString()} → $${data.new_balance?.toLocaleString()}` :
+          paymentResult.message
+        addToast(detailedMessage, 'success')
+      } else {
+        addToast('Pago registrado exitosamente', 'success')
+      }
+      
+      // Limpiar formulario y recargar datos
       setPaymentAmount('')
       setPaymentNote('')
       setShowPaymentForm(false)
       await loadCustomerDetails(selectedCustomer.id)
-      await loadCustomersWithCredit()
     } catch (err) {
       console.error('Error procesando pago:', err)
+      const errorMessage = err?.response?.data?.message || err?.message || 'Error al procesar el pago'
+      addToast(errorMessage, 'error')
     }
   }
 

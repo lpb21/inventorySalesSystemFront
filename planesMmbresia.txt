@@ -1,0 +1,49 @@
+¡Gran pregunta! Aquí te sugiero una estructura de planes para tu software de inventario:
+
+📊 Planes Sugeridos
+1. Plan Básico - "Inicia"
+Precio sugerido: $19-29/mes
+
+Incluye:
+
+Gestión de productos (inventario)
+Gestión de categorías
+Punto de venta (POS) básico
+1 usuario
+Reportes básicos de ventas
+2. Plan Profesional - "Crece"
+Precio sugerido: $49-69/mes
+
+Incluye TODO del Plan Básico +:
+
+Múltiples usuarios (hasta 5)
+Gestión de proveedores
+Gestión de clientes (crédito/fiado)
+Reportes avanzados
+Exportación de datos
+Alertas de stock bajo
+3. Plan Empresarial - "Escala"
+Precio sugerido: $99-149/mes
+
+Incluye TODO del Plan Profesional +:
+
+Usuarios ilimitados
+Múltiples puntos de venta
+Integraciones (API)
+Copias de seguridad automáticas
+Soporte prioritario
+Personalización de colores/logo
+💡 Estrategias de Monetización
+Estrategia	Descripción
+Suscripción mensual	Ingresos recurrentes predecibles
+Precio por usuario extra	$5-10/usuario/mes adicional
+Setup fee	Una vez $50-150 por implementación
+Período gratuito	14 días para probar, luego pagar
+Descuento anual	2 meses gratis si pagan anual ($99 vs $149/año)
+🏪 Ideal para:
+Tiendas de abarrotes
+Minimarkets
+Ferreterías
+Bodegas
+Librerías
+Farmacias pequeñas

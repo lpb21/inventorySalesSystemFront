@@ -72,9 +72,8 @@ const apiRequest = async (endpoint, options = {}) => {
   
   if (!response.ok) {
     const body = await response.json().catch(() => ({}))
-    // Preservar la estructura completa del servidor para que los catch del componente
-    // puedan leer body.error.code y body.error.message sin perder información
-    const err = new Error(body?.error?.message || body?.message || 'Error en la solicitud')
+    
+
     err.response = { status: response.status, data: body }
     throw err
   }
@@ -82,7 +81,11 @@ const apiRequest = async (endpoint, options = {}) => {
   // Para respuestas exitosas devolvemos SIEMPRE el body normalizado
   // (data || body) para evitar repetir este patrón en componentes/hooks
   const body = await response.json().catch(() => ({}))
-  return normalizeSuccessResponse(body);
+  
+  
+  const normalized = normalizeSuccessResponse(body);
+  
+  return normalized;
 };
 
 // API Auth
@@ -336,6 +339,48 @@ export const settingsAPI = {
   }),
 };
 
+// API Suppliers/Proveedores
+export const suppliersAPI = {
+  getAll: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiRequest(`/suppliers${query ? `?${query}` : ''}`);
+  },
+  
+  getAllActive: () => apiRequest('/suppliers?include_inactive=false'),
+  
+  getAllWithInactive: () => apiRequest('/suppliers?include_inactive=true'),
+  
+  getSelect: () => apiRequest('/suppliers/select'),
+  
+  getById: (id) => apiRequest(`/suppliers/${id}`),
+  
+  create: (data) => apiRequest('/suppliers', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  
+  update: (id, data) => apiRequest(`/suppliers/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  
+  delete: (id) => apiRequest(`/suppliers/${id}`, {
+    method: 'DELETE',
+  }),
+  
+  deactivate: (id) => apiRequest(`/suppliers/${id}/toggle-status`, {
+    method: 'PATCH',
+  }),
+  
+  reactivate: (id) => apiRequest(`/suppliers/${id}/toggle-status`, {
+    method: 'PATCH',
+  }),
+  
+  toggleStatus: (id) => apiRequest(`/suppliers/${id}/toggle-status`, {
+    method: 'PATCH',
+  }),
+};
+
 // API Clientes
 export const customersAPI = {
   getAll: () => apiRequest('/customers'),
@@ -357,10 +402,28 @@ export const customersAPI = {
   }),
   
   // Endpoints de crédito/fiado
-  registerPayment: (id, data) => apiRequest(`/customers/${id}/payments`, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
+  registerPayment: async (id, data) => {
+    // Para registerPayment, necesitamos la respuesta completa para mostrar el mensaje
+    const token = getToken();
+    const response = await fetch(`${API_URL}/customers/${id}/payments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      const err = new Error(body?.error?.message || body?.message || 'Error al registrar pago');
+      err.response = { status: response.status, data: body };
+      throw err;
+    }
+
+    // Devolver la respuesta completa sin normalizar para preservar el mensaje
+    return await response.json();
+  },
   
   getBalance: (id) => apiRequest(`/customers/${id}/balance`),
   

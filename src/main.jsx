@@ -4,6 +4,8 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import App from './App'
 import CustomerPage from './CustomerPage'
 import './index.css'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { queryClient } from './api/queryClient'
 
 import { GlobalProvider } from './context/GlobalContext'
 
@@ -20,10 +22,12 @@ function Router() {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <GlobalProvider>
-      <BrowserRouter>
-        <Router />
-      </BrowserRouter>
-    </GlobalProvider>
+    <QueryClientProvider client={queryClient}>
+      <GlobalProvider>
+        <BrowserRouter>
+          <Router />
+        </BrowserRouter>
+      </GlobalProvider>
+    </QueryClientProvider>
   </React.StrictMode>,
 )
