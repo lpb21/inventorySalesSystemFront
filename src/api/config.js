@@ -73,9 +73,9 @@ const apiRequest = async (endpoint, options = {}) => {
   if (!response.ok) {
     const body = await response.json().catch(() => ({}))
     
-
-    err.response = { status: response.status, data: body }
-    throw err
+    const error = new Error(`HTTP ${response.status}: ${response.statusText}`)
+    error.response = { status: response.status, data: body }
+    throw error
   }
   
   // Para respuestas exitosas devolvemos SIEMPRE el body normalizado

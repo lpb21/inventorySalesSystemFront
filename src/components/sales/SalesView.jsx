@@ -267,7 +267,7 @@ function SalesView() {
           {cart.length === 0 ? (
             <div className="empty-state" style={{ padding: '40px 20px' }}>
               <ShoppingCart size={48} />
-              <h4>Carrito vacÃ­o</h4>
+              <h4>Carrito vaci­o</h4>
               <p>Agrega productos para iniciar una venta</p>
             </div>
           ) : (

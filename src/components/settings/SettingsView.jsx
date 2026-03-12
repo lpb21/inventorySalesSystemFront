@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Settings, Users, User, Edit, Trash2, Plus, Save, Download, Upload, Package2, Phone, Mail, Ban, CheckCircle, AlertTriangle, Eye, EyeOff, Building2 } from 'lucide-react'
-import { can, ROLE_LABELS } from '../../utils/permissions'
+import { can, ROLE_LABELS, getCreatableRoles, canEditUser } from '../../utils/permissions'
 import ImportModal from '../inventory/ImportModal'
 import { ICON_OPTIONS } from '../inventory/CategoryModal'
 import { useGlobalContext } from '../../context/GlobalContext'
@@ -118,6 +118,7 @@ function SettingsView() {
   }
 
   const canManageUsers = can(currentUser, 'canManageUsers')
+  const canCreateUsers = canManageUsers && getCreatableRoles(currentUser).length > 0
   
   // Función helper para obtener datos del negocio desde múltiples fuentes
   const getBusinessInfo = () => {
@@ -472,7 +473,20 @@ function SettingsView() {
       </div>
       
       {/* Gestión de Usuarios - Solo para admin/owner */}
-      {canManageUsers && (
+      {canManageUsers && !canCreateUsers && (
+        <div className="card" style={{ marginTop: '24px' }}>
+          <div className="card-header">
+            <h3 className="card-title">Gestión de Usuarios</h3>
+          </div>
+          <div className="empty-state" style={{ padding: '40px' }}>
+            <Users size={48} />
+            <h4>Sin permisos para crear usuarios</h4>
+            <p>Tu rol actual no permite crear nuevos usuarios</p>
+          </div>
+        </div>
+      )}
+
+      {canCreateUsers && (
         <div className="card" style={{ marginTop: '24px' }}>
           <div className="card-header">
             <h3 className="card-title">Gestión de Usuarios</h3>
@@ -552,13 +566,15 @@ function SettingsView() {
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button 
-                            className="btn btn-secondary btn-sm" 
-                            onClick={() => { setEditingUser(user); setShowUserModal(true) }}
-                            title="Editar usuario"
-                          >
-                            <Edit size={14} />
-                          </button>
+                          {canEditUser(currentUser, user) && (
+                            <button 
+                              className="btn btn-secondary btn-sm" 
+                              onClick={() => { setEditingUser(user); setShowUserModal(true) }}
+                              title="Editar usuario"
+                            >
+                              <Edit size={14} />
+                            </button>
+                          )}
                           {user.id !== currentUser.id && (
                             <button 
                               className={`btn btn-sm ${user.is_active ? 'btn-danger' : 'btn-success'}`}

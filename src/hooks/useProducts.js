@@ -73,7 +73,7 @@ export function useProducts({ addToast, loadProducts, editingProduct, setEditing
       addToast('Producto eliminado exitosamente', 'success')
       await loadProducts()
     } catch (error) {
-      const errorResponse = error.response?.data
+      const errorResponse = error?.response?.data
       
       if (errorResponse && errorResponse.success === false) {
         // Error retornado por el servidor con formato conocido

@@ -13,6 +13,7 @@ function CreditAccountsView({ onUpdateCredit }) {
   const [customerDetails, setCustomerDetails] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [showPaymentForm, setShowPaymentForm] = useState(false)
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false)
 
   const { data: customersWithCredit = [], isLoading: loading, error: queryError, refetch: loadCustomersWithCredit } = useCustomersWithCredit()
   const error = queryError?.message || null
@@ -82,6 +83,8 @@ function CreditAccountsView({ onUpdateCredit }) {
       return
     }
 
+    setIsProcessingPayment(true)
+
     try {
       let paymentResult = null
       
@@ -113,6 +116,8 @@ function CreditAccountsView({ onUpdateCredit }) {
       console.error('Error procesando pago:', err)
       const errorMessage = err?.response?.data?.message || err?.message || 'Error al procesar el pago'
       addToast(errorMessage, 'error')
+    } finally {
+      setIsProcessingPayment(false)
     }
   }
 
@@ -420,11 +425,27 @@ function CreditAccountsView({ onUpdateCredit }) {
                       <button
                         className="btn btn-primary"
                         onClick={handlePayment}
-                        disabled={!paymentAmount || parseFloat(paymentAmount) <= 0}
+                        disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || isProcessingPayment}
                         style={{ width: '100%' }}
                       >
-                        <DollarSign size={18} />
-                        Confirmar Pago
+                        {isProcessingPayment ? (
+                          <>
+                            <div style={{
+                              width: '18px',
+                              height: '18px',
+                              borderRadius: '50%',
+                              border: '2px solid transparent',
+                              borderTopColor: 'currentColor',
+                              animation: 'spin 0.8s linear infinite'
+                            }} />
+                            Procesando...
+                          </>
+                        ) : (
+                          <>
+                            <DollarSign size={18} />
+                            Confirmar Pago
+                          </>
+                        )}
                       </button>
                     </div>
                   )}

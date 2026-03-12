@@ -1,7 +1,12 @@
 import { useState } from 'react'
 import { X, Plus, Save } from 'lucide-react'
+import { useGlobalContext } from '../../context/GlobalContext'
+import { can } from '../../utils/permissions'
 
 function ProductModal({ product, categories, suppliers = [], onSave, onClose, onAddCategory, onAddSupplier }) {
+  const { currentUser } = useGlobalContext()
+  const canManageCategories = can(currentUser, 'canManageCategories')
+  const canManageSuppliers = can(currentUser, 'canManageSuppliers')
   const [formData, setFormData] = useState(product
     ? {
         ...product,
@@ -105,14 +110,16 @@ function ProductModal({ product, categories, suppliers = [], onSave, onClose, on
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </select>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={onAddCategory}
-                  style={{ whiteSpace: 'nowrap', padding: '0 12px' }}
-                >
-                  <Plus size={16} /> Nueva
-                </button>
+                {canManageCategories && onAddCategory && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={onAddCategory}
+                    style={{ whiteSpace: 'nowrap', padding: '0 12px' }}
+                  >
+                    <Plus size={16} /> Nueva
+                  </button>
+                )}
               </div>
             </div>
             <div className="form-group">
@@ -129,7 +136,7 @@ function ProductModal({ product, categories, suppliers = [], onSave, onClose, on
                     <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
                   ))}
                 </select>
-                {onAddSupplier && (
+                {canManageSuppliers && onAddSupplier && (
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"

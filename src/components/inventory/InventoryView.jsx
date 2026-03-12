@@ -4,6 +4,8 @@ import { useGlobalContext } from '../../context/GlobalContext'
 import { useProducts, useProductMutations } from '../../hooks/queries/useProducts'
 import { useCategories, useCategoryMutations } from '../../hooks/queries/useCategories'
 import { useSuppliers, useSupplierMutations } from '../../hooks/queries/useSuppliers'
+import { useProducts as useProductActions } from '../../hooks/useProducts'
+import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import ProductModal from './ProductModal'
 import CategoryModal from './CategoryModal'
@@ -18,6 +20,8 @@ function InventoryView({ searchTerm }) {
     loadDashboardData 
   } = useGlobalContext()
 
+  const queryClient = useQueryClient()
+  
   const { data: products = [] } = useProducts()
   const { data: categories = [] } = useCategories()
   const { data: suppliers = [] } = useSuppliers()
@@ -33,10 +37,22 @@ function InventoryView({ searchTerm }) {
   const [showInactiveProducts, setShowInactiveProducts] = useState(false)
   const [showInactiveCategories, setShowInactiveCategories] = useState(false)
 
+  // Function to refresh products data
+  const loadProducts = () => {
+    queryClient.invalidateQueries({ queryKey: ['products', currentUser?.tenant?.id] })
+  }
+
   // Replace custom hooks handling modals with internal state + mutations
-  const { createProduct: saveProduct, deleteProduct, updateProduct: toggleProductStatus } = useProductMutations()
+  const { createProduct: saveProduct, deleteProduct: deleteProductMutation, updateProduct: toggleProductStatus } = useProductMutations()
   const { createSupplier: saveSupplier, deleteSupplier } = useSupplierMutations()
   const { createCategory, updateCategory, reactivateCategory, deactivateCategory } = useCategoryMutations()
+  const { deleteProduct } = useProductActions({ 
+    addToast, 
+    loadProducts, 
+    editingProduct, 
+    setEditingProduct, 
+    setShowProductModal 
+  })
 
   const handleSaveCategory = async (categoryData) => {
     try {
@@ -174,10 +190,7 @@ function InventoryView({ searchTerm }) {
                   </button>
                 )}
                 {canDelete && (
-                  <button className="btn btn-danger btn-sm" onClick={() => {
-                    const confirm = window.confirm('¿Seguro que deseas eliminar este producto?')
-                    if(confirm) deleteProduct.mutate(product.id)
-                  }}>
+                  <button className="btn btn-danger btn-sm" onClick={() => deleteProduct(product.id)}>
                     <Trash2 size={14} />
                   </button>
                 )}
