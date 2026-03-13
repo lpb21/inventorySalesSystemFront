@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { customersAPI, ApiNormalizers } from '../../api/config'
 
-export function useCustomers(options = {}) {
+export function useCustomers({ isActive, ...options } = {}) {
     return useQuery({
-        queryKey: ['customers'],
+        queryKey: ['customers', isActive],
         queryFn: async () => {
-            const response = await customersAPI.getAll()
+            const params = typeof isActive === 'boolean' ? { is_active: String(isActive) } : {}
+            const response = await customersAPI.getAll(params)
             return ApiNormalizers.normalizeList(response, ['customers', 'data'])
         },
         ...options
@@ -30,10 +31,12 @@ export function useCustomersWithCredit(options = {}) {
 export function useCustomerMutations() {
     const queryClient = useQueryClient()
 
-    const invalidate = () => {
-        queryClient.invalidateQueries({ queryKey: ['customers'] })
+    const invalidate = async () => {
+        await queryClient.invalidateQueries({ queryKey: ['customers'] })
         // También invalidar customers con crédito para cuentas por cobrar
-        queryClient.invalidateQueries({ queryKey: ['customers', 'with-credit'] })
+        await queryClient.invalidateQueries({ queryKey: ['customers', 'with-credit'] })
+        await queryClient.refetchQueries({ queryKey: ['customers'], type: 'active' })
+        await queryClient.refetchQueries({ queryKey: ['customers', 'with-credit'], type: 'active' })
     }
 
     const createCustomer = useMutation({
@@ -49,6 +52,20 @@ export function useCustomerMutations() {
     const deleteCustomer = useMutation({
         mutationFn: (id) => customersAPI.delete(id),
         onSuccess: invalidate
+    })
+
+    const registerPayment = useMutation({
+        mutationFn: ({ id, data }) => customersAPI.registerPayment(id, data),
+        onSuccess: async (_result, variables) => {
+            await invalidate()
+
+            if (variables?.id) {
+                await queryClient.invalidateQueries({ queryKey: ['customers', variables.id, 'balance'] })
+                await queryClient.invalidateQueries({ queryKey: ['customers', variables.id, 'credit-sales'] })
+                await queryClient.refetchQueries({ queryKey: ['customers', variables.id, 'balance'], type: 'active' })
+                await queryClient.refetchQueries({ queryKey: ['customers', variables.id, 'credit-sales'], type: 'active' })
+            }
+        }
     })
 
     return { createCustomer, updateCustomer, deleteCustomer, registerPayment }

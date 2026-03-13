@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Settings, Users, User, Edit, Trash2, Plus, Save, Download, Upload, Package2, Phone, Mail, Ban, CheckCircle, AlertTriangle, Eye, EyeOff, Building2 } from 'lucide-react'
+import { Settings, Users, User, Edit, Trash2, Plus, Save, Download, Upload, Package2, Phone, Mail, Ban, CheckCircle, AlertTriangle, Building2 } from 'lucide-react'
 import { can, ROLE_LABELS, getCreatableRoles, canEditUser } from '../../utils/permissions'
 import ImportModal from '../inventory/ImportModal'
 import { ICON_OPTIONS } from '../inventory/CategoryModal'
@@ -28,9 +28,10 @@ function SettingsView() {
 
   const [showInactiveSuppliers, setShowInactiveSuppliers] = useState(false)
   const [showInactiveCategories, setShowInactiveCategories] = useState(false)
+  const [showInactiveCustomers, setShowInactiveCustomers] = useState(false)
   
   const { data: categories = [] } = useCategories({ includeInactive: showInactiveCategories })
-  const { data: customers = [] } = useCustomers()
+  const { data: customers = [] } = useCustomers({ isActive: showInactiveCustomers ? false : true })
   const { data: suppliers = [] } = useSuppliers({ includeInactive: showInactiveSuppliers })
   const { refetch: loadProducts } = useProducts()
 
@@ -132,6 +133,38 @@ function SettingsView() {
       addToast('Cliente eliminado exitosamente', 'success')
     } catch (error) {
       const errorMessage = error?.response?.data?.error?.message || error?.message || 'Error al eliminar cliente'
+      addToast(errorMessage, 'error')
+    }
+  }
+
+  const handleReactivateCustomer = async (customer) => {
+    const result = await Swal.fire({
+      title: '¿Activar cliente?',
+      html: `
+        <p style="color: var(--text-secondary); margin-bottom: 8px;">
+          El cliente <strong>${customer.name}</strong> volverá a estar activo.
+        </p>
+        <p style="color: var(--text-secondary); font-size: 14px;">
+          Podrá volver a utilizarse en ventas y gestiones de crédito.
+        </p>
+      `,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Sí, activar',
+      cancelButtonText: 'Cancelar',
+      background: '#1a1f2e',
+      color: '#e6edf3'
+    })
+
+    if (!result.isConfirmed) return
+
+    try {
+      await updateCustomer.mutateAsync({ id: customer.id, data: { is_active: true } })
+      addToast('Cliente activado exitosamente', 'success')
+    } catch (error) {
+      const errorMessage = error?.response?.data?.error?.message || error?.message || 'Error al activar cliente'
       addToast(errorMessage, 'error')
     }
   }
@@ -293,16 +326,56 @@ function SettingsView() {
       <div className="card" style={{ marginTop: '24px' }}>
         <div className="card-header">
           <h3 className="card-title">Gestión de Clientes</h3>
-          <button className="btn btn-primary btn-sm" onClick={() => { setEditingCustomer(null); setShowCustomerModal(true) }}>
-            <User size={16} />
-            Nuevo Cliente
-          </button>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', background: 'var(--surface)', borderRadius: '8px', padding: '4px', border: '1px solid var(--border)' }}>
+              <button
+                onClick={() => setShowInactiveCustomers(false)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: !showInactiveCustomers ? 'var(--accent)' : 'transparent',
+                  color: !showInactiveCustomers ? 'white' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  transition: 'all 0.2s'
+                }}
+              >
+                Activos
+              </button>
+              <button
+                onClick={() => setShowInactiveCustomers(true)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: showInactiveCustomers ? 'var(--accent)' : 'transparent',
+                  color: showInactiveCustomers ? 'white' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  transition: 'all 0.2s'
+                }}
+              >
+                Inactivos
+              </button>
+            </div>
+            <button className="btn btn-primary btn-sm" onClick={() => { setEditingCustomer(null); setShowCustomerModal(true) }}>
+              <User size={16} />
+              Nuevo Cliente
+            </button>
+          </div>
         </div>
         {customers.length === 0 ? (
           <div className="empty-state" style={{ padding: '40px' }}>
             <Users size={48} />
-            <h4>Sin clientes</h4>
-            <p>No hay clientes registrados aún</p>
+            <h4>{showInactiveCustomers ? 'Sin clientes inactivos' : 'Sin clientes activos'}</h4>
+            <p>
+              {showInactiveCustomers
+                ? 'No hay clientes inactivos registrados'
+                : 'No hay clientes activos registrados aún'}
+            </p>
           </div>
         ) : (
           <div className="table-container">
@@ -313,19 +386,23 @@ function SettingsView() {
                   <th>Contacto</th>
                   <th>Límite de Crédito</th>
                   <th>Deuda Actual</th>
+                  <th>Estado</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {customers.map(customer => (
-                  <tr key={customer.id}>
+                  <tr key={customer.id} style={{
+                    opacity: customer.is_active === false ? 0.6 : 1,
+                    background: customer.is_active === false ? 'rgba(233, 69, 96, 0.05)' : 'transparent'
+                  }}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <div style={{ 
                           width: '32px', 
                           height: '32px', 
                           borderRadius: '50%', 
-                          background: 'var(--accent)',
+                          background: customer.is_active === false ? 'rgba(233, 69, 96, 0.15)' : 'var(--accent)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -335,7 +412,14 @@ function SettingsView() {
                         }}>
                           {customer.name?.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() || 'C'}
                         </div>
-                        {customer.name}
+                        <div>
+                          <div>{customer.name}</div>
+                          {customer.is_active === false && (
+                            <div style={{ fontSize: '10px', color: 'var(--danger)', fontWeight: 'bold' }}>
+                              INACTIVO
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td>
@@ -359,6 +443,18 @@ function SettingsView() {
                       </span>
                     </td>
                     <td>
+                      <span style={{
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        background: customer.is_active !== false ? 'rgba(0, 217, 165, 0.15)' : 'rgba(233, 69, 96, 0.15)',
+                        color: customer.is_active !== false ? 'var(--success)' : 'var(--danger)'
+                      }}>
+                        {customer.is_active !== false ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </td>
+                    <td>
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button 
                           className="btn btn-secondary btn-sm" 
@@ -367,13 +463,24 @@ function SettingsView() {
                         >
                           <Edit size={14} />
                         </button>
-                        <button 
-                          className="btn btn-danger btn-sm" 
-                          onClick={() => handleDeleteCustomer(customer)}
-                          title="Eliminar cliente"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        {customer.is_active === false ? (
+                          <button
+                            className="btn btn-sm btn-success"
+                            onClick={() => handleReactivateCustomer(customer)}
+                            title="Activar cliente"
+                            style={{ background: '#10b981', borderColor: '#10b981' }}
+                          >
+                            <CheckCircle size={14} />
+                          </button>
+                        ) : (
+                          <button 
+                            className="btn btn-danger btn-sm" 
+                            onClick={() => handleDeleteCustomer(customer)}
+                            title="Eliminar cliente"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -389,13 +496,40 @@ function SettingsView() {
         <div className="card-header" style={{ justifyContent: 'space-between' }}>
           <h3 className="card-title">Gestión de Proveedores</h3>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button 
-              className="btn btn-secondary btn-sm" 
-              onClick={() => handleToggleInactiveSuppliers(!showInactiveSuppliers)}
-            >
-              {showInactiveSuppliers ? <EyeOff size={16} /> : <Eye size={16} />}
-              {showInactiveSuppliers ? 'Ocultar Inactivos' : 'Proveedores Inactivos'}
-            </button>
+            <div style={{ display: 'flex', background: 'var(--surface)', borderRadius: '8px', padding: '4px', border: '1px solid var(--border)' }}>
+              <button
+                onClick={() => handleToggleInactiveSuppliers(false)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: !showInactiveSuppliers ? 'var(--accent)' : 'transparent',
+                  color: !showInactiveSuppliers ? 'white' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  transition: 'all 0.2s'
+                }}
+              >
+                Activos
+              </button>
+              <button
+                onClick={() => handleToggleInactiveSuppliers(true)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: showInactiveSuppliers ? 'var(--accent)' : 'transparent',
+                  color: showInactiveSuppliers ? 'white' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  transition: 'all 0.2s'
+                }}
+              >
+                Inactivos
+              </button>
+            </div>
             <button className="btn btn-primary btn-sm" onClick={() => { setEditingSupplier(null); setShowSupplierModal(true) }}>
               <Building2 size={16} />
               Nuevo Proveedor
@@ -664,13 +798,40 @@ function SettingsView() {
         <div className="card-header" style={{ justifyContent: 'space-between' }}>
           <h3 className="card-title">Categorías de Productos</h3>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button 
-              className="btn btn-secondary btn-sm" 
-              onClick={() => handleToggleInactiveCategories(!showInactiveCategories)}
-            >
-              {showInactiveCategories ? <EyeOff size={16} /> : <Eye size={16} />}
-              {showInactiveCategories ? 'Ocultar Inactivas' : 'Categorías Inactivas'}
-            </button>
+            <div style={{ display: 'flex', background: 'var(--surface)', borderRadius: '8px', padding: '4px', border: '1px solid var(--border)' }}>
+              <button
+                onClick={() => handleToggleInactiveCategories(false)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: !showInactiveCategories ? 'var(--accent)' : 'transparent',
+                  color: !showInactiveCategories ? 'white' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  transition: 'all 0.2s'
+                }}
+              >
+                Activas
+              </button>
+              <button
+                onClick={() => handleToggleInactiveCategories(true)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: showInactiveCategories ? 'var(--accent)' : 'transparent',
+                  color: showInactiveCategories ? 'white' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  transition: 'all 0.2s'
+                }}
+              >
+                Inactivas
+              </button>
+            </div>
             <button className="btn btn-primary btn-sm" onClick={() => { setEditingCategory(null); setShowCategoryModal(true) }}>
               <Plus size={16} />
               Nueva Categoría
