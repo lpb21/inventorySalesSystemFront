@@ -1,22 +1,22 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/v1';
 
 // Obtener token del localStorage
-const getToken = () => localStorage.getItem('invleo_token');
+const getToken = () => localStorage.getItem('invah_token');
 
 // Guardar token
 const setToken = (token) => {
-  localStorage.setItem('invleo_token', token);
+  localStorage.setItem('invah_token', token);
 };
 
 // Guardar usuario
 const setUser = (user) => {
-  localStorage.setItem('invleo_user', JSON.stringify(user));
+  localStorage.setItem('invah_user', JSON.stringify(user));
 };
 
 // Obtener usuario - con manejo de errores
 const getUser = () => {
   try {
-    const user = localStorage.getItem('invleo_user');
+    const user = localStorage.getItem('invah_user');
     if (!user || user === 'undefined') return null;
     return JSON.parse(user);
   } catch (error) {
@@ -27,9 +27,9 @@ const getUser = () => {
 
 // Limpiar sesión
 const clearSession = () => {
-  localStorage.removeItem('invleo_token');
-  localStorage.removeItem('invleo_user');
-  localStorage.removeItem('invleo_logged_in');
+  localStorage.removeItem('invah_token');
+  localStorage.removeItem('invah_user');
+  localStorage.removeItem('invah_logged_in');
 };
 
 // Función auxiliar para normalizar respuestas exitosas del backend
@@ -383,7 +383,10 @@ export const suppliersAPI = {
 
 // API Clientes
 export const customersAPI = {
-  getAll: () => apiRequest('/customers'),
+  getAll: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiRequest(`/customers${query ? `?${query}` : ''}`);
+  },
   
   getById: (id) => apiRequest(`/customers/${id}`),
   

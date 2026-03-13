@@ -18,7 +18,7 @@ export function useCart() {
 
   // Sincronizar carrito con localStorage para la pantalla del cliente
   useEffect(() => {
-    localStorage.setItem('invleo_cart', JSON.stringify(cart))
+    localStorage.setItem('invah_cart', JSON.stringify(cart))
   }, [cart])
 
   const addToCart = (product) => {

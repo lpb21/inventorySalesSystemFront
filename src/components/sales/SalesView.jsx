@@ -19,7 +19,7 @@ import {
   normalizeNumber
 } from '../../utils/measurements'
 
-const POS_LAYOUT_STORAGE_KEY = 'invleo_pos_layout'
+const POS_LAYOUT_STORAGE_KEY = 'invah_pos_layout'
 
 function SalesView() {
   const {
@@ -190,14 +190,14 @@ function SalesView() {
         <div className="pos-toolbar">
           <h3>Productos</h3>
           <div className="pos-toolbar-actions">
-            <button
+            {/* <button
               type="button"
               className="btn btn-secondary btn-sm"
               onClick={() => setSwappedLayout(prev => !prev)}
             >
               <ArrowLeftRight size={16} />
               Mover paneles
-            </button>
+            </button> */}
             <div className="category-tabs" style={{ marginBottom: 0 }}>
               {['Todos', ...categories.map(c => c.name)].map(cat => (
                 <button

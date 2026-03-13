@@ -12,7 +12,7 @@ function CustomerDisplay({ products, cart, cartTotal, onClose }) {
       </div>
 
       <div className="customer-header">
-        <div className="customer-logo">invLeo</div>
+        <div className="customer-logo">invah</div>
         <div className="customer-title">Salsamentaría &amp; Quesos Frescos</div>
       </div>
 

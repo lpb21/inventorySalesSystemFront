@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { suppliersAPI, ApiNormalizers } from '../../api/config'
 
 export function useSuppliers({ includeInactive = false, ...options } = {}) {
-    const user = JSON.parse(localStorage.getItem('invleo_user') || 'null')
+    const user = JSON.parse(localStorage.getItem('invah_user') || 'null')
     const tenantId = user?.tenant?.id || user?.tenant_id // Soporte para ambas estructuras
     
     return useQuery({

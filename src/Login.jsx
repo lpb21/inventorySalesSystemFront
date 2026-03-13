@@ -54,10 +54,10 @@ export default function Login({ error }) {
       <div className="login-card">
         <div className="login-header">
           <div className="login-logo">
-            <div className="logo-icon">iL</div>
+            <div className="logo-icon">Ih</div>
           </div>
-          <h1 className="login-title">invLeo</h1>
-          <p className="login-subtitle">Sistema de Inventarios</p>
+          <h1 className="login-title">Invah</h1>
+          <p className="login-subtitle">Inventories Network Visualization Analytics Hub</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
@@ -107,15 +107,6 @@ export default function Login({ error }) {
             {loading ? 'Ingresando...' : 'Iniciar Sesión'}
           </button>
         </form>
-
-        <div className="login-footer">
-          <p className="demo-info">Usuarios de demo:</p>
-          <div className="demo-users">
-            <span><strong>admin</strong> / admin123 — Super Admin</span>
-            <span><strong>supervisor</strong> / super123 — Supervisor</span>
-            <span><strong>cajero</strong> / cajero123 — Cajero</span>
-          </div>
-        </div>
       </div>
     </div>
   )
