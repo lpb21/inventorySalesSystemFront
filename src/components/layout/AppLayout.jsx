@@ -1,9 +1,12 @@
 import { 
   LayoutDashboard, Package, ShoppingCart, Settings, 
-  Search, BarChart3, RefreshCw, LogOut, Eye, User
+  Search, BarChart3, LogOut, Eye, User, Menu
 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { can, ROLE_LABELS } from '../../utils/permissions'
+
+const SIDEBAR_COLLAPSED_STORAGE_KEY = 'invah_sidebar_collapsed'
 
 /**
  * Layout principal de la aplicación.
@@ -12,6 +15,13 @@ import { can, ROLE_LABELS } from '../../utils/permissions'
 function AppLayout({ currentUser, searchTerm, setSearchTerm, lowStockCount, onRefresh, onLogout, children }) {
   const navigate = useNavigate()
   const location = useLocation()
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === 'true'
+    } catch (error) {
+      return false
+    }
+  })
   
   const currentPath = location.pathname
 
@@ -36,13 +46,21 @@ function AppLayout({ currentUser, searchTerm, setSearchTerm, lowStockCount, onRe
     }
   }
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, String(isSidebarCollapsed))
+    } catch (error) {
+      // Ignore storage errors to avoid breaking layout behavior.
+    }
+  }, [isSidebarCollapsed])
+
   return (
-    <div className="app-container">
+    <div className={`app-container ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       <aside className="sidebar">
         <div className="sidebar-logo">
           <div className="logo-icon">iL</div>
-          <div>
-            <div className="logo-text">invLeo</div>
+          <div className="sidebar-brand-text">
+            <div className="logo-text">invah</div>
             <div className="logo-subtitle">Inventarios</div>
           </div>
         </div>
@@ -56,22 +74,23 @@ function AppLayout({ currentUser, searchTerm, setSearchTerm, lowStockCount, onRe
                 key={item.id}
                 className={`nav-item ${isActive ? 'active' : ''}`} 
                 onClick={() => navigate(item.path)}
+                title={item.label}
               >
                 <item.icon />
-                {item.label}
+                <span>{item.label}</span>
               </button>
             )
           })}
         </nav>
 
         <div style={{ marginTop: 'auto', paddingTop: '20px' }}>
-          <button className="nav-item" onClick={() => window.open('/customer', '_blank')}>
+          <button className="nav-item" onClick={() => window.open('/customer', '_blank')} title="Pantalla Cliente">
             <Eye />
-            Pantalla Cliente
+            <span>Pantalla Cliente</span>
           </button>
-          <button className="nav-item" onClick={onLogout}>
+          <button className="nav-item" onClick={onLogout} title="Cerrar Sesión">
             <LogOut />
-            Cerrar Sesión
+            <span>Cerrar Sesión</span>
           </button>
         </div>
       </aside>
@@ -79,6 +98,14 @@ function AppLayout({ currentUser, searchTerm, setSearchTerm, lowStockCount, onRe
       <main className="main-content">
         <header className="header">
           <div className="header-left">
+            <button
+              className="icon-btn sidebar-toggle-btn"
+              onClick={() => setIsSidebarCollapsed(prev => !prev)}
+              title={isSidebarCollapsed ? 'Expandir menú' : 'Contraer menú'}
+              aria-label={isSidebarCollapsed ? 'Expandir menú lateral' : 'Contraer menú lateral'}
+            >
+              <Menu />
+            </button>
             <h1 className="header-title">{getTitle()}</h1>
           </div>
           
@@ -93,14 +120,14 @@ function AppLayout({ currentUser, searchTerm, setSearchTerm, lowStockCount, onRe
               />
             </div>
             
-            <div className="header-actions">
+            {/* <div className="header-actions">
               <button className="icon-btn" onClick={onRefresh}>
                 <RefreshCw />
                 {lowStockCount > 0 && (
                   <span className="badge">{lowStockCount}</span>
                 )}
               </button>
-            </div>
+            </div> */}
             
             <div className="user-menu">
               <div className="user-avatar">

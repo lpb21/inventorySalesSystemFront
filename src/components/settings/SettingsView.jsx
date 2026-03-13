@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Settings, Users, User, Edit, Trash2, Plus, Save, Download, Upload, Package2, Phone, Mail, Ban, CheckCircle, AlertTriangle, Building2 } from 'lucide-react'
+import { Settings, Users, User, Edit, Trash2, Plus, Save, Upload, Package2, Phone, Mail, Ban, CheckCircle, AlertTriangle, Building2 } from 'lucide-react'
 import { can, ROLE_LABELS, getCreatableRoles, canEditUser } from '../../utils/permissions'
 import ImportModal from '../inventory/ImportModal'
 import { ICON_OPTIONS } from '../inventory/CategoryModal'
@@ -64,11 +64,56 @@ function SettingsView() {
   const { createSupplier: saveSupplier, deactivateSupplier, reactivateSupplier } = useSupplierMutations()
   const { createCategory, updateCategory, deactivateCategory, reactivateCategory } = useCategoryMutations()
   
-  const toggleSupplierStatus = (supplier) => {
+  const toggleSupplierStatus = async (supplier) => {
     if (supplier.is_active === false) {
-      reactivateSupplier.mutate(supplier.id)
-    } else {
-      deactivateSupplier.mutate(supplier.id)
+      try {
+        await reactivateSupplier.mutateAsync(supplier.id)
+        addToast('Proveedor activado', 'success')
+      } catch (error) {
+        const errorMessage = error?.response?.data?.error?.message || error?.message || 'Error al activar proveedor'
+        addToast(errorMessage, 'error')
+      }
+      return
+    }
+
+    const result = await Swal.fire({
+      title: '¿Desactivar proveedor?',
+      html: `
+        <p style="color: var(--text-secondary); margin-bottom: 8px;">
+          El proveedor <strong>${supplier.name}</strong> será desactivado.
+        </p>
+        <p style="color: var(--text-secondary); font-size: 14px;">
+          Si tiene productos asociados, el sistema puede bloquear esta acción.
+        </p>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#e94560',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Sí, desactivar',
+      cancelButtonText: 'Cancelar',
+      background: '#1a1f2e',
+      color: '#e6edf3'
+    })
+
+    if (!result.isConfirmed) return
+
+    try {
+      await deactivateSupplier.mutateAsync(supplier.id)
+      addToast('Proveedor desactivado', 'success')
+    } catch (error) {
+      const errorCode = error?.response?.data?.error?.code
+      const backendMessage = error?.response?.data?.error?.message
+      const isAssociatedProductsError =
+        error?.response?.status === 409 ||
+        errorCode === 'SUPPLIER_HAS_PRODUCTS' ||
+        errorCode === 'BUSINESS_RULE_VIOLATION'
+
+      const errorMessage = isAssociatedProductsError
+        ? (backendMessage || 'No se puede desactivar el proveedor porque tiene productos asociados')
+        : (backendMessage || error?.message || 'Error al desactivar proveedor')
+
+      addToast(errorMessage, 'error')
     }
   }
 
@@ -309,12 +354,26 @@ function SettingsView() {
           <div className="card-header">
             <h3 className="card-title">Gestión de Datos</h3>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <button className="btn btn-secondary" style={{ justifyContent: 'flex-start' }}>
-              <Download size={18} />
-              Exportar Datos (JSON)
-            </button>
-            <button className="btn btn-secondary" style={{ justifyContent: 'flex-start' }} onClick={() => setShowImportModal(true)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '10px',
+              padding: '12px',
+              borderRadius: '10px',
+              border: '1px dashed var(--border)',
+              background: 'var(--surface)'
+            }}>
+              <AlertTriangle size={16} style={{ color: 'var(--warning)', marginTop: '2px', flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 600 }}>Exportación JSON</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  Esta opción estará disponible próximamente.
+                </div>
+              </div>
+            </div>
+
+            <button className="btn btn-primary" style={{ justifyContent: 'flex-start' }} onClick={() => setShowImportModal(true)}>
               <Upload size={18} />
               Importar Productos CSV
             </button>
