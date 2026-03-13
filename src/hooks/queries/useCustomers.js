@@ -46,13 +46,10 @@ export function useCustomerMutations() {
         onSuccess: invalidate
     })
 
-    const registerPayment = useMutation({
-        mutationFn: async ({ id, data }) => {
-            const response = await customersAPI.registerPayment(id, data)
-            return response // Devolver la respuesta completa del backend
-        },
+    const deleteCustomer = useMutation({
+        mutationFn: (id) => customersAPI.delete(id),
         onSuccess: invalidate
     })
 
-    return { createCustomer, updateCustomer, registerPayment }
+    return { createCustomer, updateCustomer, deleteCustomer, registerPayment }
 }
