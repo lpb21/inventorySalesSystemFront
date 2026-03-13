@@ -175,9 +175,11 @@ function SalesView() {
     setWeightDrafts({})
   }, [cart.length])
 
-  const filteredProducts = products.filter(p =>
-    selectedCategory === 'Todos' || p.category?.name === selectedCategory || p.category === selectedCategory
-  )
+  const filteredProducts = products.filter(p => {
+    const isCategoryMatch = selectedCategory === 'Todos' || p.category?.name === selectedCategory || p.category === selectedCategory
+    const isActive = p.is_active !== false
+    return isCategoryMatch && isActive
+  })
 
   const numericPaymentAmount = parseInt(paymentAmount || 0, 10)
   const change = (paymentAmount && numericPaymentAmount >= cartTotal) ? numericPaymentAmount - cartTotal : 0
