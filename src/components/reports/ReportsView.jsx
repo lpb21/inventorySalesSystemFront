@@ -1,4 +1,4 @@
-import { ShoppingCart, DollarSign, Package, History, TrendingDown } from 'lucide-react'
+import { ShoppingCart, DollarSign, Package, History, TrendingDown, TrendingUp } from 'lucide-react'
 import { can } from '../../utils/permissions'
 import { reportsAPI } from '../../api/config'
 import { useState, useEffect } from 'react'
@@ -48,6 +48,7 @@ function ReportsView() {
   }, [showFullReports])
   
   const totalRevenue = dashboardData?.metrics?.todaySales || 0
+  const todayProfit = dashboardData?.metrics?.todayProfit || 0
   const totalSales   = sales.length
 
   const topProducts = products
@@ -80,6 +81,16 @@ function ReportsView() {
           <div className="stat-value">${totalRevenue.toLocaleString()}</div>
           <div className="stat-label">Ingresos Totales</div>
         </div>
+
+        {showFullReports && (
+          <div className="stat-card success">
+            <div className="stat-icon success">
+              <TrendingUp />
+            </div>
+            <div className="stat-value">${todayProfit.toLocaleString()}</div>
+            <div className="stat-label">Ganancia de Hoy</div>
+          </div>
+        )}
         
         <div className="stat-card info">
           <div className="stat-icon info">

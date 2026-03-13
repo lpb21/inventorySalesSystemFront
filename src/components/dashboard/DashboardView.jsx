@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  TrendingUp, AlertTriangle, DollarSign, Package,
+  TrendingUp, AlertTriangle, Package,
   ShoppingCart, History, ChevronRight, BarChart3, Calendar
 } from 'lucide-react'
 import { getProductsNearingExpiration, getExpirationStatus } from '../../utils/expiration'
@@ -19,7 +19,6 @@ function DashboardView() {
   const { data: dashboardData, isLoading: loadingDashboard } = useDashboardData()
 
   const todaySales = dashboardData?.metrics?.todaySales || 0
-  const todayProfit = dashboardData?.metrics?.todayProfit || 0
   const sales = dashboardData?.recentSales || []
 
   const loading = loadingProducts || loadingDashboard
@@ -44,21 +43,13 @@ function DashboardView() {
       <div className="stats-grid">
         {showSalesCards ? (
           <>
-            <div className="stat-card primary">
+            {/* <div className="stat-card primary">
               <div className="stat-icon primary">
                 <TrendingUp />
               </div>
               <div className="stat-value">${(todaySales || 0).toLocaleString()}</div>
               <div className="stat-label">Ventas de Hoy</div>
-            </div>
-            
-            <div className="stat-card success">
-              <div className="stat-icon success">
-                <DollarSign />
-              </div>
-              <div className="stat-value">${(todayProfit || 0).toLocaleString()}</div>
-              <div className="stat-label">Ganancia de Hoy</div>
-            </div>
+            </div> */}
           </>
         ) : null}
         
