@@ -15,6 +15,7 @@ import SupplierModal from '../inventory/SupplierModal'
 import CategoryModal from '../inventory/CategoryModal'
 import { categoriesAPI, suppliersAPI } from '../../api/config'
 import { useQueryClient } from '@tanstack/react-query'
+import Swal from 'sweetalert2'
 
 function SettingsView() {
   const {
@@ -99,6 +100,40 @@ function SettingsView() {
       if (exists) return old
       return [supplier, ...old]
     })
+  }
+
+  const handleDeleteCustomer = async (customer) => {
+    const result = await Swal.fire({
+      title: '¿Eliminar cliente?',
+      html: `
+        <p style="color: var(--text-secondary); margin-bottom: 8px;">
+          El cliente <strong>${customer.name}</strong> será eliminado del sistema.
+        </p>
+        <ul style="text-align: left; padding-left: 20px; color: #aaa; font-size: 14px;">
+          <li>Esta acción no se puede deshacer</li>
+          <li>Las ventas realizadas no se eliminarán</li>
+        </ul>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#e94560',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      background: '#1a1f2e',
+      color: '#e6edf3',
+      customClass: { popup: 'swal-delete-customer' }
+    })
+
+    if (!result.isConfirmed) return
+
+    try {
+      await deleteCustomer.mutateAsync(customer.id)
+      addToast('Cliente eliminado exitosamente', 'success')
+    } catch (error) {
+      const errorMessage = error?.response?.data?.error?.message || error?.message || 'Error al eliminar cliente'
+      addToast(errorMessage, 'error')
+    }
   }
 
   const handleSaveCategory = async (categoryData) => {
@@ -334,11 +369,7 @@ function SettingsView() {
                         </button>
                         <button 
                           className="btn btn-danger btn-sm" 
-                          onClick={() => {
-                            if (window.confirm('¿Seguro que deseas eliminar este cliente?')) {
-                              deleteCustomer.mutate(customer.id)
-                            }
-                          }}
+                          onClick={() => handleDeleteCustomer(customer)}
                           title="Eliminar cliente"
                         >
                           <Trash2 size={14} />
