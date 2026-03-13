@@ -13,7 +13,8 @@ import UserModal from '../shared/UserModal'
 import CustomerModal from '../shared/CustomerModal'
 import SupplierModal from '../inventory/SupplierModal'
 import CategoryModal from '../inventory/CategoryModal'
-import { categoriesAPI } from '../../api/config'
+import { categoriesAPI, suppliersAPI } from '../../api/config'
+import { useQueryClient } from '@tanstack/react-query'
 
 function SettingsView() {
   const {
@@ -67,6 +68,37 @@ function SettingsView() {
     } else {
       deactivateSupplier.mutate(supplier.id)
     }
+  }
+
+  const queryClient = useQueryClient()
+
+  const refreshSuppliers = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['suppliers'] })
+    await queryClient.refetchQueries({ queryKey: ['suppliers'], type: 'active' })
+  }
+
+  const extractSupplierFromResponse = (result) => {
+    if (!result) return null
+    if (result?.data?.supplier) return result.data.supplier
+    if (result?.supplier) return result.supplier
+    if (result?.id) return result
+    return null
+  }
+
+  const upsertSupplierInCache = (supplier, isEdit) => {
+    if (!supplier?.id) return
+
+    queryClient.setQueriesData({ queryKey: ['suppliers'] }, (old = []) => {
+      if (!Array.isArray(old)) return old
+
+      if (isEdit) {
+        return old.map((item) => (item.id === supplier.id ? { ...item, ...supplier } : item))
+      }
+
+      const exists = old.some((item) => item.id === supplier.id)
+      if (exists) return old
+      return [supplier, ...old]
+    })
   }
 
   const handleSaveCategory = async (categoryData) => {
@@ -722,14 +754,47 @@ function SettingsView() {
         <SupplierModal
           isOpen={showSupplierModal}
           editingSupplier={editingSupplier}
-          onSave={async (data) => {
+          onSave={async (supplierData) => {
+            // Extraer solo los campos que el backend espera
+            const { name, contact_name, document, email, phone, address, notes } = supplierData
+            const payload = { name, contact_name, document, email, phone, address, notes }
+
             setIsSavingSupplier(true)
             try {
-              if (editingSupplier) await saveSupplier.mutateAsync({ id: editingSupplier.id, data })
-              else await saveSupplier.mutateAsync(data)
+              let result
+              if (editingSupplier) {
+                result = await suppliersAPI.update(editingSupplier.id, payload)
+                addToast('Proveedor actualizado', 'success')
+              } else {
+                result = await suppliersAPI.create(payload)
+                addToast('Proveedor creado', 'success')
+              }
+
+              const savedSupplier = extractSupplierFromResponse(result)
+              upsertSupplierInCache(savedSupplier, Boolean(editingSupplier))
+
               setShowSupplierModal(false)
               setEditingSupplier(null)
-            } catch (error) {} finally { setIsSavingSupplier(false) }
+              
+              await refreshSuppliers()
+              return { success: true }
+
+            } catch (error) {
+              const errorData = error?.response?.data
+              const isValidation = errorData?.error?.code === 'VALIDATION_ERROR'
+              const details = isValidation ? (errorData?.error?.details ?? []).filter(d => typeof d === 'string') : []
+              const msg = errorData?.error?.message || error?.message || 'Error al guardar proveedor'
+
+              addToast(msg, 'error')
+              return {
+                success:     false,
+                message:     msg,
+                formErrors:  details.length ? details : null,
+                fieldErrors: null
+              }
+            } finally {
+              setIsSavingSupplier(false)
+            }
           }}
           onClose={() => { setShowSupplierModal(false); setEditingSupplier(null) }}
           isSaving={isSavingSupplier}

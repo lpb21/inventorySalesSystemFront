@@ -13,58 +13,140 @@ import { suppliersAPI } from '../api/config'
  * @param {Function} deps.setShowSupplierModal - Abre/cierra el modal de proveedor
  * @param {Function} deps.setIsSaving        - Estado de guardado
  */
-export function useSuppliers({ 
-  addToast, 
-  loadSuppliers, 
-  editingSupplier, 
-  setEditingSupplier, 
+export function useSuppliers({
+  addToast,
+  loadSuppliers,
+  editingSupplier,
+  setEditingSupplier,
   setShowSupplierModal,
   setIsSaving
 }) {
 
+  const normalizeFieldName = (rawField = '') => {
+    const key = rawField
+      .toString()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+
+    const fieldMap = {
+      nombre: 'name',
+      proveedor: 'name',
+      contacto: 'contact_name',
+      documento: 'document',
+      ruc: 'document',
+      email: 'email',
+      correo: 'email',
+      'teléfono': 'phone',
+      telefono: 'phone',
+      direccion: 'address',
+      'dirección': 'address',
+      notas: 'notes'
+    }
+
+    return fieldMap[key] || null
+  }
+
+  const extractFieldFromMessage = (message = '') => {
+    const normalized = message
+      .toString()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+
+    const match = normalized.match(/campo\s+([a-z_\s]+?)\s+es\s+obligatorio/)
+    if (!match?.[1]) return null
+
+    return normalizeFieldName(match[1].trim())
+  }
+
+  const getValidationInfo = (errorResponse) => {
+    if (errorResponse?.error?.code !== 'VALIDATION_ERROR') return null
+
+    const details = errorResponse?.error?.details
+    if (!Array.isArray(details) || details.length === 0) return null
+
+    const stringDetails = details.filter((detail) => typeof detail === 'string')
+    if (stringDetails.length === 0) return null
+
+    const fieldErrors = {}
+
+    stringDetails.forEach((detail) => {
+      const inferredField = extractFieldFromMessage(detail)
+      if (inferredField) {
+        fieldErrors[inferredField] = detail
+      }
+    })
+
+    return {
+      fieldErrors: Object.keys(fieldErrors).length > 0 ? fieldErrors : null,
+      detailMessages: stringDetails
+    }
+  }
+
   const saveSupplier = async (supplier) => {
-    // Activar estado de carga
     if (setIsSaving) setIsSaving(true)
-    
+
     try {
       if (editingSupplier) {
         await suppliersAPI.update(editingSupplier.id, supplier)
-        addToast('Proveedor actualizado', 'success')
       } else {
         await suppliersAPI.create(supplier)
-        addToast('Proveedor creado', 'success')
       }
+
+      // Éxito: apiRequest ya lanza excepción si hay error HTTP, así que si llega aquí es OK
+      addToast(editingSupplier ? 'Proveedor actualizado' : 'Proveedor creado', 'success')
       setShowSupplierModal(false)
       setEditingSupplier(null)
       await loadSuppliers()
+      return { success: true }
+
     } catch (error) {
-      // Manejar respuesta de error del servidor
-      const errorResponse = error.response?.data
-      
-      if (errorResponse && errorResponse.success === false && errorResponse.error?.message) {
-        // Mostrar el mensaje de error específico del servidor
-        addToast(errorResponse.error.message, 'error')
-      } else {
-        // Mensaje genérico para errores inesperados
-        addToast('Error al guardar proveedor', 'error')
+      // apiRequest lanza siempre cuando HTTP no es 2xx
+      // El body del error está en error.response.data
+      const errorData = error?.response?.data
+      const validationInfo = getValidationInfo(errorData)
+
+      if (validationInfo) {
+        const toastMsg = errorData?.error?.message || 'Error de validación'
+        const detailsList = validationInfo.detailMessages?.join('\n• ') || ''
+        addToast(detailsList ? `${toastMsg}\n\n• ${detailsList}` : toastMsg, 'error')
+
+        return {
+          success: false,
+          message: toastMsg,
+          formErrors: validationInfo.detailMessages || null,
+          fieldErrors: validationInfo.fieldErrors || null
+        }
       }
+
+      // Error genérico del servidor
+      const genericMsg = errorData?.error?.message || errorData?.message || 'Error al guardar proveedor'
+      addToast(genericMsg, 'error')
+      return {
+        success: false,
+        message: genericMsg,
+        formErrors: null,
+        fieldErrors: null
+      }
+
     } finally {
-      // Desactivar estado de carga
       if (setIsSaving) setIsSaving(false)
     }
   }
 
   const toggleSupplierStatus = async (supplier) => {
     const isCurrentlyActive = supplier.is_active !== false
-    
+
     const result = await Swal.fire({
       title: `¿${isCurrentlyActive ? 'Desactivar' : 'Activar'} proveedor?`,
       html: `
         <p style="color: var(--text-secondary); margin-bottom: 8px;">
           El proveedor <strong>${supplier.name}</strong> será ${isCurrentlyActive ? 'desactivado' : 'activado'}.
         </p>
-        ${isCurrentlyActive 
-          ? '<p style="color: var(--text-secondary); font-size: 14px;">Los productos asociados ya no aparecerán en el inventario.</p>' 
+        ${isCurrentlyActive
+          ? '<p style="color: var(--text-secondary); font-size: 14px;">Los productos asociados ya no aparecerán en el inventario.</p>'
           : '<p style="color: var(--text-secondary); font-size: 14px;">El proveedor volverá a aparecer en el inventario.</p>'
         }
       `,
@@ -77,16 +159,16 @@ export function useSuppliers({
       background: '#1a1f2e',
       color: '#e6edf3'
     })
-    
+
     if (!result.isConfirmed) return
-    
+
     try {
       await suppliersAPI.toggleStatus(supplier.id)
       addToast(isCurrentlyActive ? 'Proveedor desactivado' : 'Proveedor activado', 'success')
       await loadSuppliers()
     } catch (error) {
       const errorResponse = error.response?.data
-      
+
       if (errorResponse && errorResponse.success === false && errorResponse.error?.message) {
         addToast(errorResponse.error.message, 'error')
       } else {
@@ -118,16 +200,16 @@ export function useSuppliers({
       color: '#e6edf3',
       customClass: { popup: 'swal-delete-supplier' }
     })
-    
+
     if (!result.isConfirmed) return
-    
+
     try {
       await suppliersAPI.delete(id)
       addToast('Proveedor eliminado exitosamente', 'success')
       await loadSuppliers()
     } catch (error) {
       const errorResponse = error.response?.data
-      
+
       if (errorResponse && errorResponse.success === false) {
         // Error retornado por el servidor con formato conocido
         Swal.fire({
