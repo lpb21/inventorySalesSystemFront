@@ -1440,3 +1440,38 @@ input[type=number] {
   -moz-appearance: textfield;
   appearance: none;
 }
+
+/* Date picker icons - Fixed for dark theme */
+input[type="date"].form-input,
+input[type="datetime-local"].form-input {
+  color-scheme: dark;
+  background: var(--background) !important;
+  color: var(--text-primary);
+}
+
+input[type="date"].form-input::-webkit-calendar-picker-indicator,
+input[type="datetime-local"].form-input::-webkit-calendar-picker-indicator {
+  filter: brightness(0) invert(1) !important;
+  opacity: 1 !important;
+  cursor: pointer;
+}
+
+input[type="date"].form-input::-webkit-calendar-picker-indicator:hover,
+input[type="datetime-local"].form-input::-webkit-calendar-picker-indicator:hover {
+  filter: brightness(0) invert(1) !important;
+}
+
+/* Firefox date picker */
+input[type="date"].form-input::-moz-calendar-picker-indicator {
+  color: white !important;
+  opacity: 1 !important;
+}
+
+/* Ensure input text is visible */
+input[type="date"].form-input::-webkit-datetime-edit {
+  color: var(--text-primary) !important;
+}
+
+input[type="date"].form-input:invalid::-webkit-datetime-edit {
+  color: var(--text-secondary) !important;
+}

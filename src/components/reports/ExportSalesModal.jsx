@@ -23,8 +23,8 @@ function ExportSalesModal({ onClose }) {
     const end = new Date(`${endDate}T23:59:59`)
     const today = new Date()
 
-    if (end > today) {
-      setError('La fecha de fin no puede ser mayor a la fecha actual.')
+    if (end >= today) {
+      setError('La fecha de fin no puede ser igual o mayor a la fecha actual.')
       return
     }
 

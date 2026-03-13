@@ -101,7 +101,7 @@ function ReportsView() {
         </div>
       </div>
       
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '24px' }}>
         <button 
           className="btn btn-primary" 
           onClick={() => setShowExportModal(true)}
