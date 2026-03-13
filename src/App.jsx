@@ -55,6 +55,17 @@ function App() {
     }
   }, [isLoggedIn, authChecked])
 
+  // Prevenir cambio de valor en inputs numéricos al hacer scroll (Global)
+  useEffect(() => {
+    const handleGlobalWheel = (e) => {
+      if (document.activeElement.type === 'number') {
+        document.activeElement.blur()
+      }
+    }
+    document.addEventListener('wheel', handleGlobalWheel, { passive: true })
+    return () => document.removeEventListener('wheel', handleGlobalWheel)
+  }, [])
+
   const handleGenerateMonthlyReport = () => {
     addToast('Reporte mensual generado y caja reiniciada', 'success')
   }

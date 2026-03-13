@@ -274,7 +274,7 @@ function DashboardView() {
           </div>
           <div className="action-content">
             <h4>Nueva Venta</h4>
-            <p>Iniciar punto de venta (F2)</p>
+            <p>Iniciar punto de venta</p>
           </div>
           <ChevronRight style={{ color: 'var(--text-secondary)' }} />
         </div>
@@ -285,7 +285,7 @@ function DashboardView() {
           </div>
           <div className="action-content">
             <h4>Gestionar Inventario</h4>
-            <p>Agregar o editar productos (F3)</p>
+            <p>Agregar o editar productos</p>
           </div>
           <ChevronRight style={{ color: 'var(--text-secondary)' }} />
         </div>

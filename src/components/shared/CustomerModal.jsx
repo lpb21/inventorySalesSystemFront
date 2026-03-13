@@ -15,6 +15,7 @@ function CustomerModal({ customer, onSave, onClose }) {
   const [emailError, setEmailError] = useState('')
   const [addressError, setAddressError] = useState('')
   const [creditLimitError, setCreditLimitError] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     if (customer) {
@@ -41,7 +42,7 @@ function CustomerModal({ customer, onSave, onClose }) {
     setCreditLimitError('')
   }, [customer])
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     
     // Validar todos los campos
@@ -64,10 +65,17 @@ function CustomerModal({ customer, onSave, onClose }) {
       return
     }
 
-    onSave({
-      ...formData,
-      credit_limit: parseFloat(formData.credit_limit) || 0
-    })
+    setIsSaving(true)
+    try {
+      await onSave({
+        ...formData,
+        credit_limit: parseFloat(formData.credit_limit) || 0
+      })
+    } catch (error) {
+      console.error('Error saving customer:', error)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const validarTelefono = (numero) => {
@@ -348,9 +356,31 @@ function CustomerModal({ customer, onSave, onClose }) {
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               Cancelar
             </button>
-            <button type="submit" className="btn btn-primary">
-              <Save size={18} />
-              Guardar
+            <button 
+              type="submit" 
+              className="btn btn-primary"
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <>
+                  <span style={{ 
+                    width: '18px', 
+                    height: '18px', 
+                    border: '2px solid rgba(255,255,255,0.3)', 
+                    borderTopColor: 'white',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                    display: 'inline-block',
+                    marginRight: '8px'
+                  }} />
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <Save size={18} />
+                  Guardar
+                </>
+              )}
             </button>
           </div>
         </form>
