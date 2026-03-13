@@ -39,6 +39,7 @@ body {
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--border);
+  transition: width 0.25s ease, padding 0.25s ease;
 }
 
 .sidebar-logo {
@@ -95,6 +96,10 @@ body {
   text-align: left;
 }
 
+.nav-item span {
+  white-space: nowrap;
+}
+
 .nav-item:hover {
   background: rgba(255, 255, 255, 0.05);
   color: var(--text-primary);
@@ -116,6 +121,32 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.sidebar-collapsed .sidebar {
+  width: 84px;
+  padding: 12px;
+}
+
+.sidebar-collapsed .sidebar-brand-text {
+  display: none;
+}
+
+.sidebar-collapsed .sidebar-logo {
+  justify-content: center;
+}
+
+.sidebar-collapsed .nav-item {
+  justify-content: center;
+  padding: 12px;
+}
+
+.sidebar-collapsed .nav-item span {
+  display: none;
+}
+
+.sidebar-toggle-btn {
+  flex-shrink: 0;
 }
 
 .header {
@@ -1101,6 +1132,10 @@ td {
   .sidebar {
     width: 80px;
     padding: 12px;
+  }
+
+  .sidebar-brand-text {
+    display: none;
   }
   
   .sidebar-logo .logo-text,

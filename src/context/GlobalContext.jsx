@@ -64,6 +64,7 @@ export const GlobalProvider = ({ children }) => {
         // Actualizar estado del contexto
         setIsLoggedIn(true)
         setCurrentUser(userData)
+        setBusinessData(null) // Limpiar para que no muestre el negocio anterior mientras carga
     }, [queryClient])
 
     const logout = useCallback(() => {
@@ -76,6 +77,7 @@ export const GlobalProvider = ({ children }) => {
         // Actualizar estado local
         setIsLoggedIn(false)
         setCurrentUser(null)
+        setBusinessData(null) // Limpiar datos del negocio
     }, [queryClient])
 
     // ── Actions ──────────────────────────────────────────────────────────
