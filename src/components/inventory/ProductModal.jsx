@@ -35,16 +35,88 @@ function ProductModal({ product, categories, suppliers = [], onSave, onClose, on
         expiry_date: ''
       })
 
-  const handleSubmit = (e) => {
+  const [errors, setErrors] = useState({})
+  const [isSaving, setIsSaving] = useState(false)
+
+  const validarNombre = (nombre) => {
+    const trimmedName = nombre.trim()
+    if (!trimmedName) {
+      return { valid: false, message: 'El nombre es obligatorio' }
+    }
+    // Permitir letras, espacios y caracteres especiales de español, pero NO números
+    if (/[0-9]/.test(trimmedName)) {
+      return { valid: false, message: 'El nombre no puede contener números' }
+    }
+    if (trimmedName.length < 2) {
+      return { valid: false, message: 'El nombre debe tener al menos 2 caracteres' }
+    }
+    return { valid: true, message: '' }
+  }
+
+  const validarCodigoBarras = (numero) => {
+    if (!numero) return { valid: true, message: '' } // Opcional
+    
+    const soloNumeros = numero.toString().replace(/\D/g, '');
+    if (soloNumeros.length > 0 && soloNumeros.length < 7) {
+      return { valid: false, message: 'El código debe tener al menos 7 dígitos numéricos' }
+    }
+    return { valid: true, message: '' }
+  }
+
+  const validarFechaVencimiento = (fecha) => {
+    if (!fecha) return { valid: true, message: '' } // Opcional
+
+    const hoy = new Date()
+    hoy.setHours(0, 0, 0, 0)
+    const fechaSeleccionada = new Date(fecha)
+    // Ajustar zona horaria si es necesario o simplemente comparar fechas
+    fechaSeleccionada.setMinutes(fechaSeleccionada.getMinutes() + fechaSeleccionada.getTimezoneOffset())
+    fechaSeleccionada.setHours(0, 0, 0, 0)
+
+    if (fechaSeleccionada < hoy) {
+      return { valid: false, message: 'La fecha debe ser posterior a hoy' }
+    }
+    return { valid: true, message: '' }
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    onSave({
-      ...formData,
-      price: parseFloat(formData.price) || 0,
-      cost: parseFloat(formData.cost) || 0,
-      stock: parseFloat(formData.stock) || 0,
-      min_stock: parseFloat(formData.min_stock) || 0,
-      supplier_id: formData.supplier_id || null
-    })
+
+    // Validar campos
+    const nameV = validarNombre(formData.name)
+    const barcodeV = validarCodigoBarras(formData.barcode)
+    const expiryV = validarFechaVencimiento(formData.expiry_date)
+
+    const newErrors = {
+      name: nameV.valid ? null : nameV.message,
+      barcode: barcodeV.valid ? null : barcodeV.message,
+      expiry_date: expiryV.valid ? null : expiryV.message
+    }
+
+    setErrors(newErrors)
+
+    // Si hay algún error, no guardar
+    if (Object.values(newErrors).some(err => err !== null)) {
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      await onSave({
+        ...formData,
+        price: parseFloat(formData.price) || 0,
+        cost: parseFloat(formData.cost) || 0,
+        stock: parseFloat(formData.stock) || 0,
+        min_stock: parseFloat(formData.min_stock) || 0,
+        supplier_id: formData.supplier_id || null
+      })
+    } catch (error) {
+      console.error('Error saving product:', error)
+      // El error generalmente se maneja en el componente padre vía toasts,
+      // pero detenemos el spinner aquí.
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -59,46 +131,61 @@ function ProductModal({ product, categories, suppliers = [], onSave, onClose, on
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             <div className="form-group">
-              <label className="form-label">Nombre del Producto</label>
+              <label className="form-label">Nombre del Producto <span style={{color: 'var(--danger)'}}>*</span></label>
               <input
                 type="text"
-                className="form-input"
+                className={`form-input ${errors.name ? 'error' : ''}`}
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
-                required
+                placeholder="Ej: Manzana Roja"
               />
+              {errors.name && (
+                <span style={{ color: 'var(--danger)', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                  {errors.name}
+                </span>
+              )}
             </div>
             <div className="form-group">
-              <label className="form-label">DescripciÃ³n</label>
+              <label className="form-label">Descripcion</label>
               <textarea
                 className="form-input"
                 value={formData.description}
                 onChange={e => setFormData({ ...formData, description: e.target.value })}
-                placeholder="DescripciÃ³n opcional del producto"
+                placeholder="Descripcion del producto"
                 rows={2}
               />
             </div>
             <div className="form-group">
-              <label className="form-label">CÃ³digo de Barras</label>
+              <label className="form-label">Código de Barras</label>
               <input
                 type="text"
-                className="form-input"
+                className={`form-input ${errors.barcode ? 'error' : ''}`}
                 value={formData.barcode}
                 onChange={e => setFormData({ ...formData, barcode: e.target.value })}
                 placeholder="Ej: 7501234567890"
               />
+              {errors.barcode && (
+                <span style={{ color: 'var(--danger)', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                  {errors.barcode}
+                </span>
+              )}
             </div>
             <div className="form-group">
               <label className="form-label">Fecha de Vencimiento</label>
               <input
                 type="date"
-                className="form-input"
+                className={`form-input ${errors.expiry_date ? 'error' : ''}`}
                 value={formData.expiry_date}
                 onChange={e => setFormData({ ...formData, expiry_date: e.target.value })}
               />
+              {errors.expiry_date && (
+                <span style={{ color: 'var(--danger)', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                  {errors.expiry_date}
+                </span>
+              )}
             </div>
             <div className="form-group">
-              <label className="form-label">CategorÃ­a</label>
+              <label className="form-label">Categori­a</label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <select
                   className="form-select"
@@ -218,7 +305,7 @@ function ProductModal({ product, categories, suppliers = [], onSave, onClose, on
               </div>
               <div className="form-group">
                 <label className="form-label">
-                  {formData.type === 'weight' ? `Stock MÃ­nimo (${formData.unit})` : 'Stock MÃ­nimo'}
+                  {formData.type === 'weight' ? `Stock Mi­nimo (${formData.unit})` : 'Stock Mi­nimo'}
                 </label>
                 <input
                   type="number"
@@ -236,9 +323,31 @@ function ProductModal({ product, categories, suppliers = [], onSave, onClose, on
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               Cancelar
             </button>
-            <button type="submit" className="btn btn-primary">
-              <Save size={18} />
-              Guardar
+            <button 
+              type="submit" 
+              className="btn btn-primary"
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <>
+                  <span style={{ 
+                    width: '18px', 
+                    height: '18px', 
+                    border: '2px solid rgba(255,255,255,0.3)', 
+                    borderTopColor: 'white',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                    display: 'inline-block',
+                    marginRight: '8px'
+                  }} />
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <Save size={18} />
+                  Guardar
+                </>
+              )}
             </button>
           </div>
         </form>

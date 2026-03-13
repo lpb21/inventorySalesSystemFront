@@ -16,8 +16,7 @@ import { categoriesAPI } from '../../api/config'
 function InventoryView({ searchTerm }) {
   const { 
     currentUser, 
-    addToast, 
-    loadDashboardData 
+    addToast
   } = useGlobalContext()
 
   const queryClient = useQueryClient()
@@ -39,7 +38,8 @@ function InventoryView({ searchTerm }) {
 
   // Function to refresh products data
   const loadProducts = () => {
-    queryClient.invalidateQueries({ queryKey: ['products', currentUser?.tenant?.id] })
+    queryClient.invalidateQueries({ queryKey: ['products'] })
+    queryClient.refetchQueries({ queryKey: ['products'] })
   }
 
   // Replace custom hooks handling modals with internal state + mutations
@@ -88,11 +88,18 @@ function InventoryView({ searchTerm }) {
     try {
       const { inventoryAPI } = await import('../../api/config')
       await inventoryAPI.createOutput(outputData)
+      
+      // 1. Mostrar éxito y cerrar modal inmediatamente
       addToast('Salida registrada exitosamente', 'success')
-      await loadDashboardData()
-      // Note: products query will auto-refresh via invalidation if set up or next polling
       setShowOutputModal(false)
+      
+      // 2. Actualizar productos en la UI
+      loadProducts()
+      
+      // 3. Actualizar dashboard (no bloqueante)
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     } catch (error) {
+      console.error('Error en registro de salida:', error)
       addToast('Error al registrar salida', 'error')
     }
   }
@@ -208,12 +215,25 @@ function InventoryView({ searchTerm }) {
           suppliers={suppliers}
           onSave={async (data) => {
             try {
-              if (editingProduct) await toggleProductStatus.mutateAsync({ id: editingProduct.id, data })
-              else await saveProduct.mutateAsync(data)
+              if (editingProduct) {
+                await toggleProductStatus.mutateAsync({ id: editingProduct.id, data })
+              } else {
+                await saveProduct.mutateAsync(data)
+              }
+              
+              // Refreso forzoso de productos
+              loadProducts()
+              
               addToast('Producto guardado', 'success')
               setShowProductModal(false)
               setEditingProduct(null)
-            } catch (e) { addToast('Error guardando', 'error') }
+              
+              // Actualizar dashboard también por si cambió el conteo de stock bajo
+              queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+            } catch (e) { 
+              console.error('Save error:', e)
+              addToast('Error guardando producto', 'error') 
+            }
           }}
           onClose={() => { setShowProductModal(false); setEditingProduct(null) }}
           onAddCategory={() => setShowCategoryModal(true)}

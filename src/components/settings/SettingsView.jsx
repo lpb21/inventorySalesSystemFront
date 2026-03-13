@@ -58,7 +58,7 @@ function SettingsView() {
     setShowUserModal 
   })
 
-  const { createCustomer: saveCustomer, deleteCustomer } = useCustomerMutations()
+  const { createCustomer, updateCustomer, deleteCustomer } = useCustomerMutations()
   const { createSupplier: saveSupplier, deactivateSupplier, reactivateSupplier } = useSupplierMutations()
   const { createCategory, updateCategory, deactivateCategory, reactivateCategory } = useCategoryMutations()
   
@@ -740,11 +740,18 @@ function SettingsView() {
           customer={editingCustomer}
           onSave={async (data) => {
             try {
-              if (editingCustomer) await saveCustomer.mutateAsync({ id: editingCustomer.id, data })
-              else await saveCustomer.mutateAsync(data)
+              if (editingCustomer) {
+                await updateCustomer.mutateAsync({ id: editingCustomer.id, data })
+                addToast('Cliente actualizado exitosamente', 'success')
+              } else {
+                await createCustomer.mutateAsync(data)
+                addToast('Cliente creado exitosamente', 'success')
+              }
               setShowCustomerModal(false)
               setEditingCustomer(null)
-            } catch (error) {}
+            } catch (error) {
+              addToast('Error al guardar cliente', 'error')
+            }
           }}
           onClose={() => { setShowCustomerModal(false); setEditingCustomer(null) }}
         />
