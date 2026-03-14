@@ -55,6 +55,10 @@ const normalizeList = (body, possibleKeys = []) => {
   return []
 }
 
+// Callback global para errores de plan/límite (registrado por GlobalContext)
+let _planErrorHandler = null
+export const registerPlanErrorHandler = (handler) => { _planErrorHandler = handler }
+
 // Función genérica para hacer requests
 const apiRequest = async (endpoint, options = {}) => {
   const token = getToken();
@@ -72,7 +76,12 @@ const apiRequest = async (endpoint, options = {}) => {
   
   if (!response.ok) {
     const body = await response.json().catch(() => ({}))
-    
+
+    if (response.status === 403 && _planErrorHandler) {
+      const message = body?.error?.message || body?.message
+      if (message) _planErrorHandler(message)
+    }
+
     const error = new Error(`HTTP ${response.status}: ${response.statusText}`)
     error.response = { status: response.status, data: body }
     throw error

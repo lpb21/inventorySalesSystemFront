@@ -108,6 +108,9 @@ function InventoryView({ searchTerm }) {
   const canDelete     = can(currentUser, 'canDeleteProducts')
   const canManageCats = can(currentUser, 'canManageCategories')
 
+  const maxProducts = currentUser?.tenant?.limits?.maxProducts
+  const isProductLimitReached = !!maxProducts && products.filter(p => p.is_active !== false).length >= maxProducts
+
   const processedProducts = showInactiveProducts ? products : products.filter(p => p.is_active !== false)
 
   const filteredProducts = processedProducts.filter(p => {
@@ -154,9 +157,14 @@ function InventoryView({ searchTerm }) {
             </button>
           )}
           {canEdit && (
-            <button className="btn btn-primary" onClick={() => { setEditingProduct(null); setShowProductModal(true) }}>
+            <button
+              className="btn btn-primary"
+              onClick={() => { setEditingProduct(null); setShowProductModal(true) }}
+              disabled={isProductLimitReached}
+              title={isProductLimitReached ? `Límite de ${maxProducts} productos de tu plan alcanzado` : undefined}
+            >
               <Plus size={18} />
-              Nuevo Producto
+              {isProductLimitReached ? 'Límite Alcanzado' : 'Nuevo Producto'}
             </button>
           )}
         </div>

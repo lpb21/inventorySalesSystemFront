@@ -264,6 +264,9 @@ function SettingsView() {
 
   const canManageUsers = can(currentUser, 'canManageUsers')
   const canCreateUsers = canManageUsers && getCreatableRoles(currentUser).length > 0
+
+  const maxUsers = currentUser?.tenant?.limits?.maxUsers
+  const isUserLimitReached = !!maxUsers && users.length >= maxUsers
   
   // Función helper para obtener datos del negocio desde múltiples fuentes
   const getBusinessInfo = () => {
@@ -746,9 +749,14 @@ function SettingsView() {
         <div className="card" style={{ marginTop: '24px' }}>
           <div className="card-header">
             <h3 className="card-title">Gestión de Usuarios</h3>
-            <button className="btn btn-primary btn-sm" onClick={() => { setEditingUser(null); setShowUserModal(true) }}>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => { setEditingUser(null); setShowUserModal(true) }}
+              disabled={isUserLimitReached}
+              title={isUserLimitReached ? `Límite de ${maxUsers} usuarios alcanzado` : undefined}
+            >
               <User size={16} />
-              Nuevo Usuario
+              {isUserLimitReached ? 'Límite Alcanzado' : 'Nuevo Usuario'}
             </button>
           </div>
           {users.filter(user => user.id !== currentUser.id).length === 0 ? (

@@ -1,4 +1,4 @@
-import { ShoppingCart, DollarSign, Package, History, TrendingDown, TrendingUp } from 'lucide-react'
+import { ShoppingCart, DollarSign, Package, History, TrendingDown, TrendingUp, Crown, Lock } from 'lucide-react'
 import { can } from '../../utils/permissions'
 import { reportsAPI } from '../../api/config'
 import { useState, useEffect } from 'react'
@@ -6,6 +6,7 @@ import { useGlobalContext } from '../../context/GlobalContext'
 import { useProducts } from '../../hooks/queries/useProducts'
 import { useDashboardData } from '../../hooks/queries/useDashboard'
 import ExportSalesModal from './ExportSalesModal'
+import { PlanGuard } from '../shared/PlanGuard'
 
 function ReportsView() {
   const { currentUser } = useGlobalContext()
@@ -83,13 +84,28 @@ function ReportsView() {
         </div>
 
         {showFullReports && (
-          <div className="stat-card success">
-            <div className="stat-icon success">
-              <TrendingUp />
+          <PlanGuard
+            requiredFeature="advancedReports"
+            fallbackRender={() => (
+              <div className="stat-card" style={{ border: '1px dashed var(--border)' }}>
+                <div className="stat-icon" style={{ background: 'var(--surface)' }}>
+                  <Crown />
+                </div>
+                <div className="stat-value" style={{ fontSize: '18px' }}>
+                  <Lock size={18} style={{ verticalAlign: 'middle' }} />
+                </div>
+                <div className="stat-label">Ganancia de Hoy (Plan Pro+)</div>
+              </div>
+            )}
+          >
+            <div className="stat-card success">
+              <div className="stat-icon success">
+                <TrendingUp />
+              </div>
+              <div className="stat-value">${todayProfit.toLocaleString()}</div>
+              <div className="stat-label">Ganancia de Hoy</div>
             </div>
-            <div className="stat-value">${todayProfit.toLocaleString()}</div>
-            <div className="stat-label">Ganancia de Hoy</div>
-          </div>
+          </PlanGuard>
         )}
         
         <div className="stat-card info">
@@ -180,62 +196,81 @@ function ReportsView() {
 
       {/* Productos con Menor Rotación */}
       {showFullReports && (
-        <div className="card" style={{ marginTop: '24px' }}>
-          <div className="card-header">
-            <h3 className="card-title">
-              <TrendingDown size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-              Productos con Menor Rotación (Últimos 30 días)
-            </h3>
-          </div>
-          <div className="table-container">
-            {loadingLowRotation ? (
-              <div className="empty-state" style={{ padding: '40px' }}>
-                <div className="spinner"></div>
-                <p>Cargando datos...</p>
+        <PlanGuard
+          requiredFeature="advancedReports"
+          fallbackRender={() => (
+            <div className="card" style={{ marginTop: '24px', border: '1px dashed var(--border)' }}>
+              <div className="card-header">
+                <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Crown size={18} />
+                  Reporte de Rotación (Plan Pro+)
+                </h3>
               </div>
-            ) : lowRotationProducts.length === 0 ? (
               <div className="empty-state" style={{ padding: '40px' }}>
-                <TrendingDown size={48} />
-                <h4>Sin datos de rotación</h4>
-                <p>No hay suficientes datos para determinar la rotación de productos</p>
+                <Lock size={36} />
+                <h4>Funcionalidad Premium</h4>
+                <p>Mejora tu plan para acceder a reportes avanzados de rotación.</p>
               </div>
-            ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Producto</th>
-                    <th>Categoría</th>
-                    <th>Stock Actual</th>
-                    <th>Vendidos</th>
-                    <th>Última Venta</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {lowRotationProducts.map(product => (
-                    <tr key={product.id}>
-                      <td>{product.name}</td>
-                      <td>{product.category?.name || product.category || '-'}</td>
-                      <td>{product.stock} {product.unit}</td>
-                      <td>
-                        <span style={{ 
-                          color: 'var(--danger)', 
-                          fontWeight: 600 
-                        }}>
-                          {product.total_sold || 0} {product.unit}
-                        </span>
-                      </td>
-                      <td>
-                        {product.last_sale_date 
-                          ? new Date(product.last_sale_date).toLocaleDateString()
-                          : 'Sin ventas'}
-                      </td>
+            </div>
+          )}
+        >
+          <div className="card" style={{ marginTop: '24px' }}>
+            <div className="card-header">
+              <h3 className="card-title">
+                <TrendingDown size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+                Productos con Menor Rotación (Últimos 30 días)
+              </h3>
+            </div>
+            <div className="table-container">
+              {loadingLowRotation ? (
+                <div className="empty-state" style={{ padding: '40px' }}>
+                  <div className="spinner"></div>
+                  <p>Cargando datos...</p>
+                </div>
+              ) : lowRotationProducts.length === 0 ? (
+                <div className="empty-state" style={{ padding: '40px' }}>
+                  <TrendingDown size={48} />
+                  <h4>Sin datos de rotación</h4>
+                  <p>No hay suficientes datos para determinar la rotación de productos</p>
+                </div>
+              ) : (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Producto</th>
+                      <th>Categoría</th>
+                      <th>Stock Actual</th>
+                      <th>Vendidos</th>
+                      <th>Última Venta</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+                  </thead>
+                  <tbody>
+                    {lowRotationProducts.map(product => (
+                      <tr key={product.id}>
+                        <td>{product.name}</td>
+                        <td>{product.category?.name || product.category || '-'}</td>
+                        <td>{product.stock} {product.unit}</td>
+                        <td>
+                          <span style={{
+                            color: 'var(--danger)',
+                            fontWeight: 600
+                          }}>
+                            {product.total_sold || 0} {product.unit}
+                          </span>
+                        </td>
+                        <td>
+                          {product.last_sale_date
+                            ? new Date(product.last_sale_date).toLocaleDateString()
+                            : 'Sin ventas'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
-        </div>
+        </PlanGuard>
       )}
       
       {showExportModal && (
