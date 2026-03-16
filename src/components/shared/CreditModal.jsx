@@ -381,7 +381,7 @@ function CreditModal({ onClose, onUpdateCredit }) {
                                   Venta #{sale.ticket_number || sale.id?.slice(-6)}
                                 </span>
                                 <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                  {new Date(sale.created_at).toLocaleDateString()}
+                                  {sale.created_at || 'Sin fecha'}
                                 </span>
                               </div>
                               <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>

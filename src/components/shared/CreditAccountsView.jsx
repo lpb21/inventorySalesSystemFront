@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { DollarSign, User, History, CreditCard, AlertCircle, Search, Filter } from 'lucide-react'
+import { useState } from 'react'
+import { DollarSign, User, History, CreditCard, AlertCircle, Search, ChevronRight } from 'lucide-react'
 import { customersAPI, ApiNormalizers } from '../../api/config'
 import { useGlobalContext } from '../../context/GlobalContext'
 import { useCustomersWithCredit, useCustomerMutations } from '../../hooks/queries/useCustomers'
@@ -14,6 +14,7 @@ function CreditAccountsView({ onUpdateCredit }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [showPaymentForm, setShowPaymentForm] = useState(false)
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
+  const [expandedSaleId, setExpandedSaleId] = useState(null)
 
   const { data: customersWithCredit = [], isLoading: loading, error: queryError, refetch: loadCustomersWithCredit } = useCustomersWithCredit()
   const error = queryError?.message || null
@@ -42,9 +43,15 @@ function CreditAccountsView({ onUpdateCredit }) {
         normalizedBalance.available_credit = normalizedBalance.credit_limit - normalizedBalance.credit_balance
       }
 
+      const creditSalesData = ApiNormalizers.normalizeSuccessResponse(salesRes)
+      const normalizedSales = ApiNormalizers.normalizeList(creditSalesData, ['sales']).map((sale) => ({
+        ...sale,
+        items: Array.isArray(sale?.items) ? sale.items : []
+      }))
+
       setCustomerDetails({
         balance: normalizedBalance,
-        sales: ApiNormalizers.normalizeList(salesRes, ['sales'])
+        sales: normalizedSales
       })
     } catch (err) {
       console.error('Error cargando detalles del cliente:', err)
@@ -65,6 +72,7 @@ function CreditAccountsView({ onUpdateCredit }) {
 
   const handleSelectCustomer = async (customer) => {
     setSelectedCustomer(customer)
+    setExpandedSaleId(null)
     setShowPaymentForm(false)
     setPaymentAmount('')
     setPaymentNote('')
@@ -143,6 +151,50 @@ function CreditAccountsView({ onUpdateCredit }) {
   )
 
   const totalDebt = customersWithCredit.reduce((sum, c) => sum + (c.credit_balance || 0), 0)
+
+  const formatSaleDate = (dateValue) => dateValue || 'Sin fecha'
+
+  const formatCurrency = (value) => {
+    const num = Number(value)
+    return Number.isFinite(num) ? num.toLocaleString() : '0'
+  }
+
+  const formatQuantity = (value) => {
+    const num = Number(value)
+    return Number.isFinite(num) ? num : 0
+  }
+
+  const renderSaleDetails = (sale) => (
+    <div style={{
+      padding: '12px',
+      background: 'var(--bg-primary)',
+      borderBottom: '1px solid var(--border)'
+    }}>
+      <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>
+        Detalle de productos:
+      </div>
+      {sale.items && sale.items.length > 0 ? (
+        sale.items.map((item, idx) => (
+          <div
+            key={item.id || idx}
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: '13px',
+              marginBottom: '4px'
+            }}
+          >
+            <span>{item.product?.name || item.product_name || item.name || 'Producto Desconocido'} (x{formatQuantity(item.quantity)})</span>
+            <span>${formatCurrency(item.subtotal ?? ((item.unit_price ?? item.price ?? 0) * (item.quantity ?? 0)))}</span>
+          </div>
+        ))
+      ) : (
+        <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+          No hay detalle disponible
+        </div>
+      )}
+    </div>
+  )
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -395,118 +447,81 @@ function CreditAccountsView({ onUpdateCredit }) {
                   </div>
 
                   {showPaymentForm && (
-                    <div>
-                      <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
-                        <input
-                          type="number"
-                          className="form-input"
-                          placeholder="Monto a pagar"
-                          value={paymentAmount}
-                          onChange={(e) => setPaymentAmount(e.target.value)}
-                          style={{ flex: 1 }}
-                        />
-                        <button
-                          className="btn btn-success"
-                          onClick={handlePayAll}
-                          disabled={!customerDetails?.balance?.credit_balance && !customerDetails?.balance?.total_credit}
-                        >
-                          Pagar Todo
-                        </button>
-
-                      </div>
-                      <input
-                        type="text"
+                    <div className="payment-form">
+                      <input 
+                        type="number" 
                         className="form-input"
-                        placeholder="Nota (opcional)"
-                        value={paymentNote}
-                        onChange={(e) => setPaymentNote(e.target.value)}
-                        style={{ marginBottom: '12px' }}
+                        value={paymentAmount} 
+                        onChange={e => setPaymentAmount(e.target.value)} 
+                        placeholder="Monto del abono" 
                       />
-                      <button
-                        className="btn btn-primary"
-                        onClick={handlePayment}
-                        disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || isProcessingPayment}
-                        style={{ width: '100%' }}
-                      >
-                        {isProcessingPayment ? (
-                          <>
-                            <div style={{
-                              width: '18px',
-                              height: '18px',
-                              borderRadius: '50%',
-                              border: '2px solid transparent',
-                              borderTopColor: 'currentColor',
-                              animation: 'spin 0.8s linear infinite'
-                            }} />
-                            Procesando...
-                          </>
-                        ) : (
-                          <>
-                            <DollarSign size={18} />
-                            Confirmar Pago
-                          </>
-                        )}
+                      <input 
+                        type="text" 
+                        className="form-input"
+                        value={paymentNote} 
+                        onChange={e => setPaymentNote(e.target.value)} 
+                        placeholder="Nota (opcional)" 
+                      />
+                      <button className="btn btn-primary" onClick={handlePayment} disabled={isProcessingPayment}>
+                        {isProcessingPayment ? 'Procesando...' : 'Confirmar Abono'}
                       </button>
                     </div>
                   )}
+
+                  <div className="card" style={{ marginTop: '20px' }}>
+                    <div className="card-header">
+                      <h3 className="card-title">Historial de Compras a Crédito</h3>
+                    </div>
+                    {customerDetails && customerDetails.sales && customerDetails.sales.length > 0 ? (
+                      <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                        {customerDetails.sales.map(sale => (
+                          <div key={sale.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                            <div 
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: '12px',
+                                cursor: 'pointer',
+                                background: expandedSaleId === sale.id ? 'var(--bg-primary)' : 'transparent',
+                                transition: 'background 0.2s'
+                              }}
+                              onClick={() => setExpandedSaleId(expandedSaleId === sale.id ? null : sale.id)}
+                            >
+                              <div>
+                                <div style={{ fontWeight: 600 }}>Venta #{sale.ticket_number || sale.id?.slice(-6)}</div>
+                                <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                  {sale.created_at || 'Sin fecha'}
+                                </div>
+                              </div>
+                              <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ fontWeight: 600, color: 'var(--accent)' }}>
+                                  ${formatCurrency(sale.total)}
+                                </div>
+                                <ChevronRight
+                                  size={16}
+                                  style={{
+                                    color: 'var(--text-secondary)',
+                                    transform: expandedSaleId === sale.id ? 'rotate(90deg)' : 'rotate(0deg)',
+                                    transition: 'transform 0.2s'
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            {expandedSaleId === sale.id && renderSaleDetails(sale)}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="empty-state" style={{ padding: '20px' }}>
+                        <History size={32} />
+                        <p>No hay compras a crédito registradas para este cliente.</p>
+                      </div>
+                    )}
+                  </div>
+
                 </div>
 
-                {/* Historial de ventas a crédito */}
-                {customerDetails?.sales && customerDetails.sales.length > 0 && (
-                  <div style={{ 
-                    background: 'var(--surface)', 
-                    padding: '24px', 
-                    borderRadius: '12px',
-                    border: '1px solid var(--border)'
-                  }}>
-                    <h4 style={{ margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <History size={20} />
-                      Historial de Compras a Crédito
-                    </h4>
-                    <div>
-                      {customerDetails.sales.map((sale, idx) => (
-                        <div key={sale.id || idx} style={{ 
-                          padding: '16px',
-                          background: 'var(--bg-primary)',
-                          borderRadius: '10px',
-                          marginBottom: '12px'
-                        }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                            <span style={{ fontSize: '15px', fontWeight: 600 }}>
-                              Venta #{sale.ticket_number || sale.id?.slice(-6)}
-                            </span>
-                            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                              {new Date(sale.created_at).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                            {(sale.items || []).map(item => (
-                              <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
-                                <span>{item.product_name} x{item.quantity}</span>
-                                <span>${(item.subtotal || 0).toLocaleString()}</span>
-                              </div>
-                            ))}
-                          </div>
-                          <div style={{ 
-                            display: 'flex', 
-                            justifyContent: 'space-between',
-                            paddingTop: '12px',
-                            borderTop: '1px dashed var(--border)'
-                          }}>
-                            <span style={{ fontSize: '14px', fontWeight: 500 }}>Total: ${(sale.total || 0).toLocaleString()}</span>
-                            <span style={{ 
-                              fontSize: '14px', 
-                              fontWeight: 600,
-                              color: (sale.credit_remaining || 0) > 0 ? 'var(--accent)' : 'var(--success)'
-                            }}>
-                              {(sale.credit_remaining || 0) > 0 ? `Pendiente: $${sale.credit_remaining.toLocaleString()}` : 'Pagado'}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             ) : (
               <div className="empty-state" style={{ padding: '80px 20px' }}>
