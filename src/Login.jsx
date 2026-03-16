@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { User, Lock, Eye, EyeOff } from 'lucide-react'
+import { User, Lock, Eye, EyeOff, AlertTriangle } from 'lucide-react'
 import { useGlobalContext } from './context/GlobalContext'
 import { authAPI, setToken, setUser } from './api/config'
 
@@ -10,6 +10,7 @@ export default function Login({ error }) {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [localError, setLocalError] = useState('')
+  const [authModal, setAuthModal] = useState({ show: false, title: '', message: '' })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -27,7 +28,6 @@ export default function Login({ error }) {
       
       if (!token || !user) {
         setLocalError('Respuesta del servidor inesperada')
-        setLoading(false)
         return
       }
       
@@ -36,7 +36,20 @@ export default function Login({ error }) {
       
       login(user, token)
     } catch (err) {
-      setLocalError(err.message || 'Usuario o contraseña incorrectos')
+      const status = err?.response?.status
+      const backendMessage = err?.response?.data?.error?.message || err?.response?.data?.message
+      const message = backendMessage || err?.message || 'Usuario o contraseña incorrectos'
+
+      if (status === 401 && backendMessage) {
+        setAuthModal({
+          show: true,
+          title: 'Acceso bloqueado',
+          message
+        })
+      } else {
+        setLocalError(message)
+      }
+    } finally {
       setLoading(false)
     }
   }
@@ -108,6 +121,31 @@ export default function Login({ error }) {
           </button>
         </form>
       </div>
+
+      {authModal.show && (
+        <div
+          className="alert-modal-overlay"
+          onClick={() => setAuthModal({ show: false, title: '', message: '' })}
+        >
+          <div className="alert-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="alert-modal-header">
+              <div className="alert-icon"><AlertTriangle size={28} /></div>
+              <h3 className="alert-modal-title">{authModal.title}</h3>
+            </div>
+            <div className="alert-modal-body">
+              <p className="alert-message">{authModal.message}</p>
+            </div>
+            <div className="alert-modal-footer">
+              <button
+                className="btn btn-primary"
+                onClick={() => setAuthModal({ show: false, title: '', message: '' })}
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

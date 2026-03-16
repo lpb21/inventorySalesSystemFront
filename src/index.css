@@ -682,7 +682,7 @@ body {
   padding: 8px 10px;
 }
 
-.qty-btn {
+ qty-btn {
   width: 28px;
   height: 28px;
   border-radius: 6px;
@@ -696,7 +696,7 @@ body {
   transition: all 0.2s ease;
 }
 
-.qty-btn:hover {
+ qty-btn:hover {
   background: var(--accent);
 }
 
@@ -1509,4 +1509,63 @@ input[type="date"].form-input::-webkit-datetime-edit {
 
 input[type="date"].form-input:invalid::-webkit-datetime-edit {
   color: var(--text-secondary) !important;
+}
+
+.sale-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background-color 0.2s;
+}
+
+.sale-row:hover {
+  background-color: var(--background-hover);
+}
+
+.sale-info {
+  display: flex;
+  gap: 16px;
+  font-size: 14px;
+}
+
+.sale-info span:first-child {
+  color: var(--text-secondary);
+}
+
+.sale-info span:last-child {
+  font-weight: 600;
+  color: var(--danger);
+}
+
+.chevron {
+  transition: transform 0.2s;
+  color: var(--text-secondary);
+}
+
+.chevron.expanded {
+  transform: rotate(90deg);
+}
+
+.sale-details {
+  padding: 12px;
+  background-color: var(--background-alt);
+  border-bottom: 1px solid var(--border);
+}
+
+.sale-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 4px 0;
+}
+
+.sale-summary {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  text-align: right;
+  font-size: 14px;
 }
