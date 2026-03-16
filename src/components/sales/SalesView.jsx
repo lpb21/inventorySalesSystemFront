@@ -35,7 +35,7 @@ function SalesView() {
 
   const { data: products = [] } = useProducts()
   const { data: categories = [] } = useCategories()
-  const { data: customers = [] } = useCustomers()
+  const { data: customers = [] } = useCustomers({ isActive: true })
   const { createSale } = useSalesMutations()
   const { registerPayment } = useCustomerMutations()
   
