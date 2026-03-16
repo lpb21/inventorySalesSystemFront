@@ -6,6 +6,7 @@ import {
   isWeightProduct,
   normalizeNumber
 } from '../utils/measurements'
+import { getCartStorageKey } from '../utils/cartStorage'
 
 /**
  * Hook para gestionar el carrito del punto de venta.
@@ -18,7 +19,7 @@ export function useCart() {
 
   // Sincronizar carrito con localStorage para la pantalla del cliente
   useEffect(() => {
-    localStorage.setItem('invah_cart', JSON.stringify(cart))
+    localStorage.setItem(getCartStorageKey(), JSON.stringify(cart))
   }, [cart])
 
   const addToCart = (product) => {

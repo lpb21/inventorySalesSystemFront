@@ -1,26 +1,89 @@
 import { useState, useEffect } from 'react'
 import { ShoppingCart } from 'lucide-react'
 import { formatQuantity, getPriceForSaleUnit, isWeightProduct } from './utils/measurements'
+import { useGlobalContext } from './context/GlobalContext'
+import { getCartStorageKey, getLegacyCartStorageKey } from './utils/cartStorage'
 
 function CustomerPage() {
   const [cart, setCart] = useState([])
   const [cartTotal, setCartTotal] = useState(0)
+  const { currentUser, businessData } = useGlobalContext()
+
+  const getBusinessInfo = () => {
+    if (businessData?.name) {
+      return {
+        name: businessData.name,
+        address: businessData.address,
+        phone: businessData.phone
+      }
+    }
+
+    if (currentUser?.tenant?.name) {
+      return {
+        name: currentUser.tenant.name,
+        address: currentUser.tenant.address,
+        phone: currentUser.tenant.phone
+      }
+    }
+
+    if (currentUser?.business_name) {
+      return {
+        name: currentUser.business_name,
+        address: currentUser.business_address,
+        phone: currentUser.business_phone
+      }
+    }
+
+    try {
+      const savedUser = JSON.parse(localStorage.getItem('invleo_user') || 'null')
+      if (savedUser?.tenant?.name) {
+        return {
+          name: savedUser.tenant.name,
+          address: savedUser.tenant.address,
+          phone: savedUser.tenant.phone
+        }
+      }
+      if (savedUser?.business_name) {
+        return {
+          name: savedUser.business_name,
+          address: savedUser.business_address,
+          phone: savedUser.business_phone
+        }
+      }
+    } catch (error) {
+      // Ignore parsing issues and use default values below.
+    }
+
+    return {
+      name: 'Mi Negocio',
+      address: 'Sin dirección',
+      phone: ''
+    }
+  }
+
+  const businessInfo = getBusinessInfo()
+  const businessName = businessInfo.name || 'Mi Negocio'
+  const businessAddress = businessInfo.address || 'Sin dirección'
+  const cartStorageKey = getCartStorageKey(currentUser)
 
   useEffect(() => {
     // Sincronizar con localStorage cada segundo
     const syncCart = () => {
-      const savedCart = localStorage.getItem('invleo_cart')
+      const savedCart = localStorage.getItem(cartStorageKey) || localStorage.getItem(getLegacyCartStorageKey())
       if (savedCart) {
         const parsedCart = JSON.parse(savedCart)
         setCart(parsedCart)
         setCartTotal(parsedCart.reduce((sum, item) => sum + (item.price * item.quantity), 0))
+      } else {
+        setCart([])
+        setCartTotal(0)
       }
     }
 
     syncCart()
     const interval = setInterval(syncCart, 1000)
     return () => clearInterval(interval)
-  }, [])
+  }, [cartStorageKey])
 
   return (
     <div style={{
@@ -40,13 +103,13 @@ function CustomerPage() {
           color: '#e94560',
           marginBottom: '8px'
         }}>
-          invLeo
+          {businessName}
         </div>
         <div style={{
           fontSize: '24px',
           color: '#a0a0b0'
         }}>
-          Salsamentaría & Quesos Frescos
+          Pantalla de pedidos
         </div>
       </div>
 
@@ -114,7 +177,7 @@ function CustomerPage() {
         fontSize: '16px'
       }}>
         <p>¡Gracias por su preferencia!</p>
-        <p style={{ marginTop: '12px' }}>Visítenos en Calle Principal #123</p>
+        <p style={{ marginTop: '12px' }}>Visítenos en {businessAddress}</p>
       </div>
     </div>
   )
