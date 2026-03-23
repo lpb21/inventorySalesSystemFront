@@ -3,20 +3,23 @@ import {
   TrendingUp, AlertTriangle, Package,
   ShoppingCart, History, ChevronRight, BarChart3, Calendar
 } from 'lucide-react'
-import { getProductsNearingExpiration, getExpirationStatus } from '../../utils/expiration'
+import { getExpirationStatus } from '../../utils/expiration'
 import { can } from '../../utils/permissions'
 import { useGlobalContext } from '../../context/GlobalContext'
 import { useNavigate } from 'react-router-dom'
 import { useProducts } from '../../hooks/queries/useProducts'
 import { useDashboardData } from '../../hooks/queries/useDashboard'
+import { useExpiringSoonProducts, useExpiredProducts } from '../../hooks/queries/useExpiration'
 
 function DashboardView() {
   const [expandedSaleId, setExpandedSaleId] = useState(null)
   const navigate = useNavigate()
   const { currentUser } = useGlobalContext()
-  
+
   const { data: products = [], isLoading: loadingProducts } = useProducts()
   const { data: dashboardData, isLoading: loadingDashboard } = useDashboardData()
+  const { data: expiringSoon = [], isLoading: loadingExpiringSoon } = useExpiringSoonProducts()
+  const { data: expired = [], isLoading: loadingExpired } = useExpiredProducts()
 
   const todaySales = dashboardData?.metrics?.todaySales || 0
   const sales = dashboardData?.recentSales || []
@@ -25,8 +28,9 @@ function DashboardView() {
 
   const totalProducts = products.length
   const localLowStock = products.filter(p => (p.stock || 0) <= (p.min_stock || p.minStock || 0)).length
-  const nearingExpiration = getProductsNearingExpiration(products, 7)
-  
+  // Usar datos del backend: productos próximos a vencer + ya vencidos
+  const totalExpirationIssues = (expiringSoon.length || 0) + (expired.length || 0)
+
   const showSalesCards = can(currentUser, 'canViewFullReports')
   
   if (loading) {
@@ -73,8 +77,8 @@ function DashboardView() {
           <div className="stat-icon danger">
             <Calendar />
           </div>
-          <div className="stat-value">{nearingExpiration.length}</div>
-          <div className="stat-label">Próximos a Vencer</div>
+          <div className="stat-value">{totalExpirationIssues}</div>
+          <div className="stat-label">Vencidos/Próximos a Vencer</div>
         </div>
       </div>
 
@@ -119,32 +123,69 @@ function DashboardView() {
 
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Productos Próximos a Vencer</h3>
+            <h3 className="card-title">Productos con Problemas de Vencimiento</h3>
             <button className="btn btn-sm btn-secondary" onClick={() => navigate('/inventory')}>
               Ver Todos
             </button>
           </div>
-          {nearingExpiration.length === 0 ? (
+          {loadingExpiringSoon || loadingExpired ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+              <div className="spinner"></div>
+            </div>
+          ) : totalExpirationIssues === 0 ? (
             <div className="empty-state" style={{ padding: '40px' }}>
               <Calendar size={48} />
               <h4>Sin alertas</h4>
-              <p>No hay productos próximos a vencer</p>
+              <p>No hay productos vencidos ni próximos a vencer</p>
             </div>
           ) : (
             <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
-              {nearingExpiration.slice(0, 5).map(product => {
+              {/* Mostrar primero los vencidos */}
+              {expired.slice(0, 3).map(product => (
+                <div key={product.id} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px',
+                  borderBottom: '1px solid var(--border)',
+                  background: 'rgba(239, 68, 68, 0.05)' // Fondo rojo muy sutil
+                }}>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{product.name}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                      {product.category?.name || product.category} • Stock: {product.stock || 0}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{
+                      fontWeight: 600,
+                      color: 'var(--danger)',
+                      fontSize: '12px'
+                    }}>
+                      ⚠️ VENCIDO
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                      Venció: {new Date(product.expiry_date).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Luego mostrar los próximos a vencer */}
+              {expiringSoon.slice(0, 5 - expired.slice(0, 3).length).map(product => {
                 const status = getExpirationStatus(product)
                 const statusColors = {
                   today: 'var(--danger)',
                   tomorrow: 'var(--danger)',
                   critical: 'var(--warning)',
                   warning: '#ffc107',
-                  normal: 'var(--success)'
+                  normal: 'var(--success)',
+                  expired: 'var(--danger)'
                 }
                 return (
-                  <div key={product.id} style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                  <div key={product.id} style={{
+                    display: 'flex',
+                    alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '12px',
                     borderBottom: '1px solid var(--border)'
@@ -152,12 +193,12 @@ function DashboardView() {
                     <div>
                       <div style={{ fontWeight: 600 }}>{product.name}</div>
                       <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                        {product.category?.name || product.category}
+                        {product.category?.name || product.category} • Stock: {product.stock || 0}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ 
-                        fontWeight: 600, 
+                      <div style={{
+                        fontWeight: 600,
                         color: statusColors[status.type] || 'var(--text-secondary)',
                         fontSize: '12px'
                       }}>

@@ -176,7 +176,13 @@ export const productsAPI = {
   }),
   
   getLowStock: () => apiRequest('/products/low-stock'),
-  
+
+  // Productos próximos a vencer (30 días)
+  getExpiringSoon: () => apiRequest('/products/expiring-soon'),
+
+  // Productos ya vencidos
+  getExpired: () => apiRequest('/products/expired'),
+
   searchByBarcode: (code) => apiRequest(`/products/barcode/${code}`),
 
   // Importar productos desde CSV
