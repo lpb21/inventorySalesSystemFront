@@ -271,72 +271,80 @@ function SettingsView() {
       </div>
 
       {/* Secciones de entidades */}
-      <UsersSection
-        currentUser={currentUser}
-        users={users}
-        maxUsers={maxUsers}
-        onAddUser={() => {
-          setEditingUser(null)
-          setShowUserModal(true)
-        }}
-        onEditUser={(user) => {
-          setEditingUser(user)
-          setShowUserModal(true)
-        }}
-        onToggleStatus={toggleUserStatus}
-        onResetPassword={(user) => {
-          setResetingUser(user)
-          setShowResetPasswordModal(true)
-        }}
-      />
+      <div style={{ marginTop: '24px' }}>
+        <UsersSection
+          currentUser={currentUser}
+          users={users}
+          maxUsers={maxUsers}
+          onAddUser={() => {
+            setEditingUser(null)
+            setShowUserModal(true)
+          }}
+          onEditUser={(user) => {
+            setEditingUser(user)
+            setShowUserModal(true)
+          }}
+          onToggleStatus={toggleUserStatus}
+          onResetPassword={(user) => {
+            setResetingUser(user)
+            setShowResetPasswordModal(true)
+          }}
+        />
+      </div>
 
-      <CustomersSection
-        currentUser={currentUser}
-        customers={customers}
-        showInactive={showInactiveCustomers}
-        onToggleShowInactive={setShowInactiveCustomers}
-        onAddCustomer={() => {
-          setEditingCustomer(null)
-          setShowCustomerModal(true)
-        }}
-        onEditCustomer={(customer) => {
-          setEditingCustomer(customer)
-          setShowCustomerModal(true)
-        }}
-        onToggleStatus={handleToggleCustomerStatus}
-      />
+      <div style={{ marginTop: '24px' }}>
+        <CustomersSection
+          currentUser={currentUser}
+          customers={customers}
+          showInactive={showInactiveCustomers}
+          onToggleShowInactive={setShowInactiveCustomers}
+          onAddCustomer={() => {
+            setEditingCustomer(null)
+            setShowCustomerModal(true)
+          }}
+          onEditCustomer={(customer) => {
+            setEditingCustomer(customer)
+            setShowCustomerModal(true)
+          }}
+          onToggleStatus={handleToggleCustomerStatus}
+        />
+      </div>
 
-      <SuppliersSection
-        currentUser={currentUser}
-        suppliers={suppliers}
-        showInactive={showInactiveSuppliers}
-        onToggleShowInactive={setShowInactiveSuppliers}
-        onAddSupplier={() => {
-          setEditingSupplier(null)
-          setShowSupplierModal(true)
-        }}
-        onEditSupplier={(supplier) => {
-          setEditingSupplier(supplier)
-          setShowSupplierModal(true)
-        }}
-        onToggleStatus={toggleSupplierStatus}
-      />
+      <div style={{ marginTop: '24px' }}>
+        <SuppliersSection
+          currentUser={currentUser}
+          suppliers={suppliers}
+          showInactive={showInactiveSuppliers}
+          onToggleShowInactive={setShowInactiveSuppliers}
+          onAddSupplier={() => {
+            setEditingSupplier(null)
+            setShowSupplierModal(true)
+          }}
+          onEditSupplier={(supplier) => {
+            setEditingSupplier(supplier)
+            setShowSupplierModal(true)
+          }}
+          onToggleStatus={toggleSupplierStatus}
+        />
+      </div>
 
-      <CategoriesSection
-        currentUser={currentUser}
-        categories={categories}
-        showInactive={showInactiveCategories}
-        onToggleShowInactive={setShowInactiveCategories}
-        onAddCategory={() => {
-          setEditingCategory(null)
-          setShowCategoryModal(true)
-        }}
-        onEditCategory={(category) => {
-          setEditingCategory(category)
-          setShowCategoryModal(true)
-        }}
-        onToggleStatus={toggleCategoryStatus}
-      />
+      <div style={{ marginTop: '24px' }}>
+        <CategoriesSection
+          currentUser={currentUser}
+          categories={categories}
+          showInactive={showInactiveCategories}
+          onToggleShowInactive={setShowInactiveCategories}
+          onAddCategory={() => {
+            setEditingCategory(null)
+            setShowCategoryModal(true)
+          }}
+          onEditCategory={(category) => {
+            setEditingCategory(category)
+            setShowCategoryModal(true)
+          }}
+          onToggleStatus={toggleCategoryStatus}
+        />
+      </div>
 
       {/* Modales */}
       {showImportModal && (
