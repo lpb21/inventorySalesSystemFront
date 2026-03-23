@@ -103,17 +103,53 @@ export const authAPI = {
     method: 'POST',
     body: JSON.stringify(credentials),
   }),
-  
+
   register: (data) => apiRequest('/auth/register', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
-  
+
   me: () => apiRequest('/auth/me'),
-  
+
   logout: () => {
     clearSession();
   },
+
+  // Cambiar contraseña propia
+  changePassword: (data) => apiRequest('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
+  // Resetear contraseña de otro usuario (solo owner/superadmin)
+  resetPassword: (userId, data) => apiRequest(`/auth/reset-password/${userId}`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+};
+
+// API Turnos de Caja
+export const cashRegistersAPI = {
+  // Abrir nuevo turno
+  open: (data) => apiRequest('/cash-registers/open', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
+  // Ver mi turno activo
+  getMyActive: () => apiRequest('/cash-registers/my-active'),
+
+  // Ver todos los turnos activos (admin)
+  getAllActive: () => apiRequest('/cash-registers/active'),
+
+  // Cerrar turno
+  close: (shiftId, data) => apiRequest(`/cash-registers/${shiftId}/close`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
+  // Ver ventas de un turno
+  getSales: (shiftId) => apiRequest(`/cash-registers/${shiftId}/sales`),
 };
 
 // API Productos

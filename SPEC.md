@@ -1,8 +1,8 @@
-# SPEC.md - Sistema de Inventarios invLeo
+# SPEC.md - Sistema de Inventarios invah
 
 ## 1. Project Overview
 
-**Project Name:** invLeo  
+**Project Name:** invah  
 **Type:** Single Page Application (React)  
 **Core Functionality:** Sistema completo de gestión de inventarios para salsamentaría con venta de productos al despiece y porcionados, módulo de ventas, y pantalla de visualización para clientes.  
 **Target Users:** Dueños de salsamentaría, cajeros, administradores

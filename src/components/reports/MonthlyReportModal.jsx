@@ -1,24 +1,33 @@
 import { useState, useEffect } from 'react'
 import { X, Download, FileText, Calendar, DollarSign, ShoppingCart } from 'lucide-react'
-import { useGlobalContext } from '../../context/GlobalContext'
+import { useSales } from '../../hooks/queries/useSales'
 
 function MonthlyReportModal({ onClose, onGenerateReport }) {
-  const { sales, products } = useGlobalContext()
+  const { data: sales = [], isLoading: loadingSales } = useSales()
   const [reportData, setReportData] = useState(null)
   const [generating, setGenerating] = useState(false)
 
   useEffect(() => {
-    generateMonthlyReport()
-  }, [])
+    if (!loadingSales && sales && Array.isArray(sales)) {
+      generateMonthlyReport()
+    }
+  }, [sales, loadingSales])
 
   const generateMonthlyReport = () => {
     setGenerating(true)
-    
+
     // Get current month sales
     const now = new Date()
     const currentMonth = now.getMonth()
     const currentYear = now.getFullYear()
-    
+
+    // Validate that sales exists before filtering
+    if (!sales || !Array.isArray(sales)) {
+      setReportData(null)
+      setGenerating(false)
+      return
+    }
+
     const monthlySales = sales.filter(sale => {
       const saleDate = new Date(sale.created_at)
       return saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear

@@ -1,0 +1,164 @@
+# Guía de Implementación Frontend: Planes SaaS (Free, Pro, Enterprise)
+
+El Backend ya ha sido configurado para proteger las rutas, hacer cumplir los límites de creación (productos, usuarios, cajas) y rechazar el acceso a funciones premium (como los reportes avanzados) basándose en el plan actual de la empresa.
+
+Tu objetivo en el Frontend no es realizar validaciones de seguridad (ya que el backend lo hace), sino **mejorar la Experiencia de Usuario (UX) y fomentar el Upselling**.
+
+---
+
+## 1. Novedades en la Respuesta de Autenticación
+
+Al iniciar sesión (`POST /v1/auth/login`), registrarse o al refrescar sesión (`GET /v1/auth/me`), el objeto [tenant](file:///c:/Proyectos/FullStack/sisInventariosBACK/src/middlewares/tenantMiddleware.js#40-123) ahora incluye un objeto `limits`.
+
+**Ejemplo de respuesta del backend:**
+```json
+{
+  "success": true,
+  "data": {
+    "token": "eyJhbG...",
+    "user": {
+      "id": "user-123",
+      "role": "owner",
+      "tenant": {
+        "id": "tenant-123",
+        "plan": "free",
+        "limits": {
+          "maxUsers": 2,
+          "maxProducts": 50,
+          "maxCashRegisters": 1,
+          "features": {
+            "advancedReports": false,
+            "apiAccess": false,
+            "prioritySupport": false
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+**✅ Tarea 1:** Asegúrate de guardar este objeto `limits` en tu estado global de React (Zustand, Redux, o Context).
+
+---
+
+## 2. Implementar el Wrapper de Funcionalidades (PlanGuard)
+
+Crea un componente que lea del estado global y decida si renderizar su contenido, ocultarlo o mostrar un botón de "candado" según los features.
+
+```jsx
+// components/PlanGuard.jsx
+import { useAuthStore } from '../store/authStore';
+
+export const PlanGuard = ({ requiredFeature, children, fallbackRender }) => {
+  const { user } = useAuthStore();
+  const limits = user?.tenant?.limits;
+  
+  // Superadmins bypass everything, otherwise check the specific feature
+  const hasAccess = user?.role === 'superadmin' || limits?.features[requiredFeature];
+
+  if (!hasAccess) {
+    if (fallbackRender) {
+      return fallbackRender();
+    }
+    return null; // Ocultar por defecto si no tiene acceso
+  }
+
+  return children;
+};
+```
+
+**✅ Tarea 2:** Utiliza este componente en tu menú lateral para los reportes avanzados.
+```jsx
+<PlanGuard 
+  requiredFeature="advancedReports" 
+  fallbackRender={() => (
+    <div className="menu-item locked" onClick={openUpsellModal}>
+      <LockIcon /> Reportes Avanzados
+    </div>
+  )}
+>
+  <Link to="/reports/advanced" className="menu-item">
+    <ChartIcon /> Reportes Avanzados
+  </Link>
+</PlanGuard>
+```
+
+---
+
+## 3. Interfaces de Límite Cuantitativo (Usuarios, Productos, Cajas)
+
+El backend arrojará un error 403 (o 400 con su respectivo mensaje) si se intenta crear el producto/usuario/caja número 51 cuando el límite era 50. 
+Para evitar que el usuario tenga que llenar un formulario y darle a "Guardar" solo para ver un error, bloquea el acceso antes.
+
+**✅ Tarea 3:** En tus tablas (ej. Tabla de Productos), lee el límite y deshabilita el botón de crear si ya se alcanzó.
+
+```jsx
+import { useAuthStore } from '../store/authStore';
+import { useProductsQuery } from '../hooks/useProducts'; // Tu hook de datos
+
+export const ProductList = () => {
+  const { user } = useAuthStore();
+  const { data: currentProducts } = useProductsQuery();
+  
+  const limits = user?.tenant?.limits;
+  const maxProducts = limits?.maxProducts || 0;
+  
+  // Asumiendo que `currentProducts.total` trae el conteo de la DB
+  const isLimitReached = currentProducts?.total >= maxProducts;
+
+  return (
+    <div>
+      <div className="header">
+        <h1>Productos ({currentProducts?.total} / {maxProducts})</h1>
+        
+        <button 
+          disabled={isLimitReached} 
+          onClick={openCreateModal}
+          className={isLimitReached ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600'}
+        >
+          {isLimitReached ? 'Límite de Plan Alcanzado' : 'Nuevo Producto'}
+        </button>
+      </div>
+
+      {isLimitReached && (
+        <div className="alert-warning">
+          Has alcanzado el límite de {maxProducts} productos de tu plan {user?.tenant?.plan}. 
+          <button onClick={openUpsellModal}>Mejorar Plan</button>
+        </div>
+      )}
+      
+      {/* ... data table ... */}
+    </div>
+  );
+};
+```
+
+---
+
+## 4. Manejo Global de Errores de Autorización
+
+A pesar de que ocultes los botones, algún usuario espabilado podría intentar saltarse las protecciones.
+
+**✅ Tarea 4:** Configura tu Axios Interceptor (o herramienta de fetching) para capturar los errores lanzados por `limitService` o `planMiddleware`.
+
+```javascript
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Si el backend es planMiddleware lanzará típicamente:
+    // { error: { message: "Esta función requiere mejorar tu plan actual." } }
+    
+    // Si usaste la clase AuthorizationError revisa el código status 401/403
+    if (error.response?.status === 403 && error.response?.data?.error?.message?.includes('límite')) {
+      // Lanzar notificación global tipo Toast
+      toast.error(error.response.data.error.message);
+      
+      // Opcional: Redirigir a ventana de precios
+      globalDispatcher(openUpsellModal()); 
+    }
+    
+    return Promise.reject(error);
+  }
+);
+```

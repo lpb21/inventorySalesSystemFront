@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react'
 import {
   ShoppingCart, Minus, Plus, X, DollarSign, Check,
-  Milk, Beef, Drumstick, Package, ArrowLeftRight
+  Milk, Beef, Drumstick, Package, ArrowLeftRight,
+  Clock, Power, AlertCircle, CheckCircle
 } from 'lucide-react'
 import { useGlobalContext } from '../../context/GlobalContext'
 import { useSalesMutations } from '../../hooks/queries/useSales'
 import { useProducts } from '../../hooks/queries/useProducts'
 import { useCategories } from '../../hooks/queries/useCategories'
 import { useCustomers, useCustomerMutations } from '../../hooks/queries/useCustomers'
-import { useDashboardData } from '../../hooks/queries/useDashboard'
+import { useCashRegister } from '../../hooks/useCashRegister'
 import CustomerSelectModal from './CustomerSelectModal'
+import OpenCashRegisterModal from './OpenCashRegisterModal'
+import CloseCashRegisterModal from './CloseCashRegisterModal'
 import {
   convertWeightQuantity,
   formatQuantity,
@@ -30,7 +33,8 @@ function SalesView() {
     updateCartWeight,
     removeFromCart,
     clearCart,
-    addToast
+    addToast,
+    currentUser
   } = useGlobalContext()
 
   const { data: products = [] } = useProducts()
@@ -38,11 +42,50 @@ function SalesView() {
   const { data: customers = [] } = useCustomers({ isActive: true })
   const { createSale } = useSalesMutations()
   const { registerPayment } = useCustomerMutations()
-  
+
+  // Hook de turnos de caja
+  const {
+    activeShift,
+    hasActiveShift,
+    isShiftOpen,
+    loadingActiveShift,
+    openShift,
+    closeShift,
+    isOpeningShift,
+    isClosingShift
+  } = useCashRegister()
+
   // Estados para el proceso de venta
   const [completingSale, setCompletingSale] = useState(false)
   const [pendingCreditSale, setPendingCreditSale] = useState(null)
   const [showCustomerSelectModal, setShowCustomerSelectModal] = useState(false)
+
+  // Estados para modales de turnos
+  const [showOpenShiftModal, setShowOpenShiftModal] = useState(false)
+  const [showCloseShiftModal, setShowCloseShiftModal] = useState(false)
+
+  // Funciones para manejar turnos
+  const handleOpenShift = async (shiftData) => {
+    try {
+      await openShift(shiftData)
+      addToast('Turno de caja abierto exitosamente', 'success')
+      setShowOpenShiftModal(false)
+    } catch (error) {
+      // Error ya se maneja en el modal
+      throw error
+    }
+  }
+
+  const handleCloseShift = async (shiftId, closeData) => {
+    try {
+      await closeShift({ shiftId, data: closeData })
+      addToast('Turno de caja cerrado exitosamente', 'success')
+      setShowCloseShiftModal(false)
+    } catch (error) {
+      // Error ya se maneja en el modal
+      throw error
+    }
+  }
 
   /**
    * Completa una venta normal (efectivo, nequi, tarjeta).
@@ -50,6 +93,13 @@ function SalesView() {
    */
   const completeSale = async (paymentMethod = 'cash', amountReceived = cartTotal) => {
     if (cart.length === 0) return
+
+    // Verificar si hay turno activo
+    if (!isShiftOpen) {
+      addToast('Debes abrir un turno de caja antes de realizar ventas', 'warning')
+      setShowOpenShiftModal(true)
+      return
+    }
 
     // Venta a crédito: recolectar datos y pedir selección de cliente
     if (paymentMethod === 'credit') {
@@ -89,7 +139,15 @@ function SalesView() {
       setShowPayment(false)
       setPaymentAmount('')
     } catch (error) {
-      addToast('Error al completar venta', 'error')
+      // Manejar error específico de turno no abierto
+      const errorCode = error?.response?.data?.error?.code
+      if (errorCode === 'VALIDATION_ERROR' &&
+          error?.response?.data?.error?.message?.includes('turno de caja')) {
+        addToast('Debes abrir un turno de caja antes de realizar ventas', 'warning')
+        setShowOpenShiftModal(true)
+      } else {
+        addToast('Error al completar venta', 'error')
+      }
     } finally {
       setCompletingSale(false)
     }
@@ -100,6 +158,14 @@ function SalesView() {
    */
   const processCreditSale = async (customer) => {
     if (!pendingCreditSale || !customer) return
+
+    // Verificar si hay turno activo
+    if (!isShiftOpen) {
+      addToast('Debes abrir un turno de caja antes de realizar ventas', 'warning')
+      setShowCustomerSelectModal(false)
+      setShowOpenShiftModal(true)
+      return
+    }
 
     setShowCustomerSelectModal(false)
     setCompletingSale(true)
@@ -133,7 +199,15 @@ function SalesView() {
     } catch (error) {
       const errorData = error?.response?.data?.error
       const errorMessage = errorData?.message || error?.message || 'Error al completar venta a crédito'
-      addToast(errorMessage, 'error')
+
+      // Manejar error específico de turno no abierto
+      if (errorData?.code === 'VALIDATION_ERROR' &&
+          errorMessage.includes('turno de caja')) {
+        addToast('Debes abrir un turno de caja antes de realizar ventas', 'warning')
+        setShowOpenShiftModal(true)
+      } else {
+        addToast(errorMessage, 'error')
+      }
     } finally {
       setCompletingSale(false)
     }
@@ -259,10 +333,99 @@ function SalesView() {
 
       <div className="pos-cart">
         <div className="cart-header">
-          <h3>Carrito de Venta</h3>
-          <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-            {cart.length} producto{cart.length !== 1 ? 's' : ''}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <h3>Carrito de Venta</h3>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+              {cart.length} producto{cart.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+
+          {/* Indicador de Estado de Turno */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {loadingActiveShift ? (
+              <div style={{
+                padding: '6px 12px',
+                borderRadius: '6px',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <span style={{
+                  width: '12px',
+                  height: '12px',
+                  border: '2px solid var(--border)',
+                  borderTopColor: 'var(--accent)',
+                  borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite'
+                }} />
+                Verificando turno...
+              </div>
+            ) : isShiftOpen ? (
+              <div style={{
+                padding: '6px 12px',
+                borderRadius: '6px',
+                background: 'rgba(34, 197, 94, 0.15)',
+                border: '1px solid var(--success)',
+                fontSize: '12px',
+                color: 'var(--success)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontWeight: '500'
+              }}>
+                <CheckCircle size={14} />
+                Turno Activo
+              </div>
+            ) : (
+              <div style={{
+                padding: '6px 12px',
+                borderRadius: '6px',
+                background: 'rgba(255, 193, 7, 0.15)',
+                border: '1px solid var(--warning)',
+                fontSize: '12px',
+                color: 'var(--warning)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontWeight: '500'
+              }}>
+                <AlertCircle size={14} />
+                Sin Turno
+              </div>
+            )}
+
+            {/* Botones de Turno - Solo para cajeros */}
+            {!loadingActiveShift && currentUser?.role === 'cashier' && (
+              <>
+                {!isShiftOpen ? (
+                  <button
+                    className="btn btn-success btn-sm"
+                    onClick={() => setShowOpenShiftModal(true)}
+                    disabled={isOpeningShift}
+                    title="Abrir turno de caja"
+                    style={{ background: 'var(--success)', borderColor: 'var(--success)' }}
+                  >
+                    <Clock size={14} />
+                    Abrir Turno
+                  </button>
+                ) : (
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setShowCloseShiftModal(true)}
+                    disabled={isClosingShift}
+                    title="Cerrar turno de caja"
+                  >
+                    <Power size={14} />
+                    Cerrar Turno
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         <div className="cart-items">
@@ -493,6 +656,25 @@ function SalesView() {
             setPendingCreditSale(null)
           }}
           onSelectCustomer={processCreditSale}
+        />
+      )}
+
+      {/* Modales de Turnos de Caja */}
+      {showOpenShiftModal && (
+        <OpenCashRegisterModal
+          userName={currentUser?.name}
+          onOpen={handleOpenShift}
+          onClose={() => setShowOpenShiftModal(false)}
+          isOpening={isOpeningShift}
+        />
+      )}
+
+      {showCloseShiftModal && activeShift && (
+        <CloseCashRegisterModal
+          activeShift={activeShift}
+          onClose={() => setShowCloseShiftModal(false)}
+          onCloseShift={handleCloseShift}
+          isClosing={isClosingShift}
         />
       )}
     </div>
