@@ -1,83 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { X, Upload, FileText, Check, AlertCircle, Download, Trash2 } from 'lucide-react'
 import { API_URL, getToken, categoriesAPI, suppliersAPI, ApiNormalizers } from '../../api/config'
-
-// Columnas OBLIGATORIAS a nivel de estructura (el backend exige al menos "name")
-const REQUIRED_CSV_HEADERS = ['name']
-// Nombres alternativos que aceptamos por columna (p. ej. "nombre" -> "name")
-const HEADER_ALIASES = {
-  nombre: 'name',
-  name: 'name',
-  descripcion: 'description',
-  descripción: 'description',
-  description: 'description',
-  categoria: 'category',
-  categoría: 'category',
-  category: 'category',
-  categorias: 'category',
-  categorías: 'category',
-  categories: 'category',
-  precio: 'price',
-  price: 'price',
-  costo: 'cost',
-  cost: 'cost',
-  codigo: 'sku',
-  código: 'sku',
-  sku: 'sku',
-  codigo_barras: 'barcode',
-  barras: 'barcode',
-  barcode: 'barcode',
-  stock: 'stock',
-  stock_minimo: 'min_stock',
-  min_stock: 'min_stock',
-  unidad: 'unit',
-  unit: 'unit',
-  tipo: 'type',
-  type: 'type',
-  fecha_vencimiento: 'expiry_date',
-  expiry_date: 'expiry_date',
-  proveedor: 'supplier',
-  supplier: 'supplier',
-  proveedores: 'supplier',
-  suppliers: 'supplier',
-  notas: 'notes',
-  notes: 'notes',
-  nota: 'notes',
-}
-
-/**
- * Parsea una línea CSV respetando comillas (campos con comas).
- */
-function parseCSVLine(line) {
-  const result = []
-  let current = ''
-  let inQuotes = false
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i]
-    if (c === '"') {
-      inQuotes = !inQuotes
-    } else if ((c === ',' && !inQuotes) || (c === '\r' && !inQuotes)) {
-      result.push(current.trim())
-      current = ''
-    } else {
-      current += c
-    }
-  }
-  result.push(current.trim())
-  return result
-}
-
-/**
- * Normaliza nombre de cabecera para comparación (minúsculas, sin comillas, alias).
- */
-function normalizeHeader(h) {
-  // Eliminar BOM (Byte Order Mark), comillas, espacios y normalizar a minúsculas
-  const raw = (h || '').trim()
-    .replace(/^\uFEFF/, '') 
-    .replace(/^"|"$/g, '')
-    .toLowerCase()
-  return HEADER_ALIASES[raw] || raw
-}
+import {
+  parseCSVLine,
+  normalizeHeader,
+  validateCSVStructure,
+  downloadCSVTemplate
+} from '../../utils/csvUtils'
 
 function ImportModal({ onClose, onImportComplete }) {
   const [dragActive, setDragActive] = useState(false)

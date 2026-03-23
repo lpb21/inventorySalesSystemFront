@@ -278,8 +278,8 @@ function ReportsView() {
                           fontSize: '13px',
                           fontWeight: 600
                         }}>
-                          <span>Subtotal:</span>
-                          <span>${(sale.subtotal || 0).toLocaleString()}</span>
+                          {/* <span>Subtotal:</span>
+                          <span>${(sale.subtotal || 0).toLocaleString()}</span> */}
                         </div>
                         {(sale.discount || 0) > 0 && (
                           <div style={{

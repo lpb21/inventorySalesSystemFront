@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { salesAPI, ApiNormalizers } from '../../api/config'
+import { useGlobalContext } from '../../context/GlobalContext'
+import { can } from '../../utils/permissions'
 
 export function useSales(options = {}) {
     return useQuery({
@@ -14,10 +16,16 @@ export function useSales(options = {}) {
 
 export function useSalesMutations() {
     const queryClient = useQueryClient()
+    const { currentUser } = useGlobalContext()
 
     const invalidate = () => {
         queryClient.invalidateQueries({ queryKey: ['sales'] })
-        queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+
+        // Solo invalidar dashboard si el usuario tiene permisos para verlo
+        if (can(currentUser, 'canViewFullReports')) {
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+        }
+
         // Invalidar customers para actualizar cuentas por cobrar/crédito
         queryClient.invalidateQueries({ queryKey: ['customers'] })
         queryClient.invalidateQueries({ queryKey: ['customers', 'with-credit'] })

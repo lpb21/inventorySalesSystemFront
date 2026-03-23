@@ -1,7 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { salesAPI, reportsAPI } from '../../api/config'
+import { useGlobalContext } from '../../context/GlobalContext'
+import { can } from '../../utils/permissions'
 
 export function useDashboardData(options = {}) {
+    const { currentUser } = useGlobalContext()
+
+    // Solo ejecutar si el usuario tiene permisos para ver reportes
+    const canViewReports = can(currentUser, 'canViewFullReports')
+
     return useQuery({
         queryKey: ['dashboard'],
         queryFn: async () => {
@@ -24,6 +31,7 @@ export function useDashboardData(options = {}) {
                 recentSales
             }
         },
+        enabled: canViewReports, // Solo ejecutar si tiene permisos
         ...options
     })
 }
