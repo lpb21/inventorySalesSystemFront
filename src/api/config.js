@@ -373,6 +373,116 @@ export const tenantAPI = {
   }),
 };
 
+// API Billing / Suscripción (ePayco)
+export const billingAPI = {
+  // Crear sesión de checkout con ePayco para un código de plan (usuario autenticado)
+  createCheckoutSession: (planCode) => apiRequest('/billing/epayco/checkout-session', {
+    method: 'POST',
+    body: JSON.stringify({ plan_code: planCode }),
+  }),
+
+  // Crear sesión de checkout anónimo para usuarios sin token (flujo login con suscripción vencida)
+  createAnonymousCheckout: (data) => {
+    // Sin token para checkout anónimo
+    const config = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    };
+
+    return fetch(`${API_URL}/billing/epayco/checkout-anonymous`, config)
+      .then(response => {
+        if (!response.ok) {
+          return response.json().catch(() => ({})).then(body => {
+            const error = new Error(`HTTP ${response.status}: ${response.statusText}`)
+            error.response = { status: response.status, data: body }
+            throw error
+          })
+        }
+        return response.json()
+      })
+      .then(body => normalizeSuccessResponse(body))
+  },
+
+  // Crear sesión de Smart Checkout (anónimo o autenticado)
+  createSmartCheckoutSession: (data) => {
+    // Usar token pasado en data, o del localStorage como fallback
+    const token = data?.token || getToken();
+    const config = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      // Endpoint público /smart-checkout/session acepta email, name, business_name, plan_code y renewal_token
+      body: JSON.stringify({ 
+        email: data.email,
+        plan_code: data.plan_code,
+        name: data.name,
+        business_name: data.businessName,
+        ...(data.renewal_token && { renewal_token: data.renewal_token })
+      }),
+    };
+
+    // Usar endpoint público /smart-checkout/session (no el autenticado)
+    return fetch(`${API_URL}/billing/epayco/smart-checkout/session`, config)
+      .then(response => {
+        if (!response.ok) {
+          return response.json().catch(() => ({})).then(body => {
+            const error = new Error(`HTTP ${response.status}: ${response.statusText}`)
+            error.response = { status: response.status, data: body }
+            throw error
+          })
+        }
+        return response.json()
+      })
+      .then(body => normalizeSuccessResponse(body))
+  },
+
+  // Crear sesión de renovación (obteneer renewal_token)
+  createRenewalSession: (data) => {
+    const config = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        email: data.email 
+      }),
+    };
+
+    return fetch(`${API_URL}/billing/epayco/renewal/session`, config)
+      .then(response => {
+        if (!response.ok) {
+          return response.json().catch(() => ({})).then(body => {
+            const error = new Error(`HTTP ${response.status}: ${response.statusText}`)
+            error.response = { status: response.status, data: body }
+            throw error
+          })
+        }
+        return response.json()
+      })
+      .then(body => normalizeSuccessResponse(body))
+  },
+
+  // Obtener la suscripción actual del tenant (endpoint /billing/subscription)
+  getCurrentSubscription: () => apiRequest('/billing/subscription', {
+    method: 'GET',
+  }),
+
+  // Obtener planes disponibles para upgrade
+  getAvailablePlans: () => apiRequest('/billing/plans', {
+    method: 'GET',
+  }),
+
+  // Obtener planes disponibles públicamente
+  getPlans: () => apiRequest('/billing/plans', {
+    method: 'GET',
+  }),
+};
+
 // API Configuración
 export const settingsAPI = {
   get: () => apiRequest('/settings'),

@@ -11,6 +11,9 @@ import InventoryView     from './components/inventory/InventoryView'
 import SalesView         from './components/sales/SalesView'
 import ReportsView       from './components/reports/ReportsView'
 import SettingsView      from './components/settings/SettingsView'
+import CheckoutResult    from './components/billing/CheckoutResult'
+import SmartCheckout     from './components/billing/SmartCheckout'
+import RenewalRequired   from './components/billing/RenewalRequired'
 import MonthlyReportModal from './components/reports/MonthlyReportModal'
 import CreditAccountsView from './components/shared/CreditAccountsView'
 
@@ -93,7 +96,18 @@ function App() {
   }
 
   if (!isLoggedIn) {
-    return <Login />
+    return (
+      <>
+        <Routes>
+          {/* Rutas públicas de billing (sin autenticación) */}
+          <Route path="/billing/renewal-required" element={<RenewalRequired />} />
+          <Route path="/billing/smart-checkout" element={<SmartCheckout />} />
+          <Route path="/billing/checkout-result" element={<CheckoutResult />} />
+          {/* Login para usuarios sin sesión */}
+          <Route path="*" element={<Login />} />
+        </Routes>
+      </>
+    )
   }
 
   // ── Render principal ──────────────────────────────────────────────────────
@@ -114,6 +128,7 @@ function App() {
           <Route path="/sales" element={<SalesView />} />
           <Route path="/reports" element={<ReportsView />} />
           <Route path="/settings" element={<SettingsView />} />
+          <Route path="/billing/checkout-result" element={<CheckoutResult />} />
           <Route path="/credit-accounts" element={<CreditAccountsView />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

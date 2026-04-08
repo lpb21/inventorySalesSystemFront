@@ -20,6 +20,7 @@ import UsersSection from './UsersSection'
 import CustomersSection from './CustomersSection'
 import SuppliersSection from './SuppliersSection'
 import CategoriesSection from './CategoriesSection'
+import SubscriptionSection from './SubscriptionSection'
 import { suppliersAPI } from '../../api/config'
 
 function SettingsView() {
@@ -269,6 +270,9 @@ function SettingsView() {
           </p>
         </div>
       </div>
+
+      {/* Planes y Suscripción (ePayco) */}
+      <SubscriptionSection />
 
       {/* Secciones de entidades */}
       <div style={{ marginTop: '24px' }}>

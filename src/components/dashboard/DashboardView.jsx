@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import {
   TrendingUp, AlertTriangle, Package,
-  ShoppingCart, History, ChevronRight, BarChart3, Calendar
+  ShoppingCart, History, ChevronRight, BarChart3, Calendar, CheckCircle
 } from 'lucide-react'
 import { getExpirationStatus } from '../../utils/expiration'
 import { can } from '../../utils/permissions'
@@ -13,8 +14,22 @@ import { useExpiringSoonProducts, useExpiredProducts } from '../../hooks/queries
 
 function DashboardView() {
   const [expandedSaleId, setExpandedSaleId] = useState(null)
+  const [showSuccessBanner, setShowSuccessBanner] = useState(false)
+  const location = useLocation()
   const navigate = useNavigate()
   const { currentUser } = useGlobalContext()
+
+  // Detectar pago exitoso
+  useEffect(() => {
+    if (location.state?.paymentSuccess) {
+      setShowSuccessBanner(true)
+      setTimeout(() => setShowSuccessBanner(false), 5000)
+      console.log('✅ Pago exitoso:', {
+        plan: location.state.planCode,
+        email: location.state.email
+      })
+    }
+  }, [location])
 
   const { data: products = [], isLoading: loadingProducts } = useProducts()
   const { data: dashboardData, isLoading: loadingDashboard } = useDashboardData()
@@ -42,8 +57,45 @@ function DashboardView() {
   }
 
   return (
-
     <div>
+      {/* Banner de pago exitoso */}
+      {showSuccessBanner && (
+        <div style={{
+          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+          color: 'white',
+          padding: '16px 20px',
+          borderRadius: '8px',
+          marginBottom: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          animation: 'slideDown 0.3s ease-out'
+        }}>
+          <CheckCircle size={24} />
+          <div>
+            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>
+              ✅ ¡Pago procesado correctamente!
+            </h3>
+            <p style={{ margin: '4px 0 0 0', fontSize: '14px', opacity: 0.95 }}>
+              Tu suscripción está activa. Gracias por tu compra.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
+
       <div className="stats-grid">
         {showSalesCards ? (
           <>
