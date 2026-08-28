@@ -265,6 +265,11 @@ export const inventoryAPI = {
       reason: data.notes || data.reason || ''
     }),
   }),
+
+  transform: (data) => apiRequest('/inventory/transform', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
 };
 
 // API Ventas
