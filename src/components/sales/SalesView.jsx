@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react'
 import {
   ShoppingCart, Minus, Plus, X, DollarSign, Check,
   Milk, Beef, Drumstick, Package, ArrowLeftRight,
-  Clock, Power, AlertCircle, CheckCircle
+  Clock, Power, AlertCircle, CheckCircle, ScanLine
 } from 'lucide-react'
 import { useGlobalContext } from '../../context/GlobalContext'
 import { useSalesMutations } from '../../hooks/queries/useSales'
 import { useProducts } from '../../hooks/queries/useProducts'
+import { productsAPI } from '../../api/config'
 import { useCategories } from '../../hooks/queries/useCategories'
 import { useCustomers, useCustomerMutations } from '../../hooks/queries/useCustomers'
 import { useCashRegister } from '../../hooks/useCashRegister'
@@ -21,9 +22,9 @@ import {
   isWeightProduct,
   normalizeNumber
 } from '../../utils/measurements'
-
+ 
 const POS_LAYOUT_STORAGE_KEY = 'invah_pos_layout'
-
+ 
 function SalesView() {
   const {
     cart,
@@ -36,13 +37,13 @@ function SalesView() {
     addToast,
     currentUser
   } = useGlobalContext()
-
+ 
   const { data: products = [] } = useProducts()
   const { data: categories = [] } = useCategories()
   const { data: customers = [] } = useCustomers({ isActive: true })
   const { createSale } = useSalesMutations()
   const { registerPayment } = useCustomerMutations()
-
+ 
   // Hook de turnos de caja
   const {
     activeShift,
@@ -54,16 +55,52 @@ function SalesView() {
     isOpeningShift,
     isClosingShift
   } = useCashRegister()
-
+ 
   // Estados para el proceso de venta
   const [completingSale, setCompletingSale] = useState(false)
+ 
+  // --- Escaneo de código de barras ---
+  const [barcodeInput, setBarcodeInput] = useState('')
+  const [scanning, setScanning] = useState(false)
+ 
+  const handleBarcodeScan = async (e) => {
+    e.preventDefault()
+    const code = barcodeInput.trim()
+    if (!code) return
+ 
+    setScanning(true)
+    try {
+      // 1) Buscar primero entre los productos ya cargados (instantáneo)
+      let product = products.find(p => p.barcode === code)
+ 
+      // 2) Si no está en memoria, consultar al backend
+      if (!product) {
+        const response = await productsAPI.searchByBarcode(code)
+        product = response?.data || response
+      }
+ 
+      if (product && product.id) {
+        addToCart(product)
+        addToast(`${product.name} agregado`, 'success')
+        setBarcodeInput('')
+      } else {
+        addToast(`No se encontró un producto con el código ${code}`, 'error')
+        setBarcodeInput('')
+      }
+    } catch (error) {
+      addToast(`Producto no encontrado (${code})`, 'error')
+      setBarcodeInput('')
+    } finally {
+      setScanning(false)
+    }
+  }
   const [pendingCreditSale, setPendingCreditSale] = useState(null)
   const [showCustomerSelectModal, setShowCustomerSelectModal] = useState(false)
-
+ 
   // Estados para modales de turnos
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false)
   const [showCloseShiftModal, setShowCloseShiftModal] = useState(false)
-
+ 
   // Funciones para manejar turnos
   const handleOpenShift = async (shiftData) => {
     try {
@@ -75,7 +112,7 @@ function SalesView() {
       throw error
     }
   }
-
+ 
   const handleCloseShift = async (shiftId, closeData) => {
     try {
       await closeShift({ shiftId, data: closeData })
@@ -86,21 +123,21 @@ function SalesView() {
       throw error
     }
   }
-
+ 
   /**
    * Completa una venta normal (efectivo, nequi, tarjeta).
    * Si el método es 'credit', abre el modal de selección de cliente.
    */
   const completeSale = async (paymentMethod = 'cash', amountReceived = cartTotal) => {
     if (cart.length === 0) return
-
+ 
     // Verificar si hay turno activo - SOLO para cajeros
     if (currentUser?.role === 'cashier' && !isShiftOpen) {
       addToast('Debes abrir un turno de caja antes de realizar ventas', 'warning')
       setShowOpenShiftModal(true)
       return
     }
-
+ 
     // Venta a crédito: recolectar datos y pedir selección de cliente
     if (paymentMethod === 'credit') {
       const saleItems = cart.map(item => ({
@@ -113,7 +150,7 @@ function SalesView() {
       setShowCustomerSelectModal(true)
       return
     }
-
+ 
     // Venta con pago inmediato
     setCompletingSale(true)
     try {
@@ -132,7 +169,7 @@ function SalesView() {
         change_given: Math.max(0, amountReceived - cartTotal),
         customer_id: null
       }
-
+ 
       await createSale.mutateAsync(saleData)
       clearCart()
       addToast('Venta completada exitosamente!', 'success')
@@ -153,13 +190,13 @@ function SalesView() {
       setCompletingSale(false)
     }
   }
-
+ 
   /**
    * Procesa la venta a crédito una vez que el usuario seleccionó el cliente.
    */
   const processCreditSale = async (customer) => {
     if (!pendingCreditSale || !customer) return
-
+ 
     // Verificar si hay turno activo - SOLO para cajeros
     if (currentUser?.role === 'cashier' && !isShiftOpen) {
       addToast('Debes abrir un turno de caja antes de realizar ventas', 'warning')
@@ -167,20 +204,20 @@ function SalesView() {
       setShowOpenShiftModal(true)
       return
     }
-
+ 
     setShowCustomerSelectModal(false)
     setCompletingSale(true)
-
+ 
     try {
       const customerId = customer?.id ? String(customer.id) : null
       if (!customerId) throw new Error('El cliente seleccionado no tiene un ID válido')
-
+ 
       const formattedItems = pendingCreditSale.items.map(item => ({
         product_id: item.product_id,
         quantity: item.quantity,
         unit_price: item.unit_price
       }))
-
+ 
       const saleData = {
         payment_method: 'credit',
         customer_id: customerId,
@@ -192,7 +229,7 @@ function SalesView() {
         note: 'Venta a crédito',
         items: formattedItems
       }
-
+ 
       await createSale.mutateAsync(saleData)
       clearCart()
       setPendingCreditSale(null)
@@ -200,7 +237,7 @@ function SalesView() {
     } catch (error) {
       const errorData = error?.response?.data?.error
       const errorMessage = errorData?.message || error?.message || 'Error al completar venta a crédito'
-
+ 
       // Manejar error específico de turno no abierto - solo para cajeros
       if (currentUser?.role === 'cashier' &&
           errorData?.code === 'VALIDATION_ERROR' &&
@@ -214,7 +251,7 @@ function SalesView() {
       setCompletingSale(false)
     }
   }
-
+ 
   const [selectedCategory, setSelectedCategory] = useState('Todos')
   const [paymentAmount, setPaymentAmount] = useState('')
   const [showPayment, setShowPayment] = useState(false)
@@ -224,11 +261,11 @@ function SalesView() {
     if (typeof window === 'undefined') return false
     return localStorage.getItem(POS_LAYOUT_STORAGE_KEY) === 'cart-first'
   })
-
+ 
   useEffect(() => {
     localStorage.setItem(POS_LAYOUT_STORAGE_KEY, swappedLayout ? 'cart-first' : 'products-first')
   }, [swappedLayout])
-
+ 
   useEffect(() => {
     setWeightDrafts((prev) => {
       const next = {}
@@ -241,30 +278,54 @@ function SalesView() {
       return next
     })
   }, [cart])
-
+ 
   useEffect(() => {
     if (cart.length > 0) return
-
+ 
     setShowPayment(false)
     setPaymentAmount('')
     setPaymentMethod('cash')
     setWeightDrafts({})
   }, [cart.length])
-
+ 
   const filteredProducts = products.filter(p => {
     const isCategoryMatch = selectedCategory === 'Todos' || p.category?.name === selectedCategory || p.category === selectedCategory
     const isActive = p.is_active !== false
     return isCategoryMatch && isActive
   })
-
+ 
   const numericPaymentAmount = parseInt(paymentAmount || 0, 10)
   const change = (paymentAmount && numericPaymentAmount >= cartTotal) ? numericPaymentAmount - cartTotal : 0
-
+ 
   return (
     <div className={`pos-container ${swappedLayout ? 'pos-container-swapped' : ''}`}>
       <div className="pos-products">
         <div className="pos-toolbar">
           <h3>Productos</h3>
+ 
+          {/* Campo de escaneo de código de barras */}
+          <form onSubmit={handleBarcodeScan} style={{ flex: 1, maxWidth: '280px', margin: '0 12px' }}>
+            <div style={{ position: 'relative' }}>
+              <div style={{
+                position: 'absolute', left: '10px', top: '50%',
+                transform: 'translateY(-50%)', color: 'var(--text-secondary)',
+                pointerEvents: 'none'
+              }}>
+                <ScanLine size={16} />
+              </div>
+              <input
+                type="text"
+                className="form-input"
+                value={barcodeInput}
+                onChange={(e) => setBarcodeInput(e.target.value)}
+                placeholder="Escanea o escribe el código..."
+                style={{ paddingLeft: '34px', height: '38px' }}
+                disabled={scanning}
+                autoComplete="off"
+              />
+            </div>
+          </form>
+ 
           <div className="pos-toolbar-actions">
             {/* <button
               type="button"
@@ -287,14 +348,14 @@ function SalesView() {
             </div>
           </div>
         </div>
-
+ 
         <div className="product-grid">
           {filteredProducts.map(product => {
             const saleUnit = isWeightProduct(product) ? getWeightSaleUnit(product) : product.unit
             const visiblePrice = isWeightProduct(product)
               ? getPriceForSaleUnit(product, saleUnit)
               : (product.price || 0)
-
+ 
             return (
               <div
                 key={product.id}
@@ -318,7 +379,7 @@ function SalesView() {
                     </>
                   )}
                 </div>
-
+ 
                 <div className="product-name" style={{ fontSize: '14px' }}>{product.name}</div>
                 <div className="product-price" style={{ fontSize: '18px' }}>
                   ${visiblePrice.toLocaleString()}
@@ -332,7 +393,7 @@ function SalesView() {
           })}
         </div>
       </div>
-
+ 
       <div className="pos-cart">
         <div className="cart-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -341,7 +402,7 @@ function SalesView() {
               {cart.length} producto{cart.length !== 1 ? 's' : ''}
             </span>
           </div>
-
+ 
           {/* Indicador de Estado de Turno - Solo para cajeros */}
           {currentUser?.role === 'cashier' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -400,7 +461,7 @@ function SalesView() {
                   Sin Turno
                 </div>
               )}
-
+ 
               {/* Botones de Turno - Solo para cajeros */}
               {!loadingActiveShift && (
                 <>
@@ -431,7 +492,7 @@ function SalesView() {
             </div>
           )}
         </div>
-
+ 
         <div className="cart-items">
           {cart.length === 0 ? (
             <div className="empty-state" style={{ padding: '40px 20px' }}>
@@ -451,7 +512,7 @@ function SalesView() {
                 : item.stock
               const visibleUnitPrice = weightItem ? getPriceForSaleUnit(item, saleUnit) : (item.price || 0)
               const weightDraftValue = weightDrafts[item.id] ?? formatQuantity(displayQuantity)
-
+ 
               return (
                 <div key={item.id} className="cart-item">
                   <div className="cart-item-main">
@@ -467,7 +528,7 @@ function SalesView() {
                         </div>
                       )}
                     </div>
-
+ 
                     <div className="cart-item-summary">
                       <div className="cart-item-total">
                         ${((item.price || 0) * normalizeNumber(item.quantity, 0)).toLocaleString()}
@@ -480,7 +541,7 @@ function SalesView() {
                       </button>
                     </div>
                   </div>
-
+ 
                   <div className="cart-item-actions">
                     {weightItem ? (
                       <div className="cart-item-weight-controls">
@@ -496,10 +557,10 @@ function SalesView() {
                           onChange={(e) => {
                             const rawValue = e.target.value
                             setWeightDrafts(prev => ({ ...prev, [item.id]: rawValue }))
-
+ 
                             const parsedValue = normalizeNumber(rawValue, NaN)
                             if (!Number.isFinite(parsedValue) || parsedValue <= 0) return
-
+ 
                             updateCartWeight(item.id, parsedValue, saleUnit)
                           }}
                           onBlur={() => {
@@ -511,7 +572,7 @@ function SalesView() {
                               }))
                               return
                             }
-
+ 
                             updateCartWeight(item.id, parsedValue, saleUnit)
                             setWeightDrafts(prev => ({
                               ...prev,
@@ -554,13 +615,13 @@ function SalesView() {
             })
           )}
         </div>
-
+ 
         <div className="cart-footer">
           <div className="cart-total">
             <span className="cart-total-label">Total</span>
             <span className="cart-total-value">${cartTotal.toLocaleString()}</span>
           </div>
-
+ 
           {showPayment ? (
             <div>
               <div className="form-group">
@@ -590,7 +651,7 @@ function SalesView() {
                   />
                 </div>
               )}
-
+ 
               {paymentMethod !== 'credit' && numericPaymentAmount >= cartTotal && (
                 <div style={{
                   padding: '12px',
@@ -651,7 +712,7 @@ function SalesView() {
           )}
         </div>
       </div>
-
+ 
       {showCustomerSelectModal && (
         <CustomerSelectModal
           customers={customers}
@@ -662,7 +723,7 @@ function SalesView() {
           onSelectCustomer={processCreditSale}
         />
       )}
-
+ 
       {/* Modales de Turnos de Caja */}
       {showOpenShiftModal && (
         <OpenCashRegisterModal
@@ -672,7 +733,7 @@ function SalesView() {
           isOpening={isOpeningShift}
         />
       )}
-
+ 
       {showCloseShiftModal && activeShift && (
         <CloseCashRegisterModal
           activeShift={activeShift}
@@ -684,5 +745,5 @@ function SalesView() {
     </div>
   )
 }
-
+ 
 export default SalesView
