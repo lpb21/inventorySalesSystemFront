@@ -36,8 +36,7 @@ export function useRecipeDetail(recipeId, options = {}) {
 }
 
 /**
- * Mutaciones de recetas (por ahora: borrar).
- * Crear/editar se agregarán cuando construyamos el formulario.
+ * Mutaciones de recetas: crear, actualizar y borrar.
  */
 export function useRecipeMutations() {
     const queryClient = useQueryClient()
@@ -46,10 +45,24 @@ export function useRecipeMutations() {
         queryClient.invalidateQueries({ queryKey: ['recipes'] })
     }
 
+    const create = useMutation({
+        mutationFn: (data) => recipesAPI.create(data),
+        onSuccess: invalidate,
+    })
+
+    const update = useMutation({
+        mutationFn: ({ id, data }) => recipesAPI.update(id, data),
+        onSuccess: (result, variables) => {
+            invalidate()
+            // También refrescar el detalle de esa receta
+            queryClient.invalidateQueries({ queryKey: ['recipe', variables.id] })
+        },
+    })
+
     const remove = useMutation({
         mutationFn: (id) => recipesAPI.remove(id),
         onSuccess: invalidate,
     })
 
-    return { remove }
+    return { create, update, remove }
 }

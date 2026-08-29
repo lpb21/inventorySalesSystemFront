@@ -556,6 +556,7 @@ function InventoryView({ searchTerm }) {
 
       {showRecipeModal && (
         <RecipeManagerModal
+          products={products}
           onClose={() => setShowRecipeModal(false)}
           addToast={addToast}
         />
