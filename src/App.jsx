@@ -111,7 +111,7 @@ function App() {
   }
 
   // ── Render principal ──────────────────────────────────────────────────────
-
+  
   return (
     <>
       <AppLayout

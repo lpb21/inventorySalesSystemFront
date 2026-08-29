@@ -287,6 +287,32 @@ function SalesView() {
     setPaymentMethod('cash')
     setWeightDrafts({})
   }, [cart.length])
+
+    // Emitir el carrito a la pantalla cliente (ventana aparte) vía BroadcastChannel
+  useEffect(() => {
+    const channel = new BroadcastChannel('pos-customer-display')
+
+    // Emitir el estado actual del carrito
+    const emitCart = () => {
+      channel.postMessage({
+        type: 'cart-update',
+        cart,
+        cartTotal,
+      })
+    }
+
+    // Emitir cada vez que cambie el carrito
+    emitCart()
+
+    // Si la pantalla cliente pide el estado (al abrirse), se lo mandamos
+    channel.onmessage = (event) => {
+      if (event.data?.type === 'request-cart') {
+        emitCart()
+      }
+    }
+
+    return () => channel.close()
+  }, [cart, cartTotal])
  
   const filteredProducts = products.filter(p => {
     const isCategoryMatch = selectedCategory === 'Todos' || p.category?.name === selectedCategory || p.category === selectedCategory
