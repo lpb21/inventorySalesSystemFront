@@ -12,6 +12,7 @@ import {
   Calendar,
   AlertTriangle,
   Scissors,
+  BookOpen
 } from "lucide-react";
 import { can } from "../../utils/permissions";
 import { useGlobalContext } from "../../context/GlobalContext";
@@ -30,6 +31,7 @@ import SupplierModal from "./SupplierModal";
 import OutputModal from "./OutputModal";
 import { categoriesAPI } from "../../api/config";
 import TransformModal from "./TransformModal";
+import RecipeManagerModal from "./RecipeManagerModal";
 
 function InventoryView({ searchTerm }) {
   const { currentUser, addToast } = useGlobalContext();
@@ -54,6 +56,7 @@ function InventoryView({ searchTerm }) {
   const [showInactiveProducts, setShowInactiveProducts] = useState(false);
   const [showInactiveCategories, setShowInactiveCategories] = useState(false);
   const [showTransformModal, setShowTransformModal] = useState(false);
+  const [showRecipeModal, setShowRecipeModal] = useState(false);
   const { transform } = useTransform();
 
   // Function to refresh products data
@@ -299,6 +302,12 @@ function InventoryView({ searchTerm }) {
               >
                 <Scissors size={18} /> Despiezar
               </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowRecipeModal(true)}
+              >
+                <BookOpen size={18} /> Recetas
+              </button>
             </>
           )}
           {canEdit && (
@@ -542,6 +551,13 @@ function InventoryView({ searchTerm }) {
           products={products}
           onSave={(data) => transform.mutateAsync(data)}
           onClose={() => setShowTransformModal(false)}
+        />
+      )}
+
+      {showRecipeModal && (
+        <RecipeManagerModal
+          onClose={() => setShowRecipeModal(false)}
+          addToast={addToast}
         />
       )}
 

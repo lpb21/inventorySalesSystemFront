@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { recipesAPI, ApiNormalizers } from '../../api/config'
 
 const QUERY_KEY = ['recipes']
@@ -33,4 +33,23 @@ export function useRecipeDetail(recipeId, options = {}) {
         enabled: !!recipeId,  // solo consulta si hay un id
         ...options
     })
+}
+
+/**
+ * Mutaciones de recetas (por ahora: borrar).
+ * Crear/editar se agregarán cuando construyamos el formulario.
+ */
+export function useRecipeMutations() {
+    const queryClient = useQueryClient()
+
+    const invalidate = () => {
+        queryClient.invalidateQueries({ queryKey: ['recipes'] })
+    }
+
+    const remove = useMutation({
+        mutationFn: (id) => recipesAPI.remove(id),
+        onSuccess: invalidate,
+    })
+
+    return { remove }
 }
