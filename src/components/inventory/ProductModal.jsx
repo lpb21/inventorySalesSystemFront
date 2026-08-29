@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { X, Plus, Save } from 'lucide-react'
 import { useGlobalContext } from '../../context/GlobalContext'
 import { can } from '../../utils/permissions'
-
+ 
 function ProductModal({ product, categories, suppliers = [], onSave, onClose, onAddCategory, onAddSupplier }) {
   const { currentUser } = useGlobalContext()
   const canManageCategories = can(currentUser, 'canManageCategories')
@@ -29,15 +29,15 @@ function ProductModal({ product, categories, suppliers = [], onSave, onClose, on
         cost: '',
         stock: '',
         min_stock: '',
-        unit: 'kg',
+        unit: 'lb',
         type: 'weight',
         is_active: true,
         expiry_date: ''
       })
-
+ 
   const [errors, setErrors] = useState({})
   const [isSaving, setIsSaving] = useState(false)
-
+ 
   const validarNombre = (nombre) => {
     const trimmedName = nombre.trim()
     if (!trimmedName) {
@@ -52,7 +52,7 @@ function ProductModal({ product, categories, suppliers = [], onSave, onClose, on
     }
     return { valid: true, message: '' }
   }
-
+ 
   const validarCodigoBarras = (numero) => {
     if (!numero) return { valid: true, message: '' } // Opcional
     
@@ -62,44 +62,44 @@ function ProductModal({ product, categories, suppliers = [], onSave, onClose, on
     }
     return { valid: true, message: '' }
   }
-
+ 
   const validarFechaVencimiento = (fecha) => {
     if (!fecha) return { valid: true, message: '' } // Opcional
-
+ 
     const hoy = new Date()
     hoy.setHours(0, 0, 0, 0)
     const fechaSeleccionada = new Date(fecha)
     // Ajustar zona horaria si es necesario o simplemente comparar fechas
     fechaSeleccionada.setMinutes(fechaSeleccionada.getMinutes() + fechaSeleccionada.getTimezoneOffset())
     fechaSeleccionada.setHours(0, 0, 0, 0)
-
+ 
     if (fechaSeleccionada < hoy) {
       return { valid: false, message: 'La fecha debe ser posterior a hoy' }
     }
     return { valid: true, message: '' }
   }
-
+ 
   const handleSubmit = async (e) => {
     e.preventDefault()
-
+ 
     // Validar campos
     const nameV = validarNombre(formData.name)
     const barcodeV = validarCodigoBarras(formData.barcode)
     const expiryV = validarFechaVencimiento(formData.expiry_date)
-
+ 
     const newErrors = {
       name: nameV.valid ? null : nameV.message,
       barcode: barcodeV.valid ? null : barcodeV.message,
       expiry_date: expiryV.valid ? null : expiryV.message
     }
-
+ 
     setErrors(newErrors)
-
+ 
     // Si hay algún error, no guardar
     if (Object.values(newErrors).some(err => err !== null)) {
       return
     }
-
+ 
     setIsSaving(true)
     try {
       await onSave({
@@ -118,7 +118,7 @@ function ProductModal({ product, categories, suppliers = [], onSave, onClose, on
       setIsSaving(false)
     }
   }
-
+ 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
@@ -186,10 +186,10 @@ function ProductModal({ product, categories, suppliers = [], onSave, onClose, on
             </div>
             <div className="form-group">
               <label className="form-label">Categori­a</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px' }}>
                 <select
                   className="form-select"
-                  style={{ flex: 1 }}
+                  style={{ minWidth: 0 }}
                   value={formData.category_id}
                   onChange={e => setFormData({ ...formData, category_id: e.target.value })}
                 >
@@ -211,10 +211,10 @@ function ProductModal({ product, categories, suppliers = [], onSave, onClose, on
             </div>
             <div className="form-group">
               <label className="form-label">Proveedor</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px' }}>
                 <select
                   className="form-select"
-                  style={{ flex: 1 }}
+                  style={{ minWidth: 0 }}
                   value={formData.supplier_id}
                   onChange={e => setFormData({ ...formData, supplier_id: e.target.value })}
                 >
@@ -355,5 +355,5 @@ function ProductModal({ product, categories, suppliers = [], onSave, onClose, on
     </div>
   )
 }
-
+ 
 export default ProductModal
