@@ -272,6 +272,26 @@ export const inventoryAPI = {
   }),
 };
 
+export const recipesAPI = {
+  getAll: () => apiRequest('/recipes'),
+
+  getById: (id) => apiRequest(`/recipes/${id}`),
+
+  create: (data) => apiRequest('/recipes', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
+  update: (id, data) => apiRequest(`/recipes/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+
+  remove: (id) => apiRequest(`/recipes/${id}`, {
+    method: 'DELETE',
+  }),
+}
+
 // API Ventas
 export const salesAPI = {
   getAll: (params = {}) => {

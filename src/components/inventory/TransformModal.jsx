@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { X, Save, Package, Plus, Trash2, Scissors, ArrowRight } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { X, Save, Package, Plus, Trash2, Scissors, ArrowRight, BookOpen } from 'lucide-react'
+import { useRecipes, useRecipeDetail } from '../../hooks/queries/useRecipes'
  
 /**
  * TransformModal — Despiece / transformación de inventario.
@@ -21,7 +22,24 @@ function TransformModal({ products, onSave, onClose }) {
   const [reason, setReason] = useState('')
   const [saving, setSaving] = useState(false)
  
+  // --- Recetas ---
+  const [selectedRecipeId, setSelectedRecipeId] = useState('')
+  const { data: recipes = [] } = useRecipes()
+  const { data: recipeDetail } = useRecipeDetail(selectedRecipeId)
+ 
   const sourceProduct = products.find(p => p.id === sourceId)
+ 
+  // Cuando llega el detalle de la receta, pre-llenar los cortes (items)
+  useEffect(() => {
+    if (recipeDetail && Array.isArray(recipeDetail.items) && recipeDetail.items.length > 0) {
+      setTargets(recipeDetail.items.map(item => ({
+        product_id: item.product_id,
+        quantity: String(item.quantity),
+        search: item.product?.name || '',
+        showList: false,
+      })))
+    }
+  }, [recipeDetail])
  
   // Productos con stock, para el origen
   const sourceCandidates = products.filter(p =>
@@ -53,6 +71,29 @@ function TransformModal({ products, onSave, onClose }) {
       search: product.name,
       showList: false,
     })
+  }
+ 
+  // Aplica una receta: pre-llena el origen y los cortes sugeridos
+  const applyRecipe = (recipeId) => {
+    setSelectedRecipeId(recipeId)
+    if (!recipeId) {
+      // Al volver a modo manual, liberar la cantidad
+      setSourceQty('')
+      return
+    }
+ 
+    const recipe = recipes.find(r => r.id === recipeId)
+    if (!recipe) return
+ 
+    // Pre-llenar el producto origen desde la receta
+    const source = products.find(p => p.id === recipe.source_product_id)
+    if (source) {
+      setSourceId(source.id)
+      setSourceSearch(source.name)
+    }
+ 
+    // Con receta, el despiece es siempre de 1 unidad (decisión de negocio)
+    setSourceQty('1')
   }
  
   // Suma de los destinos (para mostrar merma)
@@ -134,6 +175,32 @@ function TransformModal({ products, onSave, onClose }) {
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
  
+            {/* ─── SELECTOR DE RECETA (opcional) ─── */}
+            {recipes.length > 0 && (
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <BookOpen size={15} /> Usar receta (opcional)
+                </label>
+                <select
+                  className="form-select"
+                  value={selectedRecipeId}
+                  onChange={(e) => applyRecipe(e.target.value)}
+                >
+                  <option value="">— Despiece manual (sin receta) —</option>
+                  {recipes.map(recipe => (
+                    <option key={recipe.id} value={recipe.id}>
+                      {recipe.name}
+                    </option>
+                  ))}
+                </select>
+                {selectedRecipeId && (
+                  <div style={{ fontSize: '12px', color: 'var(--accent)', marginTop: '4px' }}>
+                    Cortes pre-llenados desde la receta. Ajusta los pesos reales si es necesario.
+                  </div>
+                )}
+              </div>
+            )}
+ 
             {/* ─── ORIGEN ─── */}
             <div className="form-group">
               <label className="form-label">Producto de origen *</label>
@@ -205,7 +272,12 @@ function TransformModal({ products, onSave, onClose }) {
                     placeholder="0"
                     min="0.001" step="0.001"
                     max={sourceProduct.stock}
-                    style={{ paddingRight: '60px' }}
+                    disabled={!!selectedRecipeId}
+                    style={{
+                      paddingRight: '60px',
+                      opacity: selectedRecipeId ? 0.6 : 1,
+                      cursor: selectedRecipeId ? 'not-allowed' : 'text'
+                    }}
                   />
                   <span style={{
                     position: 'absolute', right: '12px', top: '50%',
@@ -215,7 +287,9 @@ function TransformModal({ products, onSave, onClose }) {
                   </span>
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                  Disponible: {sourceProduct.stock} {sourceProduct.unit}
+                  {selectedRecipeId
+                    ? 'Con receta, el despiece es de 1 unidad. Para más, repite el despiece.'
+                    : `Disponible: ${sourceProduct.stock} ${sourceProduct.unit}`}
                 </div>
               </div>
             )}
