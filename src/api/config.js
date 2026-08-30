@@ -292,6 +292,20 @@ export const recipesAPI = {
   }),
 }
 
+export const adminAPI = {
+  listTenants: () => apiRequest('/admin/tenants'),
+
+  activateTenant: (id, period) => apiRequest(`/admin/tenants/${id}/activate`, {
+    method: 'POST',
+    body: JSON.stringify({ period }),
+  }),
+
+  deactivateTenant: (id, reason) => apiRequest(`/admin/tenants/${id}/deactivate`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  }),
+}
+
 // API Ventas
 export const salesAPI = {
   getAll: (params = {}) => {
