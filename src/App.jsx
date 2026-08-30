@@ -16,6 +16,7 @@ import SmartCheckout     from './components/billing/SmartCheckout'
 import RenewalRequired   from './components/billing/RenewalRequired'
 import MonthlyReportModal from './components/reports/MonthlyReportModal'
 import CreditAccountsView from './components/shared/CreditAccountsView'
+import AdminTenantsView from './components/admin/AdminTenantsView'
 
 // Componente principal
 function App() {
@@ -130,6 +131,7 @@ function App() {
           <Route path="/settings" element={<SettingsView />} />
           <Route path="/billing/checkout-result" element={<CheckoutResult />} />
           <Route path="/credit-accounts" element={<CreditAccountsView />} />
+          <Route path="/admin/tenants" element={<AdminTenantsView />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AppLayout>
