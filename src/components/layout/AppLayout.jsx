@@ -1,5 +1,5 @@
 import { 
-  LayoutDashboard, Package, ShoppingCart, Settings, Shield,
+  LayoutDashboard, Package, ShoppingCart, Settings, Shield, History,
   Search, BarChart3, LogOut, Eye, User, Menu, Lock, Crown
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -34,6 +34,7 @@ function AppLayout({ currentUser, searchTerm, setSearchTerm, lowStockCount, onRe
     { id: 'reports', path: '/reports', label: 'Reportes', icon: BarChart3, permission: 'canViewFullReports' },
     { id: 'settings', path: '/settings', label: 'Configuración', icon: Settings, permission: 'canAccessSettings' },
     { id: 'admin', path: '/admin/tenants', label: 'Suscripciones', icon: Shield, permission: 'canManageAllTenants' },
+    { id: 'admin-audit', path: '/admin/audit', label: 'Auditoría', icon: History, permission: 'canManageAllTenants' },
   ]
 
   const getTitle = () => {

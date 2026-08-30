@@ -40,3 +40,18 @@ export function useAdminTenantMutations() {
  
     return { activate, deactivate }
 }
+
+/**
+ * Historial de auditoría global, paginado (solo superadmin).
+ */
+export function useAdminAuditLogs(page = 1, limit = 30) {
+    return useQuery({
+        queryKey: ['admin-audit-logs', page, limit],
+        queryFn: async () => {
+            const response = await adminAPI.getAuditLogs(page, limit)
+            // Devuelve { auditLogs, pagination }
+            return response?.data || response
+        },
+        keepPreviousData: true,  // al cambiar de página, mantiene los datos previos (sin parpadeo)
+    })
+}

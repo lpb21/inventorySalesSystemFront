@@ -304,6 +304,9 @@ export const adminAPI = {
     method: 'POST',
     body: JSON.stringify({ reason }),
   }),
+
+  getAuditLogs: (page = 1, limit = 30) =>
+    apiRequest(`/admin/audit-logs?page=${page}&limit=${limit}`),
 }
 
 // API Ventas
