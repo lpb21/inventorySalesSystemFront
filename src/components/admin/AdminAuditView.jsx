@@ -1,14 +1,37 @@
 import { useState } from 'react'
-import { History, ChevronLeft, ChevronRight, User, Building2 } from 'lucide-react'
-import { useAdminAuditLogs } from '../../hooks/queries/useAdminTenants'
+import { History, ChevronLeft, ChevronRight, User, Building2, Filter } from 'lucide-react'
+import { useAdminAuditLogs, useAdminTenants } from '../../hooks/queries/useAdminTenants'
  
 /**
  * AdminAuditView — Historial global de auditoría (solo superadmin).
- * Tabla paginada de todos los movimientos de todos los tenants.
+ * Tabla paginada y filtrable de todos los movimientos de todos los tenants.
  */
 function AdminAuditView() {
   const [page, setPage] = useState(1)
-  const { data, isLoading, isFetching } = useAdminAuditLogs(page, 30)
+  const [tenantFilter, setTenantFilter] = useState('')
+  const [actionFilter, setActionFilter] = useState('')
+ 
+  const { data, isLoading, isFetching } = useAdminAuditLogs(page, 30, tenantFilter, actionFilter)
+  const { data: tenants = [] } = useAdminTenants()
+ 
+  // Al cambiar un filtro, volver a la página 1
+  const handleTenantFilter = (value) => { setTenantFilter(value); setPage(1) }
+  const handleActionFilter = (value) => { setActionFilter(value); setPage(1) }
+ 
+  // Opciones de acción para el filtro
+  const actionOptions = [
+    { value: '', label: 'Todas las acciones' },
+    { value: 'activate', label: 'Activación' },
+    { value: 'suspend', label: 'Suspensión' },
+    { value: 'create', label: 'Creación' },
+    { value: 'update', label: 'Actualización' },
+    { value: 'delete', label: 'Eliminación' },
+    { value: 'stock_adjustment', label: 'Movimiento de stock' },
+    { value: 'open_shift', label: 'Apertura de caja' },
+    { value: 'close_shift', label: 'Cierre de caja' },
+    { value: 'login', label: 'Ingreso' },
+    { value: 'logout', label: 'Salida' },
+  ]
  
   const logs = data?.auditLogs || []
   const pagination = data?.pagination || { page: 1, totalPages: 1, total: 0, hasNextPage: false, hasPrevPage: false }
@@ -51,6 +74,44 @@ function AdminAuditView() {
             Todos los movimientos de todos los tenants
           </p>
         </div>
+      </div>
+ 
+      {/* Barra de filtros */}
+      <div style={{
+        display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+          <Filter size={15} /> Filtrar:
+        </div>
+        <select
+          className="form-select"
+          value={tenantFilter}
+          onChange={(e) => handleTenantFilter(e.target.value)}
+          style={{ maxWidth: '240px' }}
+        >
+          <option value="">Todos los negocios</option>
+          {tenants.map(t => (
+            <option key={t.id} value={t.id}>{t.business_name || t.name}</option>
+          ))}
+        </select>
+        <select
+          className="form-select"
+          value={actionFilter}
+          onChange={(e) => handleActionFilter(e.target.value)}
+          style={{ maxWidth: '200px' }}
+        >
+          {actionOptions.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+        {(tenantFilter || actionFilter) && (
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => { setTenantFilter(''); setActionFilter(''); setPage(1) }}
+          >
+            Limpiar filtros
+          </button>
+        )}
       </div>
  
       {isLoading ? (

@@ -44,14 +44,13 @@ export function useAdminTenantMutations() {
 /**
  * Historial de auditoría global, paginado (solo superadmin).
  */
-export function useAdminAuditLogs(page = 1, limit = 30) {
+export function useAdminAuditLogs(page = 1, limit = 30, tenantId = '', action = '') {
     return useQuery({
-        queryKey: ['admin-audit-logs', page, limit],
+        queryKey: ['admin-audit-logs', page, limit, tenantId, action],
         queryFn: async () => {
-            const response = await adminAPI.getAuditLogs(page, limit)
-            // Devuelve { auditLogs, pagination }
+            const response = await adminAPI.getAuditLogs(page, limit, tenantId, action)
             return response?.data || response
         },
-        keepPreviousData: true,  // al cambiar de página, mantiene los datos previos (sin parpadeo)
+        keepPreviousData: true,
     })
 }

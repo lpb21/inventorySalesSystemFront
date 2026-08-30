@@ -305,8 +305,12 @@ export const adminAPI = {
     body: JSON.stringify({ reason }),
   }),
 
-  getAuditLogs: (page = 1, limit = 30) =>
-    apiRequest(`/admin/audit-logs?page=${page}&limit=${limit}`),
+  getAuditLogs: (page = 1, limit = 30, tenantId = '', action = '') => {
+    const params = new URLSearchParams({ page, limit })
+    if (tenantId) params.append('tenantId', tenantId)
+    if (action) params.append('action', action)
+    return apiRequest(`/admin/audit-logs?${params.toString()}`)
+  },
 }
 
 // API Ventas
