@@ -21,6 +21,9 @@ export function useSalesMutations() {
     const invalidate = () => {
         queryClient.invalidateQueries({ queryKey: ['sales'] })
 
+        // Invalidar productos para que el stock se actualice tras la venta
+        queryClient.invalidateQueries({ queryKey: ['products'] })
+
         // Solo invalidar dashboard si el usuario tiene permisos para verlo
         if (can(currentUser, 'canViewFullReports')) {
             queryClient.invalidateQueries({ queryKey: ['dashboard'] })
