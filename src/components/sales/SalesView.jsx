@@ -12,6 +12,7 @@ import { calculateChange, canCompleteSale, buildSaleItems } from '../../utils/sa
 import { useCategories } from '../../hooks/queries/useCategories'
 import { useCustomers, useCustomerMutations } from '../../hooks/queries/useCustomers'
 import { useCashRegister } from '../../hooks/useCashRegister'
+import CashRegisterStatus from './CashRegisterStatus'
 import CustomerSelectModal from './CustomerSelectModal'
 import OpenCashRegisterModal from './OpenCashRegisterModal'
 import CloseCashRegisterModal from './CloseCashRegisterModal'
@@ -421,93 +422,15 @@ function SalesView() {
           </div>
  
           {/* Indicador de Estado de Turno - Solo para cajeros */}
-          {currentUser?.role === 'cashier' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {loadingActiveShift ? (
-                <div style={{
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  background: 'var(--surface)',
-                  border: '1px solid var(--border)',
-                  fontSize: '12px',
-                  color: 'var(--text-secondary)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}>
-                  <span style={{
-                    width: '12px',
-                    height: '12px',
-                    border: '2px solid var(--border)',
-                    borderTopColor: 'var(--accent)',
-                    borderRadius: '50%',
-                    animation: 'spin 0.8s linear infinite'
-                  }} />
-                  Verificando turno...
-                </div>
-              ) : isShiftOpen ? (
-                <div style={{
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  background: 'rgba(34, 197, 94, 0.15)',
-                  border: '1px solid var(--success)',
-                  fontSize: '12px',
-                  color: 'var(--success)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontWeight: '500'
-                }}>
-                  <CheckCircle size={14} />
-                  Turno Activo
-                </div>
-              ) : (
-                <div style={{
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  background: 'rgba(255, 193, 7, 0.15)',
-                  border: '1px solid var(--warning)',
-                  fontSize: '12px',
-                  color: 'var(--warning)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontWeight: '500'
-                }}>
-                  <AlertCircle size={14} />
-                  Sin Turno
-                </div>
-              )}
- 
-              {/* Botones de Turno - Solo para cajeros */}
-              {!loadingActiveShift && (
-                <>
-                  {!isShiftOpen ? (
-                    <button
-                      className="btn btn-success btn-sm"
-                      onClick={() => setShowOpenShiftModal(true)}
-                      disabled={isOpeningShift}
-                      title="Abrir turno de caja"
-                      style={{ background: 'var(--success)', borderColor: 'var(--success)' }}
-                    >
-                      <Clock size={14} />
-                      Abrir Turno
-                    </button>
-                  ) : (
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => setShowCloseShiftModal(true)}
-                      disabled={isClosingShift}
-                      title="Cerrar turno de caja"
-                    >
-                      <Power size={14} />
-                      Cerrar Turno
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-          )}
+          <CashRegisterStatus
+            currentUser={currentUser}
+            loadingActiveShift={loadingActiveShift}
+            isShiftOpen={isShiftOpen}
+            isOpeningShift={isOpeningShift}
+            isClosingShift={isClosingShift}
+            onOpenShift={() => setShowOpenShiftModal(true)}
+            onCloseShift={() => setShowCloseShiftModal(true)}
+          />
         </div>
  
         <div className="cart-items">
