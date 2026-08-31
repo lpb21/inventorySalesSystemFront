@@ -34,7 +34,7 @@ export function buildSaleItems(cart = []) {
   return cart.map(item => ({
     product_id: item.id,
     quantity: item.quantity,
-    price: item.price,
+    unit_price: item.price,
     subtotal: normalizeNumber(item.price, 0) * normalizeNumber(item.quantity, 0),
   }))
 }

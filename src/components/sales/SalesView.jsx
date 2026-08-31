@@ -8,6 +8,7 @@ import { useGlobalContext } from '../../context/GlobalContext'
 import { useSalesMutations } from '../../hooks/queries/useSales'
 import { useProducts } from '../../hooks/queries/useProducts'
 import { productsAPI } from '../../api/config'
+import { calculateChange, canCompleteSale, buildSaleItems } from '../../utils/salesLogic'
 import { useCategories } from '../../hooks/queries/useCategories'
 import { useCustomers, useCustomerMutations } from '../../hooks/queries/useCustomers'
 import { useCashRegister } from '../../hooks/useCashRegister'
@@ -140,12 +141,7 @@ function SalesView() {
  
     // Venta a crédito: recolectar datos y pedir selección de cliente
     if (paymentMethod === 'credit') {
-      const saleItems = cart.map(item => ({
-        product_id: item.id,
-        quantity: item.quantity,
-        unit_price: item.price,
-        subtotal: item.price * item.quantity
-      }))
+      const saleItems = buildSaleItems(cart)
       setPendingCreditSale({ items: saleItems, subtotal: cartTotal, total: cartTotal })
       setShowCustomerSelectModal(true)
       return
@@ -155,12 +151,7 @@ function SalesView() {
     setCompletingSale(true)
     try {
       const saleData = {
-        items: cart.map(item => ({
-          product_id: item.id,
-          quantity: item.quantity,
-          unit_price: item.price,
-          subtotal: item.price * item.quantity
-        })),
+        items: buildSaleItems(cart),
         subtotal: cartTotal,
         discount: 0,
         total: cartTotal,
@@ -321,7 +312,7 @@ function SalesView() {
   })
  
   const numericPaymentAmount = parseInt(paymentAmount || 0, 10)
-  const change = (paymentAmount && numericPaymentAmount >= cartTotal) ? numericPaymentAmount - cartTotal : 0
+  const change = calculateChange(numericPaymentAmount, cartTotal)
  
   return (
     <div className={`pos-container ${swappedLayout ? 'pos-container-swapped' : ''}`}>
@@ -700,7 +691,7 @@ function SalesView() {
                   className="btn btn-primary"
                   style={{ flex: 1 }}
                   onClick={() => completeSale(paymentMethod, numericPaymentAmount)}
-                  disabled={paymentMethod !== 'credit' && numericPaymentAmount < cartTotal || completingSale}
+                  disabled={!canCompleteSale({ paymentMethod, paymentAmount: numericPaymentAmount, total: cartTotal, cartLength: cart.length }) || completingSale}
                 >
                   {completingSale ? (
                     <>

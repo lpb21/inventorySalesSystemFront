@@ -50,7 +50,7 @@ describe('salesLogic - buildSaleItems', () => {
     ]
     const result = buildSaleItems(cart)
     expect(result).toHaveLength(2)
-    expect(result[0]).toEqual({ product_id: 'p1', quantity: 2, price: 15000, subtotal: 30000 })
+    expect(result[0]).toEqual({ product_id: 'p1', quantity: 2, unit_price: 15000, subtotal: 30000 })
     expect(result[1].subtotal).toBe(8000)
   })
 
