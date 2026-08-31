@@ -88,14 +88,14 @@ export default function Login({ error }) {
         const needsAttention = subsData?.needs_attention === true
 
         if (canAccess === false || isExpired || daysRemaining < 0 || needsAttention) {
-          let subsMessage = `Tu suscripción al plan ${String(planCode).toUpperCase()} no está activa. Por favor renueva tu suscripción.`
+        let subsMessage = `Tu suscripción al plan ${String(planCode).toUpperCase()} no está activa. Contacta al administrador para reactivarla.`
 
           if (overallStatus === 'grace_period') {
             subsMessage = `Tu pago del plan ${String(planCode).toUpperCase()} está pendiente. Tienes ${timeInfo.days_in_grace || 'varios'} día(s) de gracia hasta el ${timeInfo.grace_until_formatted || 'próximo'}.`
           } else if (overallStatus === 'expired' || isExpired || daysRemaining < 0) {
-            subsMessage = `Tu suscripción al plan ${String(planCode).toUpperCase()} ha vencido el ${timeInfo.current_period_end_formatted || 'próximamente'}. Por favor renueva tu suscripción.`
+            subsMessage = `Tu suscripción al plan ${String(planCode).toUpperCase()} ha vencido el ${timeInfo.current_period_end_formatted || 'próximamente'}. Contacta al administrador para reactivarla.`
           } else if (overallStatus === 'canceled') {
-            subsMessage = `Tu suscripción al plan ${String(planCode).toUpperCase()} ha sido cancelada. Por favor contacta a soporte o renueva tu plan.`
+            subsMessage = `Tu suscripción al plan ${String(planCode).toUpperCase()} ha sido cancelada. Contacta al administrador.`
           }
 
           // Mostrar modal bloqueado sin guardar en GlobalContext
@@ -104,7 +104,7 @@ export default function Login({ error }) {
             show: true,
             title: 'Acceso bloqueado por suscripción',
             message: subsMessage,
-            showPaymentLink: true,
+            showPaymentLink: false,
             planCode: String(planCode).toLowerCase(),
           })
 
@@ -156,7 +156,7 @@ export default function Login({ error }) {
           show: true,
           title: 'Acceso bloqueado por suscripción',
           message,
-          showPaymentLink: true,
+          showPaymentLink: false,
           planCode: null,
           email: username // Guardar el email para checkout anónimo
         })
@@ -250,7 +250,7 @@ export default function Login({ error }) {
               <p className="alert-message">{authModal.message}</p>
             </div>
             <div className="alert-modal-footer">
-              {authModal.showPaymentLink && (
+              {/* {authModal.showPaymentLink && (
                 <button
                   className="btn btn-secondary"
                   type="button"
@@ -258,7 +258,7 @@ export default function Login({ error }) {
                 >
                   💳 Ir a pagar suscripción
                 </button>
-              )}
+              )} */}
               <button
                 className="btn btn-primary"
                 onClick={() => handleCloseAuthModal()}
