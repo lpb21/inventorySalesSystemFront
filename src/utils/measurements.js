@@ -36,7 +36,9 @@ export function clampQuantity(quantity, maxQuantity) {
 }
 
 export function getWeightSaleUnit(product) {
-  return product?.unit === 'kg' ? 'lb' : 'kg'
+  //return product?.unit === 'kg' ? 'lb' : 'kg'
+  // Todo se vende en la misma unidad del producto (sin conversión).
+  return product?.unit || 'lb'
 }
 
 export function getPriceForSaleUnit(product, saleUnit) {
