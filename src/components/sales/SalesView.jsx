@@ -16,6 +16,7 @@ import CashRegisterStatus from './CashRegisterStatus'
 import CustomerSelectModal from './CustomerSelectModal'
 import OpenCashRegisterModal from './OpenCashRegisterModal'
 import CloseCashRegisterModal from './CloseCashRegisterModal'
+import ProductGrid from './ProductGrid'
 import {
   convertWeightQuantity,
   formatQuantity,
@@ -367,49 +368,7 @@ function SalesView() {
           </div>
         </div>
  
-        <div className="product-grid">
-          {filteredProducts.map(product => {
-            const saleUnit = isWeightProduct(product) ? getWeightSaleUnit(product) : product.unit
-            const visiblePrice = isWeightProduct(product)
-              ? getPriceForSaleUnit(product, saleUnit)
-              : (product.price || 0)
- 
-            return (
-              <div
-                key={product.id}
-                className="product-card"
-                onClick={() => addToCart(product)}
-                style={{ cursor: 'pointer' }}
-              >
-                <div className="product-image" style={{ height: '100px' }}>
-                  {product.image_url ? (
-                    <img
-                      src={product.image_url}
-                      alt={product.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
-                    />
-                  ) : (
-                    <>
-                      {product.category?.name === 'Pollo' && <Drumstick size={36} />}
-                      {product.category?.name === 'Quesos' && <Milk size={36} />}
-                      {(product.category?.name === 'Carnes FrÃ­as' || product.category?.name === 'Embutidos') && <Beef size={36} />}
-                      {!['Pollo', 'Quesos', 'Carnes FrÃ­as', 'Embutidos'].includes(product.category?.name) && <Package size={36} />}
-                    </>
-                  )}
-                </div>
- 
-                <div className="product-name" style={{ fontSize: '14px' }}>{product.name}</div>
-                <div className="product-price" style={{ fontSize: '18px' }}>
-                  ${visiblePrice.toLocaleString()}
-                  {isWeightProduct(product) ? ` / ${saleUnit}` : ''}
-                </div>
-                <div style={{ fontSize: '12px', color: (product.stock || 0) <= (product.min_stock || product.minStock || 0) ? 'var(--danger)' : 'var(--text-secondary)' }}>
-                  Stock: {formatQuantity(product.stock)} {product.unit}
-                </div>
-              </div>
-            )
-          })}
-        </div>
+        <ProductGrid products={filteredProducts} onAddToCart={addToCart} />
       </div>
  
       <div className="pos-cart">
