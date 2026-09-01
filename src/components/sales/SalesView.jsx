@@ -310,7 +310,8 @@ function SalesView() {
   const filteredProducts = products.filter(p => {
     const isCategoryMatch = selectedCategory === 'Todos' || p.category?.name === selectedCategory || p.category === selectedCategory
     const isActive = p.is_active !== false
-    return isCategoryMatch && isActive
+    const hasStock = normalizeNumber(p.stock, 0) > 0
+    return isCategoryMatch && isActive && hasStock
   })
  
   const numericPaymentAmount = parseInt(paymentAmount || 0, 10)
@@ -479,23 +480,20 @@ function SalesView() {
                             }))
                           }}
                         />
-                        <select
-                          className="form-select cart-weight-select"
-                          value={saleUnit}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => {
-                            const nextUnit = e.target.value
-                            const nextDisplayQuantity = convertWeightQuantity(item.quantity, item.unit, nextUnit)
-                            updateCartWeight(item.id, nextDisplayQuantity, nextUnit)
-                            setWeightDrafts(prev => ({
-                              ...prev,
-                              [item.id]: formatQuantity(nextDisplayQuantity)
-                            }))
-                          }}
-                        >
-                          <option value="kg">kg</option>
-                          <option value="lb">lb</option>
-                        </select>
+                        {/* Venta siempre en la unidad del producto (todo en libras).
+                            El selector kg/lb se retiró; si se reactiva la conversión,
+                            ver historial de git. */}
+                        <span className="cart-weight-unit" style={{
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                          padding: '0 16px', minWidth: '48px',
+                          color: 'var(--text-primary)',
+                          fontSize: '30px', fontWeight: 600,
+                          background: 'var(--surface)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '8px'
+                        }}>
+                          {saleUnit}
+                        </span>
                       </div>
                     ) : (
                       <div className="cart-item-qty">
