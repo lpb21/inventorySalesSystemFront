@@ -474,6 +474,13 @@ function SalesView() {
                             }
  
                             updateCartWeight(item.id, parsedValue, saleUnit)
+                            // Avisar si se pidió más de lo disponible (se recortará al stock)
+                            if (parsedValue > maxDisplayQuantity) {
+                              addToast(
+                                `Solo hay ${formatQuantity(maxDisplayQuantity)} ${saleUnit} de ${item.name} en stock`,
+                                'warning'
+                              )
+                            }
                             setWeightDrafts(prev => ({
                               ...prev,
                               [item.id]: formatQuantity(Math.min(parsedValue, maxDisplayQuantity))
