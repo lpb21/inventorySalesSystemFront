@@ -220,6 +220,7 @@ function ActivateModal({ tenant, onClose, onActivate }) {
     { value: 'trial', label: 'Prueba (7 días)' },
     { value: 'monthly', label: 'Mensual (30 días)' },
     { value: 'quarterly', label: 'Trimestral (90 días)' },
+    { value: 'biannual', label: 'Semestral (180 días)' },
     { value: 'yearly', label: 'Anual (365 días)' },
   ]
  
