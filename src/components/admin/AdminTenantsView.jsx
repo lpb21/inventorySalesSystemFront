@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Shield, Search, CheckCircle, PauseCircle, Clock, AlertTriangle, X, Save } from 'lucide-react'
+import { Shield, Search, CheckCircle, PauseCircle, Clock, AlertTriangle, X, Save, Plus } from 'lucide-react'
 import Swal from 'sweetalert2'
 import { useGlobalContext } from '../../context/GlobalContext'
 import { useAdminTenants, useAdminTenantMutations } from '../../hooks/queries/useAdminTenants'
+import CreateTenantModal from './CreateTenantModal'
  
 /**
  * AdminTenantsView — Panel de superadmin para gestionar suscripciones.
@@ -15,6 +16,7 @@ function AdminTenantsView() {
  
   const [search, setSearch] = useState('')
   const [activatingTenant, setActivatingTenant] = useState(null) // tenant al que se le abre el modal
+  const [showCreateModal, setShowCreateModal] = useState(false)
  
   // Estado real: combina subscription_status + days_left (la fuente puede estar desincronizada)
   const getRealStatus = (tenant) => {
@@ -83,6 +85,9 @@ function AdminTenantsView() {
             Gestiona el acceso de los clientes (tenants)
           </p>
         </div>
+        <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
+            <Plus size={18} /> Nuevo Cliente
+        </button>
       </div>
  
       {/* Buscador */}
@@ -203,6 +208,13 @@ function AdminTenantsView() {
               addToast('Error al activar: ' + (error.message || ''), 'error')
             }
           }}
+        />
+      )}
+
+      {showCreateModal && (
+        <CreateTenantModal
+          onClose={() => setShowCreateModal(false)}
+          addToast={addToast}
         />
       )}
     </div>

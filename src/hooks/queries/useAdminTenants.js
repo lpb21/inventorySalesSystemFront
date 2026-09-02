@@ -24,6 +24,13 @@ export function useAdminTenants(options = {}) {
 export function useAdminTenantMutations() {
     const queryClient = useQueryClient()
  
+    const create = useMutation({
+        mutationFn: (data) => adminAPI.createTenant(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+        },
+    })
+
     const activate = useMutation({
         mutationFn: ({ id, period }) => adminAPI.activateTenant(id, period),
         onSuccess: () => {
@@ -38,7 +45,7 @@ export function useAdminTenantMutations() {
         },
     })
  
-    return { activate, deactivate }
+    return { activate, deactivate, create }
 }
 
 /**

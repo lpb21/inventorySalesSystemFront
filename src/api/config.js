@@ -311,6 +311,11 @@ export const adminAPI = {
     if (action) params.append('action', action)
     return apiRequest(`/admin/audit-logs?${params.toString()}`)
   },
+
+    createTenant: (data) => apiRequest('/admin/tenants', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
 }
 
 // API Ventas
