@@ -401,13 +401,12 @@ function SettingsView() {
 
       {showCategoryModal && (
         <CategoryModal
-          isOpen={showCategoryModal}
           onClose={() => {
             setShowCategoryModal(false)
             setEditingCategory(null)
           }}
           onSave={handleSaveCategory}
-          editingCategory={editingCategory}
+          category={editingCategory}
         />
       )}
 

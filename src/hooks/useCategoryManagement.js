@@ -82,7 +82,11 @@ export function useCategoryManagement(addToast) {
       }
       return true
     } catch (error) {
-      const errorMessage = error?.response?.data?.error?.message || error?.message || 'Error al guardar categoría'
+      const apiError = error?.response?.data?.error
+      const detailMessage = Array.isArray(apiError?.details) && apiError.details.length
+        ? apiError.details.join(', ')
+        : null
+      const errorMessage = detailMessage || apiError?.message || error?.message || 'Error al guardar categoría'
       addToast(errorMessage, 'error')
       return false
     }
