@@ -31,7 +31,7 @@ export function useDashboardData(options = {}) {
                 recentSales
             }
         },
-        enabled: canViewReports, // Solo ejecutar si tiene permisos
-        ...options
+        ...options,
+        enabled: canViewReports && (options.enabled ?? true), // el permiso SIEMPRE manda; respeta un enabled extra del consumidor
     })
 }
