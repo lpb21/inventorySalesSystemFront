@@ -19,6 +19,19 @@ describe('permissions - can', () => {
     expect(can(cashier, 'canManageUsers')).toBe(false)
   })
 
+    it('lectura de proveedores/usuarios: refleja el back (cajero/viewer NO, supervisor+ SI)', () => {
+    // El back permite suppliers:read y users:read a supervisor, admin, owner, superadmin
+    expect(can({ role: 'cashier' }, 'canViewSuppliers')).toBe(false)
+    expect(can({ role: 'viewer' }, 'canViewSuppliers')).toBe(false)
+    expect(can({ role: 'supervisor' }, 'canViewSuppliers')).toBe(true)
+    expect(can({ role: 'owner' }, 'canViewSuppliers')).toBe(true)
+
+    expect(can({ role: 'cashier' }, 'canViewUsers')).toBe(false)
+    expect(can({ role: 'viewer' }, 'canViewUsers')).toBe(false)
+    expect(can({ role: 'supervisor' }, 'canViewUsers')).toBe(true)
+    expect(can({ role: 'admin' }, 'canViewUsers')).toBe(true)
+  })
+
   it('el admin puede gestionar todo lo de su negocio', () => {
     const admin = { role: 'admin' }
     expect(can(admin, 'canEditProducts')).toBe(true)

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { suppliersAPI, ApiNormalizers } from '../../api/config'
+import { can } from '../../utils/permissions'
 
 export function useSuppliers({ includeInactive = false, ...options } = {}) {
     const user = JSON.parse(localStorage.getItem('invah_user') || 'null')
@@ -25,7 +26,7 @@ export function useSuppliers({ includeInactive = false, ...options } = {}) {
             // Fallback con normalizador (buscar en data.suppliers)
             return ApiNormalizers.normalizeList(response, ['data', 'suppliers'])
         },
-        enabled: !!tenantId, // Solo ejecutar si hay un tenantId válido
+        enabled: !!tenantId && can(user, 'canViewSuppliers'), // Solo ejecutar si hay un tenantId válido
         staleTime: 1000 * 60 * 5, // 5 minutos
         ...options
     })

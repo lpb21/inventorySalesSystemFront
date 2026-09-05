@@ -7,6 +7,7 @@ import {
 } from '../api/config'
 import { useToasts } from '../hooks/useToasts'
 import { useCart } from '../hooks/useCart'
+import { can } from '../utils/permissions'
 
 const GlobalContext = createContext()
 
@@ -184,9 +185,11 @@ export const GlobalProvider = ({ children }) => {
     useEffect(() => {
         if (isLoggedIn) {
             loadBusinessData()
+            if (can(currentUser, 'canViewUsers')) {
             loadUsers()
         }
-    }, [isLoggedIn, loadBusinessData, loadUsers])
+        }
+    }, [isLoggedIn, currentUser, loadBusinessData, loadUsers])
 
     const tenantLimits = currentUser?.tenant?.limits ?? null
 
