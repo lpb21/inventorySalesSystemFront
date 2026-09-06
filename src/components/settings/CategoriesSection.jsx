@@ -87,9 +87,6 @@ function CategoriesSection({
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <IconComponent size={18} />
-                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                          {category.icon}
-                        </span>
                       </div>
                     </td>
                     <td>
