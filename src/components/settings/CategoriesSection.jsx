@@ -80,7 +80,7 @@ function CategoriesSection({
               </tr>
             ) : (
               filteredCategories.map(category => {
-                const IconComponent = ICON_OPTIONS.find(opt => opt.value === category.icon)?.icon || Package
+                const IconComponent = ICON_OPTIONS.find(opt => opt.name === category.icon)?.icon || Package
                 return (
                   <tr key={category.id}>
                     <td>{category.name}</td>
