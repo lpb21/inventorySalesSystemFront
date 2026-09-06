@@ -9,8 +9,8 @@ function CloseCashRegisterModal({ activeShift, onClose, onClose: onCloseShift, i
   const [error, setError] = useState('')
 
   // Calcular resumen del turno
-  const openingAmount = activeShift?.opening_amount || 0
-  const totalSales = activeShift?.total_sales || 0
+  const openingAmount = parseFloat(activeShift?.opening_amount) || 0
+  const totalSales = parseFloat(activeShift?.sales_summary?.total_amount) || 0
   const expectedAmount = openingAmount + totalSales
   const closingAmount = parseFloat(formData.closing_amount) || 0
   const difference = closingAmount - expectedAmount
@@ -113,7 +113,7 @@ function CloseCashRegisterModal({ activeShift, onClose, onClose: onCloseShift, i
                   <div>
                     <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Ventas</div>
                     <div style={{ fontSize: '13px', fontWeight: '500' }}>
-                      {activeShift?.sales_count || 0} transacciones
+                      {activeShift?.sales_summary?.total_sales || 0} transacciones
                     </div>
                   </div>
                 </div>
