@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { X, DollarSign, Clock, Calculator, FileText, TrendingUp, TrendingDown, Receipt } from 'lucide-react'
 
-function CloseCashRegisterModal({ activeShift, onClose, onClose: onCloseShift, isClosing = false }) {
+function CloseCashRegisterModal({ activeShift, onClose, onCloseShift, isClosing = false }) {
   const [formData, setFormData] = useState({
     closing_amount: '',
     notes: ''
