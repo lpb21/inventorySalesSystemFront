@@ -18,7 +18,26 @@ export function useSalesMutations() {
     const queryClient = useQueryClient()
     const { currentUser } = useGlobalContext()
 
-    const invalidate = async () => {
+    // El back devuelve updated_products con el stock confirmado por producto
+    // (calculado dentro de la transacción). Se usa para parchear la caché
+    // de productos de inmediato, sin depender solo del refetch.
+    const patchProductsStock = (response) => {
+        const data = response?.data ?? response
+        const updates = data?.updated_products
+        if (!Array.isArray(updates) || updates.length === 0) return
+
+        queryClient.setQueriesData({ queryKey: ['products'] }, (old) => {
+            if (!Array.isArray(old)) return old
+            const stockById = new Map(updates.map((u) => [u.id, Number(u.stock)]))
+            return old.map((p) =>
+                stockById.has(p.id) ? { ...p, stock: stockById.get(p.id) } : p
+            )
+        })
+    }
+
+    const invalidate = async (response) => {
+        if (response) patchProductsStock(response)
+
         queryClient.invalidateQueries({ queryKey: ['sales'] })
 
         // Productos: forzar refetch (invalidate + refetch await) para que el stock
@@ -42,12 +61,12 @@ export function useSalesMutations() {
 
     const createSale = useMutation({
         mutationFn: (data) => salesAPI.create(data),
-        onSuccess: invalidate
+        onSuccess: (response) => invalidate(response)
     })
 
     const cancelSale = useMutation({
         mutationFn: ({ id, reason }) => salesAPI.cancel(id, reason),
-        onSuccess: invalidate
+        onSuccess: (response) => invalidate(response)
     })
 
     return { createSale, cancelSale }
