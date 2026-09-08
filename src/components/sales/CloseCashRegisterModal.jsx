@@ -60,7 +60,7 @@ function CloseCashRegisterModal({ activeShift, onClose, onCloseShift, isClosing 
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', display: 'flex', flexDirection: 'column' }}>
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
@@ -87,8 +87,8 @@ function CloseCashRegisterModal({ activeShift, onClose, onCloseShift, isClosing 
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body">
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          <div className="modal-body" style={{ flex: 1, minHeight: 0 }}>
             {error && (
               <div style={{
                 padding: '12px 16px',
