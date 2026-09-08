@@ -78,6 +78,20 @@ function ReportsView() {
     .sort((a, b) => b.totalSold - a.totalSold)
     .slice(0, 5)
 
+    // Guard de acceso: los reportes son solo para roles que pueden ver reportes completos
+  // (mismo patrón que Configuración). Evita mostrar la pantalla vacía con toasts de error.
+  if (!showFullReports) {
+    return (
+      <div className="empty-state" style={{ padding: '80px', textAlign: 'center' }}>
+        <Lock size={64} style={{ opacity: 0.3, marginBottom: '24px' }} />
+        <h3 style={{ marginBottom: '12px' }}>Acceso Restringido</h3>
+        <p style={{ color: 'var(--text-secondary)' }}>
+          No tienes permisos para acceder a los reportes.
+        </p>
+      </div>
+    )
+  }
+  
   return (
     <div>
       <div className="stats-grid">
