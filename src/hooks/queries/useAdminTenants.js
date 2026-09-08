@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminAPI, ApiNormalizers } from '../../api/config'
+import { can } from '../../utils/permissions'
  
 const QUERY_KEY = ['admin-tenants']
  
@@ -7,13 +8,16 @@ const QUERY_KEY = ['admin-tenants']
  * Lista todos los tenants con su estado de suscripción (solo superadmin).
  */
 export function useAdminTenants(options = {}) {
+    const user = JSON.parse(localStorage.getItem('invah_user') || 'null')
     return useQuery({
         queryKey: QUERY_KEY,
         queryFn: async () => {
             const response = await adminAPI.listTenants()
             return ApiNormalizers.normalizeList(response, ['data', 'tenants'])
         },
-        ...options
+        ...options,
+        // Solo el superadmin puede listar todos los tenants (evita 403 en owner/otros roles)
+        enabled: can(user, 'canManageAllTenants') && (options.enabled ?? true),
     })
 }
  
