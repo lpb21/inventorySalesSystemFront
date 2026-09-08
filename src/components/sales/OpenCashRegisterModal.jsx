@@ -202,7 +202,6 @@ function OpenCashRegisterModal({ userName, onOpen, onClose, isOpening = false })
               <ul style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, paddingLeft: '20px', lineHeight: '1.6' }}>
                 <li>Necesitas abrir un turno para poder realizar ventas</li>
                 <li>El dinero inicial es para referencia y control de caja</li>
-                <li>Puedes consultar las ventas realizadas durante tu turno</li>
                 <li>Al finalizar deberás cerrar el turno con el dinero final</li>
               </ul>
             </div>
