@@ -177,7 +177,11 @@ function SalesView() {
         addToast('Debes abrir un turno de caja antes de realizar ventas', 'warning')
         setShowOpenShiftModal(true)
       } else {
-        addToast('Error al completar venta', 'error')
+        const apiError = error?.response?.data?.error
+        const detailMessage = Array.isArray(apiError?.details) && apiError.details.length
+          ? apiError.details.join(', ')
+          : null
+        addToast(detailMessage || apiError?.message || 'Error al completar venta', 'error')
       }
     } finally {
       setCompletingSale(false)
