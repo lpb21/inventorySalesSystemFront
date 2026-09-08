@@ -6,6 +6,7 @@ function CloseCashRegisterModal({ activeShift, onClose, onCloseShift, isClosing 
     closing_amount: '',
     notes: ''
   })
+  const [confirmingDiscrepancy, setConfirmingDiscrepancy] = useState(false)
   const [error, setError] = useState('')
 
   // Calcular resumen del turno
@@ -14,6 +15,9 @@ function CloseCashRegisterModal({ activeShift, onClose, onCloseShift, isClosing 
   const expectedAmount = openingAmount + totalSales
   const closingAmount = parseFloat(formData.closing_amount) || 0
   const difference = closingAmount - expectedAmount
+  const trimmedNotes = formData.notes.trim()
+  const hasDiscrepancy = difference !== 0
+  const isShortfall = difference < 0
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -31,10 +35,22 @@ function CloseCashRegisterModal({ activeShift, onClose, onCloseShift, isClosing 
       return
     }
 
+    // Si es faltante, la nota es obligatoria (queda registrado el motivo del descuadre)
+    if (isShortfall && !trimmedNotes) {
+      setError('Hay un faltante en caja. Debes escribir una nota explicando el motivo antes de cerrar.')
+      return
+    }
+
+    // Si hay descuadre (faltante o sobrante), pedir confirmación inline antes de cerrar
+    if (hasDiscrepancy && !confirmingDiscrepancy) {
+      setConfirmingDiscrepancy(true)
+      return
+    }
+
     try {
       await onCloseShift(activeShift.id, {
         closing_amount,
-        notes: formData.notes.trim() || undefined
+        notes: trimmedNotes || undefined
       })
     } catch (err) {
       const errorMessage = err?.response?.data?.error?.message || err?.message || 'Error al cerrar turno de caja'
@@ -173,7 +189,11 @@ function CloseCashRegisterModal({ activeShift, onClose, onCloseShift, isClosing 
                   className="form-input"
                   style={{ paddingLeft: '40px' }}
                   value={formData.closing_amount}
-                  onChange={(e) => setFormData({ ...formData, closing_amount: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, closing_amount: e.target.value })
+                    setConfirmingDiscrepancy(false)
+                    setError('')
+                  }}
                   placeholder="0.00"
                   min="0"
                   step="0.01"
@@ -252,7 +272,26 @@ function CloseCashRegisterModal({ activeShift, onClose, onCloseShift, isClosing 
               </div>
             </div>
           </div>
-
+          {confirmingDiscrepancy && (
+            <div style={{
+              margin: '0 20px 16px',
+              padding: '12px 16px',
+              background: 'rgba(255, 193, 7, 0.15)',
+              border: '1px solid var(--warning)',
+              borderRadius: '8px',
+              fontSize: '13px',
+              color: 'var(--text-primary)'
+            }}>
+              <strong>
+                {difference > 0
+                  ? `Vas a cerrar con un sobrante de $${Math.abs(difference).toLocaleString()}.`
+                  : `Vas a cerrar con un faltante de $${Math.abs(difference).toLocaleString()}.`}
+              </strong>
+              <div style={{ marginTop: '4px', color: 'var(--text-secondary)' }}>
+                Revisa el conteo. Si estás seguro, presiona de nuevo para confirmar el cierre.
+              </div>
+            </div>
+          )}
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isClosing}>
               Cancelar
@@ -275,7 +314,7 @@ function CloseCashRegisterModal({ activeShift, onClose, onCloseShift, isClosing 
               ) : (
                 <>
                   <Calculator size={18} />
-                  Cerrar Turno
+                  {confirmingDiscrepancy ? 'Confirmar cierre' : 'Cerrar Turno'}
                 </>
               )}
             </button>
