@@ -56,6 +56,7 @@ export function useAdminTenantMutations() {
  * Historial de auditoría global, paginado (solo superadmin).
  */
 export function useAdminAuditLogs(page = 1, limit = 30, tenantId = '', action = '') {
+    const user = JSON.parse(localStorage.getItem('invah_user') || 'null')
     return useQuery({
         queryKey: ['admin-audit-logs', page, limit, tenantId, action],
         queryFn: async () => {
@@ -63,5 +64,7 @@ export function useAdminAuditLogs(page = 1, limit = 30, tenantId = '', action = 
             return response?.data || response
         },
         keepPreviousData: true,
+        // Solo el superadmin puede ver la auditoría global (evita 403 en owner/otros roles)
+        enabled: can(user, 'canManageAllTenants'),
     })
 }

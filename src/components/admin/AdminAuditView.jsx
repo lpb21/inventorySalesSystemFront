@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { History, ChevronLeft, ChevronRight, User, Building2, Filter } from 'lucide-react'
 import { useAdminAuditLogs, useAdminTenants } from '../../hooks/queries/useAdminTenants'
+import { can } from '../../utils/permissions'
+import { useGlobalContext } from '../../context/GlobalContext'
  
 /**
  * AdminAuditView — Historial global de auditoría (solo superadmin).
@@ -10,7 +12,7 @@ function AdminAuditView() {
   const [page, setPage] = useState(1)
   const [tenantFilter, setTenantFilter] = useState('')
   const [actionFilter, setActionFilter] = useState('')
- 
+  const { currentUser } = useGlobalContext()
   const { data, isLoading, isFetching } = useAdminAuditLogs(page, 30, tenantFilter, actionFilter)
   const { data: tenants = [] } = useAdminTenants()
  
@@ -61,6 +63,20 @@ function AdminAuditView() {
       day: '2-digit', month: '2-digit', year: 'numeric',
       hour: '2-digit', minute: '2-digit',
     })
+  }
+
+    // Guard de acceso: la auditoría global es solo para superadmin (mismo patrón que Reportes).
+  // Evita mostrar la pantalla vacía con toasts de error.
+  if (!can(currentUser, 'canManageAllTenants')) {
+    return (
+      <div className="empty-state" style={{ padding: '80px', textAlign: 'center' }}>
+        <History size={64} style={{ opacity: 0.3, marginBottom: '24px' }} />
+        <h3 style={{ marginBottom: '12px' }}>Acceso Restringido</h3>
+        <p style={{ color: 'var(--text-secondary)' }}>
+          No cuentas con los permisos necesarios.
+        </p>
+      </div>
+    )
   }
  
   return (
