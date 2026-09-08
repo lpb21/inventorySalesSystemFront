@@ -18,11 +18,17 @@ export function useSalesMutations() {
     const queryClient = useQueryClient()
     const { currentUser } = useGlobalContext()
 
-    const invalidate = () => {
+    const invalidate = async () => {
         queryClient.invalidateQueries({ queryKey: ['sales'] })
 
-        // Invalidar productos para que el stock se actualice tras la venta
-        queryClient.invalidateQueries({ queryKey: ['products'] })
+        // Productos: forzar refetch (invalidate + refetch await) para que el stock
+        // refleje la venta ya confirmada en el back, sin quedar "una venta atrasado"
+        await queryClient.invalidateQueries({ queryKey: ['products'] })
+        await queryClient.refetchQueries({ queryKey: ['products'], type: 'active' })
+        
+        // Turno de caja: refrescar transacciones/total del turno activo
+        await queryClient.invalidateQueries({ queryKey: ['cash-register'] })
+        await queryClient.refetchQueries({ queryKey: ['cash-register'], type: 'active' })
 
         // Solo invalidar dashboard si el usuario tiene permisos para verlo
         if (can(currentUser, 'canViewFullReports')) {
