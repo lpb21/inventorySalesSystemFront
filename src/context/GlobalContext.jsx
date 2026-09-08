@@ -184,10 +184,13 @@ export const GlobalProvider = ({ children }) => {
 
     useEffect(() => {
         if (isLoggedIn) {
-            loadBusinessData()
+            // El superadmin no tiene tenant propio -> no pedir /tenants/current (daría 404)
+            if (currentUser?.role !== 'superadmin') {
+                loadBusinessData()
+            }
             if (can(currentUser, 'canViewUsers')) {
-            loadUsers()
-        }
+                loadUsers()
+            }
         }
     }, [isLoggedIn, currentUser, loadBusinessData, loadUsers])
 
