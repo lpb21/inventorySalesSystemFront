@@ -58,7 +58,9 @@ function SupplierModal({
         ? { valid: false, message: 'El nombre del proveedor es obligatorio' }
         : { valid: true, message: '' } // contact_name es opcional
     }
-    if (/\d/.test(trimmed)) {
+    // El nombre del proveedor (negocio) puede llevar números (ej. "Distribuidora 3M").
+    // El nombre de contacto (persona) sí se mantiene sin números.
+    if (campo !== 'name' && /\d/.test(trimmed)) {
       return { valid: false, message: 'Este campo no puede contener números' }
     }
     if (trimmed.length < 2) {
