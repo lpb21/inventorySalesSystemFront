@@ -5,7 +5,7 @@ import {
   parseCSVLine,
   normalizeHeader,
   validateCSVStructure,
-  downloadCSVTemplate
+  REQUIRED_CSV_HEADERS
 } from '../../utils/csvUtils'
 
 function ImportModal({ onClose, onImportComplete }) {
@@ -173,7 +173,6 @@ function ImportModal({ onClose, onImportComplete }) {
     // Validar estructura del CSV
     try {
       const validation = await validateCSV(selectedFile)
-      console.log('CSV Validado:', validation)
       setFile(selectedFile)
       setValidationInfo(validation)
     } catch (err) {
@@ -233,7 +232,6 @@ function ImportModal({ onClose, onImportComplete }) {
           let delimiter = ','
           if (!headerLine.includes(',') && headerLine.includes(';')) {
             delimiter = ';'
-            console.log('[Importar CSV] Detectado delimitador punto y coma (;)')
           }
 
           const cells = delimiter === ',' ? parseCSVLine(headerLine) : headerLine.split(';')
@@ -241,7 +239,6 @@ function ImportModal({ onClose, onImportComplete }) {
           const catIdx = normalizedHeaders.indexOf('category')
           
           if (catIdx === -1) {
-            console.log('[Importar CSV] No se encontró columna de categoría en:', normalizedHeaders)
             return resolve()
           }
 
@@ -255,7 +252,6 @@ function ImportModal({ onClose, onImportComplete }) {
           }
 
           if (uniqueCategories.size === 0) {
-            console.log('[Importar CSV] No se encontraron nombres de categorías en la columna', catIdx)
             return resolve()
           }
 
@@ -299,7 +295,6 @@ function ImportModal({ onClose, onImportComplete }) {
                   description: 'Creada automáticamente durante importación masiva' 
                 })
                 createdCount++
-                console.log(`[Importar CSV] Categoría creada: ${name}`)
               } catch (catErr) {
                 console.warn(`[Importar CSV] No se pudo crear categoría "${name}":`, catErr)
               }
@@ -313,7 +308,6 @@ function ImportModal({ onClose, onImportComplete }) {
                 // El backend permite PUT a /v1/categories/:id con is_active: true
                 await categoriesAPI.reactivate(existing.id)
                 reactivatedCount++
-                console.log(`[Importar CSV] Categoría reactivada: ${name}`)
               } catch (reactErr) {
                 console.warn(`[Importar CSV] No se pudo reactivar categoría "${name}":`, reactErr)
               }
@@ -360,7 +354,6 @@ function ImportModal({ onClose, onImportComplete }) {
           let delimiter = ','
           if (!headerLine.includes(',') && headerLine.includes(';')) {
             delimiter = ';'
-            console.log('[Importar CSV] Detectado delimitador punto y coma (;)')
           }
 
           const cells = delimiter === ',' ? parseCSVLine(headerLine) : headerLine.split(';')
@@ -368,7 +361,6 @@ function ImportModal({ onClose, onImportComplete }) {
           const supplierIdx = normalizedHeaders.indexOf('supplier')
           
           if (supplierIdx === -1) {
-            console.log('[Importar CSV] No se encontró columna de proveedor en:', normalizedHeaders)
             return resolve()
           }
 
@@ -382,7 +374,6 @@ function ImportModal({ onClose, onImportComplete }) {
           }
 
           if (uniqueSuppliers.size === 0) {
-            console.log('[Importar CSV] No se encontraron nombres de proveedores en la columna', supplierIdx)
             return resolve()
           }
 
@@ -478,8 +469,6 @@ function ImportModal({ onClose, onImportComplete }) {
       await ensureSuppliersExist(file)
     } catch (err) {
       console.error('[Importar CSV] Error asegurando categorías o proveedores:', err)
-      setError(err.message || 'Error al preparar las categorías y proveedores necesarios.')
-      setUploading(false)
       return
     }
 
@@ -488,8 +477,6 @@ function ImportModal({ onClose, onImportComplete }) {
 
     const postUrl = `${API_URL}/products/import`
     const token = getToken()
-
-    console.log('[Importar CSV] POST con SSE directo:', postUrl, 'archivo:', file.name, 'filas válidas:', validation?.totalProducts)
 
     const controller = new AbortController()
     abortControllerRef.current = controller
@@ -518,7 +505,6 @@ function ImportModal({ onClose, onImportComplete }) {
         throw new Error(message)
       }
 
-      console.log('[Importar CSV] Conexión SSE establecida, leyendo stream...')
 
       // Leer el stream SSE directamente del response
       const reader = response.body.getReader()
@@ -545,7 +531,6 @@ function ImportModal({ onClose, onImportComplete }) {
         
         if (done) {
           clearInterval(timeoutChecker)
-          console.log('[Importar CSV] Stream finalizado por el servidor')
           break
         }
 
@@ -553,30 +538,21 @@ function ImportModal({ onClose, onImportComplete }) {
         buffer += decoder.decode(value, { stream: true })
         lastEventTime = Date.now()
         
-        console.log('[Importar CSV] Chunk recibido, buffer length:', buffer.length)
-        
         // Procesar líneas completas
         const lines = buffer.split('\n')
         buffer = lines.pop() || '' // Guardar línea incompleta
-
-        console.log('[Importar CSV] Procesando', lines.length, 'líneas del buffer')
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const data = line.substring(6).trim()
             
-            console.log('[Importar CSV] Línea SSE:', data.substring(0, 150) + (data.length > 150 ? '...' : ''))
-            
             if (data) {
               try {
                 const progress = JSON.parse(data)
-                console.log('[Importar CSV] Evento recibido:', progress)
-                
                 const status = progress.status || ''
                 
                 // 1. Evento inicial de conexión
                 if (status === 'connected') {
-                  console.log('[Importar CSV] Conexión establecida:', progress.message)
                   totalExpected = progress.total || totalExpected
                   setProgressDetail(prev => ({ ...prev, total: totalExpected, message: progress.message || 'Conectado' }))
                   continue
