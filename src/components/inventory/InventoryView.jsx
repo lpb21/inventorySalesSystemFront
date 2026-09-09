@@ -145,8 +145,10 @@ function InventoryView({ searchTerm }) {
       // 2. Actualizar productos en la UI
       loadProducts();
 
-      // 3. Actualizar dashboard (no bloqueante)
+      // 3. Actualizar dashboard y productos (por prefijo refresca también
+      // ['products', 'expired'] y ['products', 'expiring-soon'])
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
     } catch (error) {
       console.error("Error en registro de salida:", error);
       addToast("Error al registrar salida", "error");
