@@ -355,7 +355,6 @@ function SettingsView() {
         <ImportModal
           onClose={() => setShowImportModal(false)}
           onImportComplete={() => {
-            setShowImportModal(false)
             loadProducts()
           }}
         />
