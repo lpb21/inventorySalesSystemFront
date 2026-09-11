@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Shield, Search, CheckCircle, PauseCircle, Clock, AlertTriangle, X, Save, Plus, KeyRound } from 'lucide-react'
+import { Shield, Search, CheckCircle, PauseCircle, Clock, AlertTriangle, X, Save, Plus, KeyRound, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import Swal from 'sweetalert2'
 import { useGlobalContext } from '../../context/GlobalContext'
 import { useAdminTenants, useAdminTenantMutations } from '../../hooks/queries/useAdminTenants'
@@ -16,6 +16,7 @@ function AdminTenantsView() {
   const { activate, deactivate } = useAdminTenantMutations()
 
   const [search, setSearch] = useState('')
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
   const [activatingTenant, setActivatingTenant] = useState(null) // tenant al que se le abre el modal
   const [resettingTenant, setResettingTenant] = useState(null) // tenant al que se le abre el modal de reset de contraseña
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -23,20 +24,35 @@ function AdminTenantsView() {
   // Estado real: combina subscription_status + days_left (la fuente puede estar desincronizada)
   const getRealStatus = (tenant) => {
     if (tenant.subscription_status === 'suspended') {
-      return { label: 'Suspendido', color: '#6b7280', icon: PauseCircle }
+      return { key: 'suspendido', label: 'Suspendido', color: '#6b7280', icon: PauseCircle, rank: 4 }
     }
     if (tenant.days_left === null) {
-      return { label: 'Sin suscripción', color: '#6b7280', icon: AlertTriangle }
+      return { key: 'sin_suscripcion', label: 'Sin suscripción', color: '#6b7280', icon: AlertTriangle, rank: 3 }
     }
     if (tenant.days_left < 0) {
-      return { label: 'Vencido', color: '#e94560', icon: AlertTriangle }
+      return { key: 'vencido', label: 'Vencido', color: '#e94560', icon: AlertTriangle, rank: 2 }
     }
     if (tenant.days_left <= 7) {
-      return { label: 'Por vencer', color: '#f0a500', icon: Clock }
+      return { key: 'por_vencer', label: 'Por vencer', color: '#f0a500', icon: Clock, rank: 1 }
     }
-    return { label: 'Activo', color: '#00d9a5', icon: CheckCircle }
+    return { key: 'activo', label: 'Activo', color: '#00d9a5', icon: CheckCircle, rank: 0 }
   }
- 
+
+  const handleSort = (key) => {
+    setSortConfig(prev =>
+      prev.key === key
+        ? { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
+        : { key, direction: 'asc' }
+    )
+  }
+
+  const getSortValue = (tenant, key) => {
+    if (key === 'plan') return (tenant.plan_code || '').toLowerCase()
+    if (key === 'status') return getRealStatus(tenant).rank
+    if (key === 'vence') return tenant.days_left === null ? Infinity : tenant.days_left
+    return 0
+  }
+
   const filtered = tenants.filter(t => {
     const q = search.toLowerCase()
     return (
@@ -44,6 +60,13 @@ function AdminTenantsView() {
       t.business_name?.toLowerCase().includes(q) ||
       t.email?.toLowerCase().includes(q)
     )
+  }).sort((a, b) => {
+    if (!sortConfig.key) return 0
+    const va = getSortValue(a, sortConfig.key)
+    const vb = getSortValue(b, sortConfig.key)
+    if (va === vb) return 0
+    const cmp = va > vb ? 1 : -1
+    return sortConfig.direction === 'asc' ? cmp : -cmp
   })
  
   const handleSuspend = async (tenant) => {
@@ -123,9 +146,9 @@ function AdminTenantsView() {
                 <tr>
                   <th>Negocio</th>
                   <th>Email</th>
-                  <th>Plan</th>
-                  <th>Estado</th>
-                  <th>Vence</th>
+                  <SortableHeader label="Plan" sortKey="plan" sortConfig={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="Estado" sortKey="status" sortConfig={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="Vence" sortKey="vence" sortConfig={sortConfig} onSort={handleSort} />
                   <th style={{ textAlign: 'right' }}>Acciones</th>
                 </tr>
               </thead>
@@ -239,6 +262,29 @@ function AdminTenantsView() {
   )
 }
  
+/**
+ * Cabecera de columna ordenable con indicador sutil.
+ */
+function SortableHeader({ label, sortKey, sortConfig, onSort }) {
+  const active = sortConfig.key === sortKey
+  return (
+    <th
+      onClick={() => onSort(sortKey)}
+      title={`Ordenar por ${label.toLowerCase()}`}
+      style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+    >
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+        {label}
+        {active
+          ? (sortConfig.direction === 'asc'
+              ? <ArrowUp size={13} style={{ flexShrink: 0 }} />
+              : <ArrowDown size={13} style={{ flexShrink: 0 }} />)
+          : <ArrowUpDown size={13} style={{ flexShrink: 0, opacity: 0.45 }} />}
+      </span>
+    </th>
+  )
+}
+
 /**
  * Modal para elegir el periodo y activar/renovar la suscripción.
  */
