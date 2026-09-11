@@ -4,6 +4,9 @@ import { User, Lock, Eye, EyeOff, AlertTriangle } from 'lucide-react'
 import { useGlobalContext } from './context/GlobalContext'
 import { authAPI, billingAPI, setToken, setUser, clearSession } from './api/config'
 
+// Umbral de días para mostrar el modal de "por vencer" al iniciar sesión
+const EXPIRY_WARNING_DAYS = 4
+
 export default function Login({ error }) {
   const { login } = useGlobalContext()
   const navigate = useNavigate()
@@ -13,7 +16,29 @@ export default function Login({ error }) {
   const [loading, setLoading] = useState(false)
   const [localError, setLocalError] = useState('')
   const [authModal, setAuthModal] = useState({ show: false, title: '', message: '', showPaymentLink: false, planCode: null, email: null })
+  const [expiryWarning, setExpiryWarning] = useState({ show: false, days: 0, date: '', plan: '' })
   const [tempCredentials, setTempCredentials] = useState({ token: null, user: null })
+
+  // Guarda credenciales y completa el login hacia el destino indicado
+  const proceedLogin = (destination = '/') => {
+    if (!tempCredentials.token || !tempCredentials.user) return
+    setToken(tempCredentials.token)
+    setUser(tempCredentials.user)
+    login(tempCredentials.user, tempCredentials.token)
+    navigate(destination, { replace: true })
+  }
+
+  // Modal de vencimiento: continuar sin renovar (sigue operando con normalidad)
+  const handleDismissExpiryWarning = () => {
+    setExpiryWarning({ show: false, days: 0, date: '', plan: '' })
+    proceedLogin('/')
+  }
+
+  // Modal de vencimiento: ir a renovar/mejorar plan (ajustes de suscripción)
+  const handleRenewFromWarning = () => {
+    setExpiryWarning({ show: false, days: 0, date: '', plan: '' })
+    proceedLogin('/settings')
+  }
 
   // Cerrar modal y limpiar sesión si el usuario no paga
   const handleCloseAuthModal = () => {
@@ -112,10 +137,18 @@ export default function Login({ error }) {
         }
 
         // Suscripción válida - proceder con login
-        setToken(token)
-        setUser(user)
-        login(user, token)
-        navigate('/', { replace: true })
+        // Si quedan pocos días (<= EXPIRY_WARNING_DAYS), avisar antes de entrar
+        if (Number.isFinite(daysRemaining) && daysRemaining >= 1 && daysRemaining <= EXPIRY_WARNING_DAYS) {
+          setExpiryWarning({
+            show: true,
+            days: daysRemaining,
+            date: timeInfo?.current_period_end_formatted || '',
+            plan: String(planCode).toUpperCase(),
+          })
+          return
+        }
+
+        proceedLogin('/')
       } catch (subsError) {
         // Si el servicio de suscripción responde 401, también bloqueamos acceso
         const status = subsError?.response?.status
@@ -236,6 +269,39 @@ export default function Login({ error }) {
           </button>
         </form>
       </div>
+
+      {expiryWarning.show && (
+        <div className="alert-modal-overlay">
+          <div className="alert-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="alert-modal-header">
+              <div className="alert-icon"><AlertTriangle size={28} /></div>
+              <h3 className="alert-modal-title">Tu suscripción está por vencer</h3>
+            </div>
+            <div className="alert-modal-body">
+              <p className="alert-message">
+                Tu suscripción al plan {expiryWarning.plan} vence en{' '}
+                <strong>{expiryWarning.days} día(s)</strong>
+                {expiryWarning.date ? ` (${expiryWarning.date})` : ''}.
+                Renueva a tiempo para evitar la pérdida de acceso.
+              </p>
+            </div>
+            <div className="alert-modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={handleDismissExpiryWarning}
+              >
+                Entendido
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleRenewFromWarning}
+              >
+                Renovar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {authModal.show && (
         <div
