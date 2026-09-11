@@ -100,7 +100,7 @@ export default function Login({ error }) {
         const subsData = subsResponse?.data || subsResponse || {}
         const canAccess = subsData?.can_access_system
         const overallStatus = subsData?.subscription?.overall_status
-        const planCode = subsData?.plan_info?.code || subsData?.tenant?.current_plan || 'tu plan'
+        const planCode = subsData?.plan_info?.code || subsData?.subscription?.plan_code || subsData?.tenant?.current_plan || 'tu plan'
         const timeInfo = subsData?.time_info || {}
 
         // Validación defensiva: bloquear si hay cualquier indicador de suscripción inválida
