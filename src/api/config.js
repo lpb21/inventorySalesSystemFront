@@ -305,6 +305,11 @@ export const adminAPI = {
     body: JSON.stringify({ reason }),
   }),
 
+  resetOwnerPassword: (tenantId, data) => apiRequest(`/admin/tenants/${tenantId}/reset-owner-password`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
   getAuditLogs: (page = 1, limit = 30, tenantId = '', action = '') => {
     const params = new URLSearchParams({ page, limit })
     if (tenantId) params.append('tenantId', tenantId)

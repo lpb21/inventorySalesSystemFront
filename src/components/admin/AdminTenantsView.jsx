@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Shield, Search, CheckCircle, PauseCircle, Clock, AlertTriangle, X, Save, Plus } from 'lucide-react'
+import { Shield, Search, CheckCircle, PauseCircle, Clock, AlertTriangle, X, Save, Plus, KeyRound } from 'lucide-react'
 import Swal from 'sweetalert2'
 import { useGlobalContext } from '../../context/GlobalContext'
 import { useAdminTenants, useAdminTenantMutations } from '../../hooks/queries/useAdminTenants'
 import CreateTenantModal from './CreateTenantModal'
+import ResetOwnerPasswordModal from './ResetOwnerPasswordModal'
  
 /**
  * AdminTenantsView — Panel de superadmin para gestionar suscripciones.
@@ -13,9 +14,10 @@ function AdminTenantsView() {
   const { addToast } = useGlobalContext()
   const { data: tenants = [], isLoading } = useAdminTenants()
   const { activate, deactivate } = useAdminTenantMutations()
- 
+
   const [search, setSearch] = useState('')
   const [activatingTenant, setActivatingTenant] = useState(null) // tenant al que se le abre el modal
+  const [resettingTenant, setResettingTenant] = useState(null) // tenant al que se le abre el modal de reset de contraseña
   const [showCreateModal, setShowCreateModal] = useState(false)
  
   // Estado real: combina subscription_status + days_left (la fuente puede estar desincronizada)
@@ -167,6 +169,13 @@ function AdminTenantsView() {
                           >
                             <CheckCircle size={15} /> Activar
                           </button>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => setResettingTenant(tenant)}
+                            title="Resetear contraseña del propietario"
+                          >
+                            <KeyRound size={15} />
+                          </button>
                           {tenant.subscription_status !== 'suspended' && (
                             <button
                               className="btn btn-secondary btn-sm"
@@ -215,6 +224,15 @@ function AdminTenantsView() {
         <CreateTenantModal
           onClose={() => setShowCreateModal(false)}
           addToast={addToast}
+        />
+      )}
+
+      {/* Modal de reset de contraseña del propietario */}
+      {resettingTenant && (
+        <ResetOwnerPasswordModal
+          tenant={resettingTenant}
+          onClose={() => setResettingTenant(null)}
+          onSuccess={(message) => addToast(message, 'success')}
         />
       )}
     </div>

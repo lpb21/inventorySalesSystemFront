@@ -48,8 +48,15 @@ export function useAdminTenantMutations() {
             queryClient.invalidateQueries({ queryKey: QUERY_KEY })
         },
     })
- 
-    return { activate, deactivate, create }
+
+    const resetOwnerPassword = useMutation({
+        mutationFn: ({ id, newPassword }) => adminAPI.resetOwnerPassword(id, { new_password: newPassword }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+        },
+    })
+
+    return { activate, deactivate, create, resetOwnerPassword }
 }
 
 /**
