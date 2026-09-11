@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User, Lock, Eye, EyeOff, AlertTriangle } from 'lucide-react'
 import { useGlobalContext } from './context/GlobalContext'
@@ -17,14 +17,15 @@ export default function Login({ error }) {
   const [localError, setLocalError] = useState('')
   const [authModal, setAuthModal] = useState({ show: false, title: '', message: '', showPaymentLink: false, planCode: null, email: null })
   const [expiryWarning, setExpiryWarning] = useState({ show: false, days: 0, date: '', plan: '' })
-  const [tempCredentials, setTempCredentials] = useState({ token: null, user: null })
+  const tempCredentialsRef = useRef({ token: null, user: null })
 
   // Guarda credenciales y completa el login hacia el destino indicado
   const proceedLogin = (destination = '/') => {
-    if (!tempCredentials.token || !tempCredentials.user) return
-    setToken(tempCredentials.token)
-    setUser(tempCredentials.user)
-    login(tempCredentials.user, tempCredentials.token)
+    const { token, user } = tempCredentialsRef.current
+    if (!token || !user) return
+    setToken(token)
+    setUser(user)
+    login(user, token)
     navigate(destination, { replace: true })
   }
 
@@ -42,7 +43,7 @@ export default function Login({ error }) {
 
   // Cerrar modal y limpiar sesión si el usuario no paga
   const handleCloseAuthModal = () => {
-    setTempCredentials({ token: null, user: null })
+    tempCredentialsRef.current = { token: null, user: null }
     localStorage.removeItem('invah_token')
     localStorage.removeItem('invah_user')
     setAuthModal({ show: false, title: '', message: '', showPaymentLink: false, planCode: null, email: null })
@@ -52,7 +53,7 @@ export default function Login({ error }) {
   // Puede ser autenticado (con token) o anónimo (solo email)
   const handleSmartCheckout = (planCode, email) => {
     console.log('🔍 handleSmartCheckout called')
-    console.log('📍 tempCredentials:', tempCredentials)
+    console.log('📍 tempCredentials:', tempCredentialsRef.current)
     console.log('📍 planCode:', planCode)
     console.log('📍 email:', email)
     
@@ -89,7 +90,7 @@ export default function Login({ error }) {
       }
 
       // Guardar credenciales temporalmente (no en GlobalContext aún)
-      setTempCredentials({ token, user })
+      tempCredentialsRef.current = { token, user }
 
       // Validar estado de suscripción contra el servicio dedicado
       try {
@@ -184,7 +185,7 @@ export default function Login({ error }) {
       // Si es 401 y el mensaje indica problema de suscripción, mostrar modal de pago
       else if (status === 401 && isSubscriptionError) {
         // Guardar el email del usuario para checkout anónimo
-        setTempCredentials({ token: null, user: { email: username } })
+        tempCredentialsRef.current = { token: null, user: { email: username } }
         
         setAuthModal({
           show: true,
