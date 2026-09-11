@@ -16,6 +16,7 @@ import SmartCheckout     from './components/billing/SmartCheckout'
 import RenewalRequired   from './components/billing/RenewalRequired'
 import MonthlyReportModal from './components/reports/MonthlyReportModal'
 import CreditAccountsView from './components/shared/CreditAccountsView'
+import PermissionGate from './components/shared/PermissionGate'
 import AdminTenantsView from './components/admin/AdminTenantsView'
 import AdminAuditView from './components/admin/AdminAuditView'
 
@@ -128,12 +129,12 @@ function App() {
           <Route path="/" element={<DashboardView />} />
           <Route path="/inventory" element={<InventoryView searchTerm={searchTerm} />} />
           <Route path="/sales" element={<SalesView />} />
-          <Route path="/reports" element={<ReportsView />} />
-          <Route path="/settings" element={<SettingsView />} />
+          <Route path="/reports" element={<PermissionGate permission="canViewFullReports"><ReportsView /></PermissionGate>} />
+          <Route path="/settings" element={<PermissionGate permission="canAccessSettings"><SettingsView /></PermissionGate>} />
           <Route path="/billing/checkout-result" element={<CheckoutResult />} />
           <Route path="/credit-accounts" element={<CreditAccountsView />} />
-          <Route path="/admin/tenants" element={<AdminTenantsView />} />
-          <Route path="/admin/audit" element={<AdminAuditView />} />
+          <Route path="/admin/tenants" element={<PermissionGate permission="canManageAllTenants"><AdminTenantsView /></PermissionGate>} />
+          <Route path="/admin/audit" element={<PermissionGate permission="canManageAllTenants"><AdminAuditView /></PermissionGate>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AppLayout>

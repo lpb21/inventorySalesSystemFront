@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { Settings, Save, Upload, KeyRound } from 'lucide-react'
-import { can } from '../../utils/permissions'
+import { Save, Upload, KeyRound } from 'lucide-react'
 import ImportModal from '../inventory/ImportModal'
 import { useGlobalContext } from '../../context/GlobalContext'
 import { useUsers } from '../../hooks/useUsers'
@@ -194,18 +193,6 @@ function SettingsView() {
   const businessAddress = businessInfo?.address || 'Sin dirección'
   const businessPhone = businessInfo?.phone || 'Sin teléfono'
   const maxUsers = currentUser?.tenant?.limits?.maxUsers
-
-  if (!can(currentUser, 'canAccessSettings')) {
-    return (
-      <div className="empty-state" style={{ padding: '80px', textAlign: 'center' }}>
-        <Settings size={64} style={{ opacity: 0.3, marginBottom: '24px' }} />
-        <h3 style={{ marginBottom: '12px' }}>Acceso Restringido</h3>
-        <p style={{ color: 'var(--text-secondary)' }}>
-          No tienes permisos para acceder a la configuración del sistema.
-        </p>
-      </div>
-    )
-  }
 
   return (
     <div>

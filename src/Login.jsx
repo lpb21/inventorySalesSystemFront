@@ -115,6 +115,7 @@ export default function Login({ error }) {
         setToken(token)
         setUser(user)
         login(user, token)
+        navigate('/', { replace: true })
       } catch (subsError) {
         // Si el servicio de suscripción responde 401, también bloqueamos acceso
         const status = subsError?.response?.status
