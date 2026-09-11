@@ -1,11 +1,10 @@
 import { 
   LayoutDashboard, Package, ShoppingCart, Settings, Shield, History,
-  Search, BarChart3, LogOut, Eye, User, Menu, Lock, Crown
+  Search, BarChart3, LogOut, Eye, User, Menu
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { can, ROLE_LABELS } from '../../utils/permissions'
-import { PlanGuard } from '../shared/PlanGuard'
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'invah_sidebar_collapsed'
 
@@ -85,24 +84,6 @@ function AppLayout({ currentUser, searchTerm, setSearchTerm, lowStockCount, onRe
             )
           })}
 
-          {can(currentUser, 'canViewFullReports') && (
-            <PlanGuard
-              requiredFeature="advancedReports"
-              fallbackRender={() => (
-                <div
-                  className="nav-item"
-                  title="Disponible en un plan superior"
-                  style={{ opacity: 0.8, cursor: 'not-allowed' }}
-                >
-                  <Crown />
-                  <span>Reportes Avanzados</span>
-                  <Lock size={14} style={{ marginLeft: 'auto' }} />
-                </div>
-              )}
-            >
-              {null}
-            </PlanGuard>
-          )}
         </nav>
 
         <div style={{ marginTop: 'auto', paddingTop: '20px' }}>
