@@ -126,6 +126,13 @@ function TransformModal({ products, onSave, onClose }) {
       alert('El producto origen no puede ser también un destino')
       return
     }
+
+    // No se puede obtener más producto del que se despieza (mismo material, misma unidad)
+    const sumaCortes = validTargets.reduce((sum, t) => sum + (parseFloat(t.quantity) || 0), 0)
+    if (sumaCortes > sQty) {
+      alert(`Los cortes (${sumaCortes.toFixed(3)}) no pueden superar el origen (${sQty}). Revisa las cantidades.`)
+      return
+    }
  
     setSaving(true)
     try {
@@ -398,16 +405,29 @@ function TransformModal({ products, onSave, onClose }) {
             </div>
  
             {/* Resumen de merma */}
-            {sourceProduct && sourceQty && targetsSum > 0 && (
-              <div style={{
-                padding: '10px 12px', background: 'var(--bg-secondary)',
-                borderRadius: '8px', fontSize: '13px', color: 'var(--text-secondary)',
-                marginBottom: '12px'
-              }}>
-                Origen: {sourceQty} {sourceProduct.unit} · Cortes: {targetsSum.toFixed(3)} kg
-                <span style={{ color: 'var(--text-primary)' }}> · (la diferencia es merma)</span>
-              </div>
-            )}
+            {sourceProduct && sourceQty && targetsSum > 0 && (() => {
+              const origen = parseFloat(sourceQty) || 0
+              const excede = targetsSum > origen
+              return (
+                <div style={{
+                  padding: '10px 12px',
+                  background: excede ? 'rgba(233, 69, 96, 0.15)' : 'var(--bg-secondary)',
+                  border: excede ? '1px solid #e94560' : 'none',
+                  borderRadius: '8px', fontSize: '13px',
+                  color: excede ? '#e94560' : 'var(--text-secondary)',
+                  marginBottom: '12px'
+                }}>
+                  Origen: {origen} {sourceProduct.unit} · Cortes: {targetsSum.toFixed(3)} {sourceProduct.unit}
+                  {excede ? (
+                    <span style={{ display: 'block', marginTop: '4px', fontWeight: 'bold' }}>
+                      ⚠️ Los cortes superan al origen. No puedes obtener más de lo que despiezas; revisa las cantidades.
+                    </span>
+                  ) : (
+                    <span style={{ color: 'var(--text-primary)' }}> · (la diferencia es merma)</span>
+                  )}
+                </div>
+              )
+            })()}
  
             {/* Motivo */}
             <div className="form-group">
