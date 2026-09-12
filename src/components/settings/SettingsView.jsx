@@ -362,8 +362,7 @@ function SettingsView() {
 
       {showCustomerModal && (
         <CustomerModal
-          isOpen={showCustomerModal}
-          editingCustomer={editingCustomer}
+          customer={editingCustomer}
           onSave={handleSaveCustomer}
           onClose={() => {
             setShowCustomerModal(false)

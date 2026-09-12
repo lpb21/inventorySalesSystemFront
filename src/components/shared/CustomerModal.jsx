@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { X, Save, User, Phone, Mail, MapPin, DollarSign } from 'lucide-react'
+import { X, Save, User, Phone, Mail, MapPin, DollarSign, FileText } from 'lucide-react'
 
 function CustomerModal({ customer, onSave, onClose }) {
   const [formData, setFormData] = useState({
     name: '',
+    document: '',
     phone: '',
     email: '',
     address: '',
@@ -21,6 +22,7 @@ function CustomerModal({ customer, onSave, onClose }) {
     if (customer) {
       setFormData({
         name: customer.name || '',
+        document: customer.document || '',
         phone: customer.phone || '',
         email: customer.email || '',
         address: customer.address || '',
@@ -29,6 +31,7 @@ function CustomerModal({ customer, onSave, onClose }) {
     } else {
       setFormData({
         name: '',
+        document: '',
         phone: '',
         email: '',
         address: '',
@@ -203,6 +206,27 @@ function CustomerModal({ customer, onSave, onClose }) {
                   {nameError}
                 </p>
               )}
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Documento</label>
+              <div style={{ position: 'relative' }}>
+                <FileText size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                <input
+                  type="text"
+                  className="form-input"
+                  value={formData.document}
+                  onChange={(e) => {
+                    const valor = e.target.value.replace(/\D/g, '')
+                    setFormData({...formData, document: valor})
+                  }}
+                  placeholder="Ej: 1234567890"
+                  style={{ paddingLeft: '40px' }}
+                />
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                Campo opcional
+              </p>
             </div>
 
             <div className="form-group">
