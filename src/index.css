@@ -110,6 +110,14 @@ body {
   color: var(--accent);
 }
 
+.nav-item.nav-item-disabled,
+.nav-item.nav-item-disabled:hover {
+  cursor: not-allowed;
+  opacity: 0.45;
+  background: transparent;
+  color: var(--text-secondary);
+}
+
 .nav-item svg {
   width: 20px;
   height: 20px;

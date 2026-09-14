@@ -25,13 +25,16 @@ function AppLayout({ currentUser, searchTerm, setSearchTerm, lowStockCount, onRe
   
   const currentPath = location.pathname
 
+  // Superadmin sin tenant propio no puede operar los módulos de negocio (darían 400 en backend)
+  const isSuperadminWithoutTenant = currentUser?.role === 'superadmin' && !currentUser?.tenant
+
   const navItems = [
-    { id: 'dashboard', path: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'inventory', path: '/inventory', label: 'Inventario', icon: Package },
-    { id: 'sales', path: '/sales', label: 'Punto de Venta', icon: ShoppingCart },
-    { id: 'credit-accounts', path: '/credit-accounts', label: 'Cuentas por Cobrar', icon: User, permission: 'canViewCreditAccounts' },
-    { id: 'reports', path: '/reports', label: 'Reportes', icon: BarChart3, permission: 'canViewFullReports' },
-    { id: 'settings', path: '/settings', label: 'Configuración', icon: Settings, permission: 'canAccessSettings' },
+    { id: 'dashboard', path: '/', label: 'Dashboard', icon: LayoutDashboard, tenantScoped: true },
+    { id: 'inventory', path: '/inventory', label: 'Inventario', icon: Package, tenantScoped: true },
+    { id: 'sales', path: '/sales', label: 'Punto de Venta', icon: ShoppingCart, tenantScoped: true },
+    { id: 'credit-accounts', path: '/credit-accounts', label: 'Cuentas por Cobrar', icon: User, permission: 'canViewCreditAccounts', tenantScoped: true },
+    { id: 'reports', path: '/reports', label: 'Reportes', icon: BarChart3, permission: 'canViewFullReports', tenantScoped: true },
+    { id: 'settings', path: '/settings', label: 'Configuración', icon: Settings, permission: 'canAccessSettings', tenantScoped: true },
     { id: 'admin', path: '/admin/tenants', label: 'Suscripciones', icon: Shield, permission: 'canManageAllTenants' },
     { id: 'admin-audit', path: '/admin/audit', label: 'Auditoría', icon: History, permission: 'canManageAllTenants' },
   ]
@@ -71,12 +74,14 @@ function AppLayout({ currentUser, searchTerm, setSearchTerm, lowStockCount, onRe
           {navItems.map(item => {
             if (item.permission && !can(currentUser, item.permission)) return null
             const isActive = currentPath === item.path
+            const isDisabled = isSuperadminWithoutTenant && item.tenantScoped
             return (
               <button 
                 key={item.id}
-                className={`nav-item ${isActive ? 'active' : ''}`} 
-                onClick={() => navigate(item.path)}
-                title={item.label}
+                className={`nav-item ${isActive ? 'active' : ''} ${isDisabled ? 'nav-item-disabled' : ''}`}
+                onClick={() => { if (!isDisabled) navigate(item.path) }}
+                disabled={isDisabled}
+                title={isDisabled ? `${item.label} (no disponible para superadmin sin empresa)` : item.label}
               >
                 <item.icon />
                 <span>{item.label}</span>
@@ -87,7 +92,12 @@ function AppLayout({ currentUser, searchTerm, setSearchTerm, lowStockCount, onRe
         </nav>
 
         <div style={{ marginTop: 'auto', paddingTop: '20px' }}>
-          <button className="nav-item" onClick={() => window.open('/customer', '_blank')} title="Pantalla Cliente">
+          <button
+            className={`nav-item ${isSuperadminWithoutTenant ? 'nav-item-disabled' : ''}`}
+            onClick={() => { if (!isSuperadminWithoutTenant) window.open('/customer', '_blank') }}
+            disabled={isSuperadminWithoutTenant}
+            title={isSuperadminWithoutTenant ? 'Pantalla Cliente (no disponible para superadmin sin empresa)' : 'Pantalla Cliente'}
+          >
             <Eye />
             <span>Pantalla Cliente</span>
           </button>
