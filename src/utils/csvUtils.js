@@ -188,26 +188,3 @@ export function validateFile(file) {
 
   return { valid: true }
 }
-
-/**
- * Descarga una plantilla CSV de ejemplo
- */
-export function downloadCSVTemplate() {
-  const template = `name,description,category,price,cost,sku,barcode,stock,min_stock,unit,type,expiry_date,supplier,notes
-Producto Ejemplo 1,Descripción del producto,Categoría 1,100,50,SKU001,7890123456789,100,10,kg,unit,,Proveedor 1,Notas opcionales
-Producto Ejemplo 2,Otro producto,Categoría 2,200,100,SKU002,,50,5,lb,weight-price,,Proveedor 2,
-`
-
-  const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' })
-  const link = document.createElement('a')
-  const url = URL.createObjectURL(blob)
-
-  link.setAttribute('href', url)
-  link.setAttribute('download', 'plantilla_productos.csv')
-  link.style.visibility = 'hidden'
-
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
-}
