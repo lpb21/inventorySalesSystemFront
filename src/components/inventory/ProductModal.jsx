@@ -276,6 +276,8 @@ function ProductModal({ product, categories, suppliers = [], onSave, onClose, on
                   <option value="lb">Libras (lb)</option>
                   <option value="und">Unidad</option>
                   <option value="paq">Paquete</option>
+                  <option value="lt">Litros (lt)</option>
+                  <option value="gr">Gramos (gr)</option>
                 </select>
               </div>
               <div className="form-group">

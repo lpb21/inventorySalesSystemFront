@@ -402,11 +402,12 @@ function ImportModal({ onClose, onImportComplete }) {
   // Descargar ejemplo de CSV
   const downloadExample = () => {
     const csvContent = `name,category,supplier,description,sku,barcode,price,cost,stock,min_stock,unit,type,notes,expiry_date
-"Monitor Samsung 24","Tecnología","Samsung Electronics","Monitor LED 24 pulgadas","MON-SAM-24","7891234567801",299.99,220.00,15,5,"und","unit","","2026-12-31"
-"Laptop HP","Tecnología","HP Inc","Laptop HP Pavilion 15","LAP-HP-PAV","7891234567802",899.99,650.00,8,2,"und","unit","","2026-12-31"
-"Papel Higiénico 12 rollos","Limpieza","Familia","Papel higiénico doble hoja x 12 rollos","PAP-FAM-12R","7890123456780",15.99,10.80,25,8,"paq","unit","","2025-09-15"
-"Arroz Diana 500g","Granos","Molinos Diana","Arroz blanco premium 500g","ARZ-DIA-500","7891234567803",2.50,1.80,50,10,"und","unit","","2025-12-31"
-"Queso Mozzarella","Quesos","","Queso mozzarella italiano importado","QUE-MOZ-01","7891234567804",28.00,20.00,25,10,"kg","weight","Sin proveedor","2025-09-30"`
+"Monitor Samsung 24","Tecnología","Samsung Electronics","Monitor LED 24 pulgadas","MON-SAM-24","7891234567801",299.99,220.00,15,5,"und","","","2026-12-31"
+"Laptop HP","Tecnología","HP Inc","Laptop HP Pavilion 15","LAP-HP-PAV","7891234567802",899.99,650.00,8,2,"und","","","2026-12-31"
+"Papel Higiénico 12 rollos","Limpieza","Familia","Papel higiénico doble hoja x 12 rollos","PAP-FAM-12R","7890123456780",15.99,10.80,25,8,"paq","","","2025-09-15"
+"Arroz Diana 500g","Granos","Molinos Diana","Arroz blanco premium 500g","ARZ-DIA-500","7891234567803",2.50,1.80,50,10,"und","","","2025-12-31"
+"Queso Mozzarella","Quesos","","Queso mozzarella italiano importado","QUE-MOZ-01","7891234567804",28.00,20.00,25,10,"kg","","Sin proveedor","2025-09-30"
+"Agua Garrafón 20L","Bebidas","","Agua purificada a granel por litros","AGU-GAR-20L","7891234567805",1.50,0.80,200,50,"lt","","","2026-06-30"`
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
@@ -486,7 +487,8 @@ function ImportModal({ onClose, onImportComplete }) {
             <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '8px 0 0 0', lineHeight: '1.4' }}>
               📋 <strong>category</strong>: Si no existe → se crea automáticamente<br/>
               📋 <strong>supplier</strong>: Si no existe → se crea automáticamente, si está vacío → producto sin proveedor<br/>
-              📦 <strong>unit</strong>: "kg", "lb", "und", "paq" | <strong>type</strong>: se asigna automáticamente según unit
+              📦 <strong>unit</strong>: "kg", "lb", "und", "paq", "lt", "gr"<br/>
+              🏷️ <strong>type</strong>: se asigna automáticamente según unit (puedes dejarlo vacío)
             </p>
             <button 
               onClick={downloadExample}
