@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   ShoppingCart, Minus, Plus, X, DollarSign, Check,
-  Milk, Beef, Drumstick, Package, ArrowLeftRight,
+  ArrowLeftRight,
   Clock, Power, AlertCircle, CheckCircle, ScanLine
 } from 'lucide-react'
 import { useGlobalContext } from '../../context/GlobalContext'

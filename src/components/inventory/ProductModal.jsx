@@ -37,21 +37,22 @@ function ProductModal({ product, categories, suppliers = [], onSave, onClose, on
  
   const [errors, setErrors] = useState({})
   const [isSaving, setIsSaving] = useState(false)
- 
+
+
   const validarNombre = (nombre) => {
+    if (typeof nombre !== 'string') {
+      return { valid: false, message: 'El nombre debe ser un texto' }
+    }
     const trimmedName = nombre.trim()
     if (!trimmedName) {
       return { valid: false, message: 'El nombre es obligatorio' }
-    }
-    // Permitir letras, espacios y caracteres especiales de español, pero NO números
-    if (/[0-9]/.test(trimmedName)) {
-      return { valid: false, message: 'El nombre no puede contener números' }
     }
     if (trimmedName.length < 2) {
       return { valid: false, message: 'El nombre debe tener al menos 2 caracteres' }
     }
     return { valid: true, message: '' }
   }
+
  
   const validarCodigoBarras = (numero) => {
     if (!numero) return { valid: true, message: '' } // Opcional

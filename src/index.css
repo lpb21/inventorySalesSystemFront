@@ -54,13 +54,9 @@ body {
 .logo-icon {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, var(--accent), #ff6b6b);
   border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 18px;
+  object-fit: cover;
+  overflow: hidden;
 }
 
 .logo-text {
@@ -1293,7 +1289,6 @@ td {
 .login-logo .logo-icon {
   width: 72px;
   height: 72px;
-  font-size: 28px;
 }
 
 .login-title {

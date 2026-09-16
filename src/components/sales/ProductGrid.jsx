@@ -1,4 +1,5 @@
-import { Drumstick, Milk, Beef, Package } from 'lucide-react'
+import { Package2 } from 'lucide-react'
+import { ICON_OPTIONS } from '../inventory/CategoryModal'
 import {
   isWeightProduct,
   getWeightSaleUnit,
@@ -17,6 +18,8 @@ function ProductCard({ product, onAdd }) {
     : (product.price || 0)
  
   const isLowStock = (product.stock || 0) <= (product.min_stock || product.minStock || 0)
+
+  const CategoryIcon = ICON_OPTIONS.find((opt) => opt.name === product.category?.icon)?.icon || Package2
  
   return (
     <div
@@ -32,12 +35,7 @@ function ProductCard({ product, onAdd }) {
             style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
           />
         ) : (
-          <>
-            {product.category?.name === 'Pollo' && <Drumstick size={36} />}
-            {product.category?.name === 'Quesos' && <Milk size={36} />}
-            {(product.category?.name === 'Carnes Frías' || product.category?.name === 'Embutidos') && <Beef size={36} />}
-            {!['Pollo', 'Quesos', 'Carnes Frías', 'Embutidos'].includes(product.category?.name) && <Package size={36} />}
-          </>
+          <CategoryIcon size={36} />
         )}
       </div>
  

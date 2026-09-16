@@ -63,9 +63,9 @@ function AppLayout({ currentUser, searchTerm, setSearchTerm, lowStockCount, onRe
     <div className={`app-container ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <div className="logo-icon">iL</div>
+          <img className="logo-icon" src="/LOGOPFGEM.jpeg" alt="Logo Punto Fresco" />
           <div className="sidebar-brand-text">
-            <div className="logo-text">invah</div>
+            <div className="logo-text">Punto Fresco</div>
             <div className="logo-subtitle">Inventarios</div>
           </div>
         </div>

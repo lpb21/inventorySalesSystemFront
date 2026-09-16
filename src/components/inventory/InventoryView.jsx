@@ -3,9 +3,6 @@ import {
   Edit,
   Trash2,
   Package2,
-  Milk,
-  Beef,
-  Drumstick,
   ArrowDownCircle,
   Eye,
   EyeOff,
@@ -26,7 +23,7 @@ import { useTransform } from "../../hooks/queries/useTransform";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import ProductModal from "./ProductModal";
-import CategoryModal from "./CategoryModal";
+import CategoryModal, { ICON_OPTIONS } from "./CategoryModal";
 import SupplierModal from "./SupplierModal";
 import OutputModal from "./OutputModal";
 import { categoriesAPI } from "../../api/config";
@@ -341,6 +338,9 @@ function InventoryView({ searchTerm }) {
           const expirationStatus = product.expiry_date
             ? getExpirationStatus(product)
             : null;
+          const CategoryIcon =
+            ICON_OPTIONS.find((opt) => opt.name === product.category?.icon)?.icon ||
+            Package2;
 
           return (
             <div
@@ -390,19 +390,7 @@ function InventoryView({ searchTerm }) {
                     }}
                   />
                 ) : (
-                  <>
-                    {product.category?.name === "Pollo" && (
-                      <Drumstick size={48} />
-                    )}
-                    {product.category?.name === "Quesos" && <Milk size={48} />}
-                    {(product.category?.name === "Carnes Frías" ||
-                      product.category?.name === "Embutidos") && (
-                      <Beef size={48} />
-                    )}
-                    {!["Pollo", "Quesos", "Carnes Frías", "Embutidos"].includes(
-                      product.category?.name,
-                    ) && <Package2 size={48} />}
-                  </>
+                  <CategoryIcon size={48} />
                 )}
               </div>
               <div className="product-name">{product.name}</div>

@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { 
-  X, Save, Package2, Coffee, Utensils, UtensilsCrossed, Apple, Pizza, 
-  Hamburger , Salad, Drumstick, Egg, Croissant, Wine, 
-  GlassWater, Beer, Cake, Cookie, IceCream, Sandwich, Milk, 
+  X, Save, Package2, PackageOpen, Box, Boxes, Coffee, Utensils, UtensilsCrossed, Apple, Pizza, 
+  Hamburger, Salad, Drumstick, Egg, EggFried, Croissant, Wheat, Wine, 
+  GlassWater, Beer, Cake, CakeSlice, Dessert, Cookie, IceCream, IceCreamCone, IceCreamBowl, Sandwich, Milk, 
   CupSoda, Carrot, Popcorn, Cherry, Grape, Banana, 
-  Citrus, Leaf, Flower2, TreePine, Home, ShoppingCart, 
-  Wallet, CreditCard, Tag, Tags, ShoppingBag, Store, Box, Gift, Fish
+  Citrus, Leaf, LeafyGreen, Flower2, TreePine, Home, ShoppingCart, ShoppingBasket, 
+  Wallet, CreditCard, Tag, Tags, ShoppingBag, Store, Gift, Fish, Shrimp, Ham, Beef,
+  Candy, CandyCane, Lollipop, Popsicle, Donut, Martini, Soup, CookingPot, ChefHat,
+  Nut, Slice, Snowflake, ThermometerSnowflake, Warehouse, Truck, Scale, Weight, Sparkles, Star, Heart, Flame
 } from 'lucide-react'
 
 // Iconos de comida y categorías genéricas
@@ -13,10 +15,14 @@ const ICON_OPTIONS = [
   // General
   { name: 'package', icon: Package2, label: 'Paquete' },
   { name: 'box', icon: Box, label: 'Caja' },
+  { name: 'boxes', icon: Boxes, label: 'Cajas' },
+  { name: 'package-open', icon: PackageOpen, label: 'Paquete abierto' },
   { name: 'gift', icon: Gift, label: 'Regalo' },
   { name: 'home', icon: Home, label: 'Hogar' },
   { name: 'store', icon: Store, label: 'Tienda' },
-  
+  { name: 'warehouse', icon: Warehouse, label: 'Bodega' },
+  { name: 'truck', icon: Truck, label: 'Camión' },
+
   // Bebidas
   { name: 'coffee', icon: Coffee, label: 'Café' },
   { name: 'wine', icon: Wine, label: 'Vino' },
@@ -24,26 +30,41 @@ const ICON_OPTIONS = [
   { name: 'beer', icon: Beer, label: 'Cerveza' },
   { name: 'milk', icon: Milk, label: 'Leche' },
   { name: 'cup-soda', icon: CupSoda, label: 'Refresco' },
-  
+  { name: 'martini', icon: Martini, label: 'Martini' },
+
   // Comida rápida
   { name: 'pizza', icon: Pizza, label: 'Pizza' },
   { name: 'hamburger', icon: Hamburger, label: 'Hamburguesa' },
   { name: 'sandwich', icon: Sandwich, label: 'Sándwich' },
   { name: 'hot-dog', icon: Drumstick, label: 'Hot Dog' },
   { name: 'taco', icon: Utensils, label: 'Taco' },
-  
+
+  // Cocina y sopas
+  { name: 'soup', icon: Soup, label: 'Sopa' },
+  { name: 'cooking-pot', icon: CookingPot, label: 'Olla' },
+  { name: 'chef-hat', icon: ChefHat, label: 'Chef' },
+  { name: 'utensils-crossed', icon: UtensilsCrossed, label: 'Cubiertos' },
+
   // Postres y dulces
   { name: 'cake', icon: Cake, label: 'Pastel' },
+  { name: 'chocolate', icon: CakeSlice, label: 'Chocolate' },
+  { name: 'dessert', icon: Dessert, label: 'Postre' },
   { name: 'cookie', icon: Cookie, label: 'Galleta' },
+  { name: 'donut', icon: Donut, label: 'Dona' },
   { name: 'ice-cream', icon: IceCream, label: 'Helado' },
-  { name: 'candy', icon: CupSoda, label: 'Dulce' },
-  { name: 'chocolate', icon: Cake, label: 'Chocolate' },
-  
+  { name: 'ice-cream-cone', icon: IceCreamCone, label: 'Cono' },
+  { name: 'ice-cream-bowl', icon: IceCreamBowl, label: 'Helado en vaso' },
+  { name: 'popsicle', icon: Popsicle, label: 'Paleta' },
+  { name: 'candy', icon: Candy, label: 'Dulce' },
+  { name: 'candy-cane', icon: CandyCane, label: 'Caramelo' },
+  { name: 'lollipop', icon: Lollipop, label: 'Chupeta' },
+
   // Panadería
   { name: 'croissant', icon: Croissant, label: 'Croissant' },
-  { name: 'bread', icon: Croissant, label: 'Pan' },
+  { name: 'bread', icon: Wheat, label: 'Pan' },
   { name: 'egg', icon: Egg, label: 'Huevo' },
-  
+  { name: 'egg-fried', icon: EggFried, label: 'Huevo frito' },
+
   // Frutas
   { name: 'apple', icon: Apple, label: 'Manzana' },
   { name: 'banana', icon: Banana, label: 'Banano' },
@@ -51,30 +72,48 @@ const ICON_OPTIONS = [
   { name: 'cherry', icon: Cherry, label: 'Cereza' },
   { name: 'grape', icon: Grape, label: 'Uvas' },
   { name: 'strawberry', icon: Cherry, label: 'Fresa' },
-  
+
   // Vegetales
   { name: 'carrot', icon: Carrot, label: 'Zanahoria' },
   { name: 'popcorn', icon: Popcorn, label: 'Maíz' },
   { name: 'pepper', icon: Apple, label: 'Pimiento' },
   { name: 'salad', icon: Salad, label: 'Ensalada' },
-  
+  { name: 'leafy-green', icon: LeafyGreen, label: 'Verduras' },
+  { name: 'nut', icon: Nut, label: 'Frutos secos' },
+
   // Carnes y pescados
   { name: 'drumstick', icon: Drumstick, label: 'Pollo' },
-  { name: 'steak', icon: Drumstick, label: 'Carne' },
+  { name: 'steak', icon: Beef, label: 'Carne' },
   { name: 'fish', icon: Fish, label: 'Pescado' },
-  
+  { name: 'shrimp', icon: Shrimp, label: 'Camarón' },
+  { name: 'ham', icon: Ham, label: 'Jamón' },
+  { name: 'slice', icon: Slice, label: 'Rebanada' },
+
+  // Frío / congelados
+  { name: 'snowflake', icon: Snowflake, label: 'Congelado' },
+  { name: 'thermometer-snowflake', icon: ThermometerSnowflake, label: 'Refrigerado' },
+
   // Marcas / Shopping
   { name: 'shopping-cart', icon: ShoppingCart, label: 'Carrito' },
   { name: 'shopping-bag', icon: ShoppingBag, label: 'Bolsa' },
+  { name: 'shopping-basket', icon: ShoppingBasket, label: 'Canasta' },
   { name: 'wallet', icon: Wallet, label: 'Billetera' },
   { name: 'credit-card', icon: CreditCard, label: 'Tarjeta' },
   { name: 'tag', icon: Tag, label: 'Etiqueta' },
   { name: 'tags', icon: Tags, label: 'Etiquetas' },
-  
+  { name: 'scale', icon: Scale, label: 'Balanza' },
+  { name: 'weight', icon: Weight, label: 'Peso' },
+
   // Naturaleza
   { name: 'leaf', icon: Leaf, label: 'Hoja' },
   { name: 'flower', icon: Flower2, label: 'Flor' },
   { name: 'tree', icon: TreePine, label: 'Árbol' },
+
+  // Especiales / destacados
+  { name: 'sparkles', icon: Sparkles, label: 'Especiales' },
+  { name: 'star', icon: Star, label: 'Estrella' },
+  { name: 'heart', icon: Heart, label: 'Favorito' },
+  { name: 'flame', icon: Flame, label: 'Picante' },
 ]
 
 /**

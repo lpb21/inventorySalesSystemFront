@@ -216,10 +216,10 @@ export default function Login({ error }) {
       <div className="login-card">
         <div className="login-header">
           <div className="login-logo">
-            <div className="logo-icon">Ih</div>
+            <img className="logo-icon" src="/LOGOPFGEM.jpeg" alt="Logo Punto Fresco" />
           </div>
-          <h1 className="login-title">Invah</h1>
-          <p className="login-subtitle">Inventories Network Visualization Analytics Hub</p>
+          <h1 className="login-title">Punto Fresco</h1>
+          <p className="login-subtitle">Sistema de Gestión de Inventarios</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
