@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   ShoppingCart, Minus, Plus, X, DollarSign, Check,
   ArrowLeftRight,
@@ -65,23 +65,28 @@ function SalesView() {
   // --- Escaneo de código de barras ---
   const [barcodeInput, setBarcodeInput] = useState('')
   const [scanning, setScanning] = useState(false)
- 
+  const barcodeInputRef = useRef(null)
+
   const handleBarcodeScan = async (e) => {
     e.preventDefault()
+    if (scanning) return
     const code = barcodeInput.trim()
     if (!code) return
- 
+
     setScanning(true)
     try {
       // 1) Buscar primero entre los productos ya cargados (instantáneo)
       let product = products.find(p => p.barcode === code)
- 
-      // 2) Si no está en memoria, consultar al backend
+
+      // 2) Si no está en memoria, consultar al backend (con timeout para no bloquear el input)
       if (!product) {
-        const response = await productsAPI.searchByBarcode(code)
+        const response = await Promise.race([
+          productsAPI.searchByBarcode(code),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+        ])
         product = response?.data || response
       }
- 
+
       if (product && product.id) {
         addToCart(product)
         addToast(`${product.name} agregado`, 'success')
@@ -91,10 +96,16 @@ function SalesView() {
         setBarcodeInput('')
       }
     } catch (error) {
-      addToast(`Producto no encontrado (${code})`, 'error')
+      addToast(
+        error?.message === 'timeout'
+          ? 'La búsqueda tardó demasiado, intenta de nuevo'
+          : `Producto no encontrado (${code})`,
+        'error'
+      )
       setBarcodeInput('')
     } finally {
       setScanning(false)
+      barcodeInputRef.current?.focus()
     }
   }
   const [pendingCreditSale, setPendingCreditSale] = useState(null)
@@ -338,13 +349,13 @@ function SalesView() {
                 <ScanLine size={16} />
               </div>
               <input
+                ref={barcodeInputRef}
                 type="text"
                 className="form-input"
                 value={barcodeInput}
                 onChange={(e) => setBarcodeInput(e.target.value)}
                 placeholder="Escanea o escribe el código..."
                 style={{ paddingLeft: '34px', height: '38px' }}
-                disabled={scanning}
                 autoComplete="off"
               />
             </div>
@@ -359,16 +370,20 @@ function SalesView() {
               <ArrowLeftRight size={16} />
               Mover paneles
             </button> */}
-            <div className="category-tabs" style={{ marginBottom: 0 }}>
-              {['Todos', ...categories.map(c => c.name)].map(cat => (
-                <button
-                  key={cat}
-                  className={`category-tab ${selectedCategory === cat ? 'active' : ''}`}
-                  onClick={() => setSelectedCategory(cat)}
-                >
-                  {cat}
-                </button>
-              ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                Categoría:
+              </span>
+              <select
+                className="form-select"
+                style={{ width: 'auto', minWidth: '140px' }}
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+              >
+                {['Todos', ...categories.map(c => c.name)].map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>

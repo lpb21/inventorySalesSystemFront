@@ -4,8 +4,6 @@ import {
   Trash2,
   Package2,
   ArrowDownCircle,
-  Eye,
-  EyeOff,
   Calendar,
   AlertTriangle,
   Scissors,
@@ -204,36 +202,49 @@ function InventoryView({ searchTerm }) {
       >
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           {/* Filtros de categorías */}
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <div className="category-tabs" style={{ marginBottom: 0 }}>
-              {allCategories.map((cat) => (
-                <button
-                  key={cat}
-                  className={`category-tab ${selectedCategory === cat ? "active" : ""}`}
-                  onClick={() => setSelectedCategory(cat)}
-                >
-                  {cat}
-                </button>
-              ))}
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span
+                style={{
+                  fontSize: "14px",
+                  color: "var(--text-secondary)",
+                  fontWeight: 500,
+                }}
+              >
+                Categoría:
+              </span>
+              <select
+                className="form-select"
+                style={{ width: "auto", minWidth: "160px" }}
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+              >
+                {allCategories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
               {canManageCats && (
                 <button
-                  className="category-tab"
-                  style={{ border: "1px dashed var(--border)" }}
+                  className="btn btn-secondary btn-sm"
                   onClick={() => setShowCategoryModal(true)}
+                  title="Nueva categoría"
                 >
-                  <Plus size={14} /> Nueva
+                  <Plus size={16} />
                 </button>
               )}
             </div>
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={() => setShowInactiveProducts(!showInactiveProducts)}
-              title={
-                showInactiveProducts ? "Ocultar inactivos" : "Mostrar inactivos"
-              }
-            >
-              {showInactiveProducts ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
+
+            <label className="switch-label">
+              <input
+                type="checkbox"
+                checked={showInactiveProducts}
+                onChange={(e) => setShowInactiveProducts(e.target.checked)}
+              />
+              <span className="switch"></span>
+              Inactivos
+            </label>
           </div>
 
           {/* Filtros de vencimiento */}
