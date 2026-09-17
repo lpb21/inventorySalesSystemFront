@@ -36,18 +36,20 @@ export function useSalesMutations() {
     }
 
     const invalidate = async (response) => {
+        // Cancelar queries de productos en vuelo antes de parchear, para que una
+        // respuesta vieja no pise el stock recién actualizado (carrera de lectura).
+        await queryClient.cancelQueries({ queryKey: ['products'] })
+
         if (response) patchProductsStock(response)
 
+        // Invalidaciones en background (no bloqueantes): el stock ya quedó
+        // actualizado de forma optimista vía updated_products, por lo que no
+        // esperamos los refetch antes de confirmar la venta al usuario.
         queryClient.invalidateQueries({ queryKey: ['sales'] })
+        queryClient.invalidateQueries({ queryKey: ['products'] })
 
-        // Productos: forzar refetch (invalidate + refetch await) para que el stock
-        // refleje la venta ya confirmada en el back, sin quedar "una venta atrasado"
-        await queryClient.invalidateQueries({ queryKey: ['products'] })
-        await queryClient.refetchQueries({ queryKey: ['products'], type: 'active' })
-        
         // Turno de caja: refrescar transacciones/total del turno activo
-        await queryClient.invalidateQueries({ queryKey: ['cash-register'] })
-        await queryClient.refetchQueries({ queryKey: ['cash-register'], type: 'active' })
+        queryClient.invalidateQueries({ queryKey: ['cash-register'] })
 
         // Solo invalidar dashboard si el usuario tiene permisos para verlo
         if (can(currentUser, 'canViewFullReports')) {
@@ -61,12 +63,12 @@ export function useSalesMutations() {
 
     const createSale = useMutation({
         mutationFn: (data) => salesAPI.create(data),
-        onSuccess: (response) => invalidate(response)
+        onSuccess: (response) => { invalidate(response) }
     })
 
     const cancelSale = useMutation({
         mutationFn: ({ id, reason }) => salesAPI.cancel(id, reason),
-        onSuccess: (response) => invalidate(response)
+        onSuccess: (response) => { invalidate(response) }
     })
 
     return { createSale, cancelSale }

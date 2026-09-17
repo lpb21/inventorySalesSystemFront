@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { 
     productsAPI, categoriesAPI, salesAPI, usersAPI, 
     customersAPI, tenantAPI, reportsAPI, suppliersAPI, ApiNormalizers, 
-    getToken, getUser, registerPlanErrorHandler 
+    getToken, getUser, clearSession, registerPlanErrorHandler 
 } from '../api/config'
 import { useToasts } from '../hooks/useToasts'
 import { useCart } from '../hooks/useCart'
@@ -70,7 +70,7 @@ export const GlobalProvider = ({ children }) => {
 
     const logout = useCallback(() => {
         // Limpiar sesión del localStorage
-        import('../api/config').then(api => api.clearSession())
+        clearSession()
         
         // Limpiar todo el cache de React Query al cambiar de usuario
         queryClient.clear()

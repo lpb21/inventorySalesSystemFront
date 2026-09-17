@@ -24,7 +24,7 @@ import ProductModal from "./ProductModal";
 import CategoryModal, { ICON_OPTIONS } from "./CategoryModal";
 import SupplierModal from "./SupplierModal";
 import OutputModal from "./OutputModal";
-import { categoriesAPI } from "../../api/config";
+import { inventoryAPI } from "../../api/config";
 import TransformModal from "./TransformModal";
 import RecipeManagerModal from "./RecipeManagerModal";
 
@@ -130,7 +130,6 @@ function InventoryView({ searchTerm }) {
 
   const handleRegisterOutput = async (outputData) => {
     try {
-      const { inventoryAPI } = await import("../../api/config");
       await inventoryAPI.createOutput(outputData);
 
       // 1. Mostrar éxito y cerrar modal inmediatamente

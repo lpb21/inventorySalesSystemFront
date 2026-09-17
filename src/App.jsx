@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AlertTriangle, Check, X } from 'lucide-react'
 import Login from './Login'
@@ -6,18 +6,36 @@ import { useGlobalContext } from './context/GlobalContext'
 import { useDashboardData } from './hooks/queries/useDashboard'
 
 import AppLayout         from './components/layout/AppLayout'
-import DashboardView     from './components/dashboard/DashboardView'
-import InventoryView     from './components/inventory/InventoryView'
-import SalesView         from './components/sales/SalesView'
-import ReportsView       from './components/reports/ReportsView'
-import SettingsView      from './components/settings/SettingsView'
-import CheckoutResult    from './components/billing/CheckoutResult'
-import SmartCheckout     from './components/billing/SmartCheckout'
-import RenewalRequired   from './components/billing/RenewalRequired'
-import CreditAccountsView from './components/shared/CreditAccountsView'
 import PermissionGate from './components/shared/PermissionGate'
-import AdminTenantsView from './components/admin/AdminTenantsView'
-import AdminAuditView from './components/admin/AdminAuditView'
+
+const DashboardView     = lazy(() => import('./components/dashboard/DashboardView'))
+const InventoryView     = lazy(() => import('./components/inventory/InventoryView'))
+const SalesView         = lazy(() => import('./components/sales/SalesView'))
+const ReportsView       = lazy(() => import('./components/reports/ReportsView'))
+const SettingsView      = lazy(() => import('./components/settings/SettingsView'))
+const CheckoutResult    = lazy(() => import('./components/billing/CheckoutResult'))
+const SmartCheckout     = lazy(() => import('./components/billing/SmartCheckout'))
+const RenewalRequired   = lazy(() => import('./components/billing/RenewalRequired'))
+const CreditAccountsView = lazy(() => import('./components/shared/CreditAccountsView'))
+const AdminTenantsView  = lazy(() => import('./components/admin/AdminTenantsView'))
+const AdminAuditView    = lazy(() => import('./components/admin/AdminAuditView'))
+
+function PageLoader() {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      height: '100%', minHeight: '200px', color: 'var(--text-secondary)', fontSize: '14px'
+    }}>
+      <span style={{
+        width: '24px', height: '24px', borderRadius: '50%',
+        border: '3px solid var(--border, #30363d)',
+        borderTopColor: 'var(--accent, #e94560)',
+        animation: 'spin 0.8s linear infinite', marginRight: '12px'
+      }} />
+      Cargando...
+    </div>
+  )
+}
 
 // Componente principal
 function App() {
@@ -78,14 +96,16 @@ function App() {
   if (!isLoggedIn) {
     return (
       <>
-        <Routes>
-          {/* Rutas públicas de billing (sin autenticación) */}
-          <Route path="/billing/renewal-required" element={<RenewalRequired />} />
-          <Route path="/billing/smart-checkout" element={<SmartCheckout />} />
-          <Route path="/billing/checkout-result" element={<CheckoutResult />} />
-          {/* Login para usuarios sin sesión */}
-          <Route path="*" element={<Login />} />
-        </Routes>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            {/* Rutas públicas de billing (sin autenticación) */}
+            <Route path="/billing/renewal-required" element={<RenewalRequired />} />
+            <Route path="/billing/smart-checkout" element={<SmartCheckout />} />
+            <Route path="/billing/checkout-result" element={<CheckoutResult />} />
+            {/* Login para usuarios sin sesión */}
+            <Route path="*" element={<Login />} />
+          </Routes>
+        </Suspense>
       </>
     )
   }
@@ -102,18 +122,20 @@ function App() {
         onRefresh={() => refreshDashboard()}
         onLogout={handleLogout}
       >
-        <Routes>
-          <Route path="/" element={<DashboardView />} />
-          <Route path="/inventory" element={<InventoryView searchTerm={searchTerm} />} />
-          <Route path="/sales" element={<SalesView />} />
-          <Route path="/reports" element={<PermissionGate permission="canViewFullReports"><ReportsView /></PermissionGate>} />
-          <Route path="/settings" element={<PermissionGate permission="canAccessSettings"><SettingsView /></PermissionGate>} />
-          <Route path="/billing/checkout-result" element={<CheckoutResult />} />
-          <Route path="/credit-accounts" element={<CreditAccountsView />} />
-          <Route path="/admin/tenants" element={<PermissionGate permission="canManageAllTenants"><AdminTenantsView /></PermissionGate>} />
-          <Route path="/admin/audit" element={<PermissionGate permission="canManageAllTenants"><AdminAuditView /></PermissionGate>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<DashboardView />} />
+            <Route path="/inventory" element={<InventoryView searchTerm={searchTerm} />} />
+            <Route path="/sales" element={<SalesView />} />
+            <Route path="/reports" element={<PermissionGate permission="canViewFullReports"><ReportsView /></PermissionGate>} />
+            <Route path="/settings" element={<PermissionGate permission="canAccessSettings"><SettingsView /></PermissionGate>} />
+            <Route path="/billing/checkout-result" element={<CheckoutResult />} />
+            <Route path="/credit-accounts" element={<CreditAccountsView />} />
+            <Route path="/admin/tenants" element={<PermissionGate permission="canManageAllTenants"><AdminTenantsView /></PermissionGate>} />
+            <Route path="/admin/audit" element={<PermissionGate permission="canManageAllTenants"><AdminAuditView /></PermissionGate>} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </AppLayout>
 
       {/* Sistema de notificaciones */}
