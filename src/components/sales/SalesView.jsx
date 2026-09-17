@@ -541,8 +541,9 @@ function SalesView() {
                   style={{ marginBottom: '12px' }}
                 >
                   <option value="cash">Efectivo</option>
-                  <option value="nequi">Nequi</option>
                   <option value="card">Tarjeta</option>
+                  <option value="transfer">Transferencia</option>
+                  <option value="digital">Nequi/Daviplata</option>
                   <option value="credit">Credito</option>
                 </select>
               </div>

@@ -356,6 +356,11 @@ export const reportsAPI = {
     return apiRequest(`/reports/sales${query ? `?${query}` : ''}`);
   },
   
+  getMonthly: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiRequest(`/reports/monthly${query ? `?${query}` : ''}`);
+  },
+  
   getInventory: () => apiRequest('/reports/inventory'),
   
   getProfits: (params = {}) => {

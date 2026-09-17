@@ -14,7 +14,6 @@ import SettingsView      from './components/settings/SettingsView'
 import CheckoutResult    from './components/billing/CheckoutResult'
 import SmartCheckout     from './components/billing/SmartCheckout'
 import RenewalRequired   from './components/billing/RenewalRequired'
-import MonthlyReportModal from './components/reports/MonthlyReportModal'
 import CreditAccountsView from './components/shared/CreditAccountsView'
 import PermissionGate from './components/shared/PermissionGate'
 import AdminTenantsView from './components/admin/AdminTenantsView'
@@ -24,7 +23,7 @@ import AdminAuditView from './components/admin/AdminAuditView'
 function App() {
   const {
     isLoggedIn, currentUser, authChecked,
-    addToast, logout,
+    logout,
     toasts, removeToast
   } = useGlobalContext()
 
@@ -33,7 +32,6 @@ function App() {
   })
 
   const [searchTerm, setSearchTerm] = useState('')
-  const [showMonthlyReport, setShowMonthlyReport] = useState(false)
   
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '' })
 
@@ -43,23 +41,6 @@ function App() {
   const handleLogout = () => {
     logout()
   }
-
-  // ── Reporte mensual ───────────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (isLoggedIn && authChecked) {
-      const lastShown = localStorage.getItem('lastMonthlyReportShown')
-      const now = new Date()
-      const currentMonth = `${now.getFullYear()}-${now.getMonth()}`
-      const isLastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() === now.getDate()
-      if (lastShown !== currentMonth && (isLastDayOfMonth || !lastShown)) {
-        setTimeout(() => {
-          setShowMonthlyReport(true)
-          localStorage.setItem('lastMonthlyReportShown', currentMonth)
-        }, 2000)
-      }
-    }
-  }, [isLoggedIn, authChecked])
 
   // Prevenir cambio de valor en inputs numéricos al hacer scroll (Global)
   useEffect(() => {
@@ -71,10 +52,6 @@ function App() {
     document.addEventListener('wheel', handleGlobalWheel, { passive: true })
     return () => document.removeEventListener('wheel', handleGlobalWheel)
   }, [])
-
-  const handleGenerateMonthlyReport = () => {
-    addToast('Reporte mensual generado y caja reiniciada', 'success')
-  }
 
   // ── Pantallas de carga y login ────────────────────────────────────────────
 
@@ -191,13 +168,6 @@ function App() {
         </div>
       )}
 
-      {/* Reporte mensual de cierre */}
-      {showMonthlyReport && (
-        <MonthlyReportModal
-          onClose={() => setShowMonthlyReport(false)}
-          onGenerateReport={handleGenerateMonthlyReport}
-        />
-      )}
     </>
   )
 }

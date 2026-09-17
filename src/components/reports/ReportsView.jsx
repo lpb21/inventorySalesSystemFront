@@ -1,9 +1,11 @@
 import { ShoppingCart, DollarSign, Package, History, TrendingDown, TrendingUp, ChevronDown, ChevronRight } from 'lucide-react'
 import { reportsAPI } from '../../api/config'
 import { useState, useEffect } from 'react'
+import { paymentMethodLabel } from '../../utils/paymentMethods'
 import { useProducts } from '../../hooks/queries/useProducts'
 import { useDashboardData } from '../../hooks/queries/useDashboard'
 import ExportSalesModal from './ExportSalesModal'
+import MonthlyReportTab from './MonthlyReportTab'
 
 function ReportsView() {
   const { data: products = [] } = useProducts()
@@ -14,6 +16,7 @@ function ReportsView() {
   const [loadingLowRotation, setLoadingLowRotation] = useState(true)
   const [showExportModal, setShowExportModal] = useState(false)
   const [expandedSales, setExpandedSales] = useState(new Set())
+  const [activeTab, setActiveTab] = useState('general')
   
 
   // Función para alternar expansión de ventas
@@ -73,6 +76,25 @@ function ReportsView() {
 
   return (
     <div>
+      <div className="category-tabs" style={{ marginBottom: '24px' }}>
+        <button
+          className={`category-tab ${activeTab === 'general' ? 'active' : ''}`}
+          onClick={() => setActiveTab('general')}
+        >
+          General
+        </button>
+        <button
+          className={`category-tab ${activeTab === 'monthly' ? 'active' : ''}`}
+          onClick={() => setActiveTab('monthly')}
+        >
+          Cierre Mensual
+        </button>
+      </div>
+
+      {activeTab === 'monthly' ? (
+        <MonthlyReportTab />
+      ) : (
+        <>
       <div className="stats-grid">
         <div className="stat-card primary">
           <div className="stat-icon primary">
@@ -193,10 +215,7 @@ function ReportsView() {
                           ${(sale.total || 0).toLocaleString()}
                         </div>
                         <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                          {sale.payment_method === 'cash' && 'Efectivo'}
-                          {sale.payment_method === 'card' && 'Tarjeta'}
-                          {sale.payment_method === 'nequi' && 'Nequi'}
-                          {sale.payment_method === 'credit' && 'Crédito'}
+                          {paymentMethodLabel(sale.payment_method)}
                         </div>
                       </div>
                     </div>
@@ -365,6 +384,8 @@ function ReportsView() {
       
       {showExportModal && (
         <ExportSalesModal onClose={() => setShowExportModal(false)} />
+      )}
+        </>
       )}
     </div>
   )
