@@ -222,7 +222,7 @@ function SettingsView() {
             <label className="form-label">Email</label>
             <input type="text" className="form-input" defaultValue={currentUser?.email || 'Sin email'} disabled style={{ opacity: 0.7 }} />
           </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <button className="btn btn-primary">
               <Save size={18} />
               Guardar Cambios

@@ -195,6 +195,7 @@ function InventoryView({ searchTerm }) {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-start",
+          flexWrap: "wrap",
           marginBottom: "24px",
           gap: "16px",
         }}
@@ -257,7 +258,7 @@ function InventoryView({ searchTerm }) {
             >
               Vencimiento:
             </span>
-            <div style={{ display: "flex", gap: "8px" }}>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
               {[
                 { key: "Todos", label: "Todos", icon: null },
                 {

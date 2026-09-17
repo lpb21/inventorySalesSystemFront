@@ -22,7 +22,19 @@ function AppLayout({ currentUser, searchTerm, setSearchTerm, lowStockCount, onRe
       return false
     }
   })
-  
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia('(max-width: 768px)').matches
+  })
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)')
+    const handler = (e) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
   const currentPath = location.pathname
 
   // Superadmin sin tenant propio no puede operar los módulos de negocio (darían 400 en backend)
@@ -59,8 +71,38 @@ function AppLayout({ currentUser, searchTerm, setSearchTerm, lowStockCount, onRe
     }
   }, [isSidebarCollapsed])
 
+  // Cerrar el drawer móvil al cambiar de ruta
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [location.pathname])
+
+  // Bloquear scroll del body y cerrar con Escape cuando el drawer móvil está abierto
+  useEffect(() => {
+    if (!mobileOpen) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') setMobileOpen(false)
+    }
+    document.addEventListener('keydown', onKey)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = ''
+    }
+  }, [mobileOpen])
+
+  const handleMenuClick = () => {
+    if (isMobile) {
+      setMobileOpen(prev => !prev)
+    } else {
+      setIsSidebarCollapsed(prev => !prev)
+    }
+  }
+
   return (
-    <div className={`app-container ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+    <div className={`app-container ${isSidebarCollapsed ? 'sidebar-collapsed' : ''} ${mobileOpen ? 'sidebar-mobile-open' : ''}`}>
+      {mobileOpen && (
+        <div className="sidebar-backdrop" onClick={() => setMobileOpen(false)} aria-hidden="true" />
+      )}
       <aside className="sidebar">
         <div className="sidebar-logo">
           <img className="logo-icon" src="/LOGOPFGEM.jpeg" alt="Logo Punto Fresco" />
@@ -113,7 +155,7 @@ function AppLayout({ currentUser, searchTerm, setSearchTerm, lowStockCount, onRe
           <div className="header-left">
             <button
               className="icon-btn sidebar-toggle-btn"
-              onClick={() => setIsSidebarCollapsed(prev => !prev)}
+              onClick={handleMenuClick}
               title={isSidebarCollapsed ? 'Expandir menú' : 'Contraer menú'}
               aria-label={isSidebarCollapsed ? 'Expandir menú lateral' : 'Contraer menú lateral'}
             >

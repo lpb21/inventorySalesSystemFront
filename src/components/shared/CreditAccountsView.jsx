@@ -199,14 +199,16 @@ function CreditAccountsView({ onUpdateCredit }) {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: '24px',
-        padding: '0 0 16px 0',
-        borderBottom: '1px solid var(--border)'
-      }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '16px',
+          marginBottom: '24px',
+          padding: '0 0 16px 0',
+          borderBottom: '1px solid var(--border)'
+        }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ 
             width: '48px', 
@@ -286,7 +288,7 @@ function CreditAccountsView({ onUpdateCredit }) {
           <p>No hay clientes con deudas pendientes</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '24px', flex: 1, overflow: 'hidden' }}>
+        <div className="credit-accounts-grid">
           {/* Lista de clientes */}
           <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             {/* Buscador */}
