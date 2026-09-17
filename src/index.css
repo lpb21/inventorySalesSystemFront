@@ -1330,14 +1330,6 @@ td {
   .user-menu {
     padding: 6px;
   }
-
-  .login-container {
-    padding: 16px;
-  }
-
-  .login-card {
-    padding: 32px 20px;
-  }
 }
 
 /* Login Styles */
@@ -1530,6 +1522,22 @@ td {
 .demo-users strong {
   color: var(--text-primary);
   font-weight: 500;
+}
+
+/* Ajustes de login para pantallas pequeñas (después de las reglas base) */
+@media (max-width: 480px) {
+  .login-container {
+    padding: 16px;
+  }
+
+  .login-card {
+    padding: 32px 20px;
+    border-radius: 18px;
+  }
+
+  .login-title {
+    font-size: 26px;
+  }
 }
 
 /* Logout Button */

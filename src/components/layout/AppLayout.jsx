@@ -25,14 +25,13 @@ function AppLayout({ currentUser, searchTerm, setSearchTerm, lowStockCount, onRe
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === 'undefined') return false
-    return window.matchMedia('(max-width: 768px)').matches
+    return window.innerWidth <= 768
   })
 
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 768px)')
-    const handler = (e) => setIsMobile(e.matches)
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
+    const onResize = () => setIsMobile(window.innerWidth <= 768)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
   }, [])
 
   const currentPath = location.pathname

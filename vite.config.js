@@ -7,6 +7,19 @@ export default defineConfig({
     port: 5173,
     host: true
   },
+  build: {
+    chunkSizeWarningLimit: 500,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'react-query': ['@tanstack/react-query'],
+          'icons': ['lucide-react'],
+          'sweetalert': ['sweetalert2']
+        }
+      }
+    }
+  },
   test: {
     globals: true,
     environment: 'jsdom',

@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, lazy, Suspense, Component } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AlertTriangle, Check, X } from 'lucide-react'
 import Login from './Login'
@@ -35,6 +35,46 @@ function PageLoader() {
       Cargando...
     </div>
   )
+}
+
+// Red de seguridad: evita pantalla en blanco ante cualquier error de render.
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  componentDidCatch(error, info) {
+    console.error('Error de render capturado:', error, info)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          justifyContent: 'center', height: '100vh', padding: '24px',
+          textAlign: 'center', color: 'var(--text-primary, #fff)',
+          background: 'var(--background, #0f0f1a)'
+        }}>
+          <AlertTriangle size={48} style={{ color: 'var(--danger, #ef4444)', marginBottom: '16px' }} />
+          <h2 style={{ margin: '0 0 8px' }}>Algo salió mal</h2>
+          <p style={{ color: 'var(--text-secondary, #a0a0b0)', margin: '0 0 16px', maxWidth: '360px' }}>
+            Ocurrió un error inesperado. Recarga la página para intentarlo de nuevo.
+          </p>
+          <button className="btn btn-primary" onClick={() => window.location.reload()}>
+            Recargar página
+          </button>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
 }
 
 // Componente principal
@@ -114,29 +154,31 @@ function App() {
   
   return (
     <>
-      <AppLayout
-        currentUser={currentUser}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        lowStockCount={lowStockCount}
-        onRefresh={() => refreshDashboard()}
-        onLogout={handleLogout}
-      >
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<DashboardView />} />
-            <Route path="/inventory" element={<InventoryView searchTerm={searchTerm} />} />
-            <Route path="/sales" element={<SalesView />} />
-            <Route path="/reports" element={<PermissionGate permission="canViewFullReports"><ReportsView /></PermissionGate>} />
-            <Route path="/settings" element={<PermissionGate permission="canAccessSettings"><SettingsView /></PermissionGate>} />
-            <Route path="/billing/checkout-result" element={<CheckoutResult />} />
-            <Route path="/credit-accounts" element={<CreditAccountsView />} />
-            <Route path="/admin/tenants" element={<PermissionGate permission="canManageAllTenants"><AdminTenantsView /></PermissionGate>} />
-            <Route path="/admin/audit" element={<PermissionGate permission="canManageAllTenants"><AdminAuditView /></PermissionGate>} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
-      </AppLayout>
+      <ErrorBoundary>
+        <AppLayout
+          currentUser={currentUser}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          lowStockCount={lowStockCount}
+          onRefresh={() => refreshDashboard()}
+          onLogout={handleLogout}
+        >
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<DashboardView />} />
+              <Route path="/inventory" element={<InventoryView searchTerm={searchTerm} />} />
+              <Route path="/sales" element={<SalesView />} />
+              <Route path="/reports" element={<PermissionGate permission="canViewFullReports"><ReportsView /></PermissionGate>} />
+              <Route path="/settings" element={<PermissionGate permission="canAccessSettings"><SettingsView /></PermissionGate>} />
+              <Route path="/billing/checkout-result" element={<CheckoutResult />} />
+              <Route path="/credit-accounts" element={<CreditAccountsView />} />
+              <Route path="/admin/tenants" element={<PermissionGate permission="canManageAllTenants"><AdminTenantsView /></PermissionGate>} />
+              <Route path="/admin/audit" element={<PermissionGate permission="canManageAllTenants"><AdminAuditView /></PermissionGate>} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </AppLayout>
+      </ErrorBoundary>
 
       {/* Sistema de notificaciones */}
       <div className="toast-container">
