@@ -258,7 +258,7 @@ function InventoryView({ searchTerm }) {
             >
               Vencimiento:
             </span>
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: "8px" }}>
               {[
                 { key: "Todos", label: "Todos", icon: null },
                 {
@@ -296,7 +296,7 @@ function InventoryView({ searchTerm }) {
             </div>
           </div>
         </div>
-        <div style={{ display: "flex", gap: "8px" }}>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
           {canEdit && (
             <>
               <button

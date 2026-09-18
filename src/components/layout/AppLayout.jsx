@@ -132,7 +132,7 @@ function AppLayout({ currentUser, searchTerm, setSearchTerm, lowStockCount, onRe
 
         </nav>
 
-        <div style={{ marginTop: 'auto', paddingTop: '20px' }}>
+        <div style={{ marginTop: 'auto', paddingTop: '20px', flexShrink: 0 }}>
           <button
             className={`nav-item ${isSuperadminWithoutTenant ? 'nav-item-disabled' : ''}`}
             onClick={() => { if (!isSuperadminWithoutTenant) window.open('/customer', '_blank') }}
