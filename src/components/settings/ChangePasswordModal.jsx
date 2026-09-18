@@ -19,8 +19,8 @@ function ChangePasswordModal({ onClose, onSuccess }) {
     setError('')
 
     // Validaciones frontend
-    if (formData.new_password.length < 6) {
-      setError('La nueva contraseña debe tener al menos 6 caracteres')
+    if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(formData.new_password)) {
+      setError('La nueva contraseña debe tener al menos 8 caracteres e incluir letras y números')
       return
     }
 
@@ -160,9 +160,9 @@ function ChangePasswordModal({ onClose, onSuccess }) {
                   style={{ paddingLeft: '40px', paddingRight: '40px' }}
                   value={formData.new_password}
                   onChange={(e) => setFormData({ ...formData, new_password: e.target.value })}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Mínimo 8 caracteres con letras y números"
                   required
-                  minLength={6}
+                  minLength={8}
                 />
                 <button
                   type="button"
@@ -211,7 +211,7 @@ function ChangePasswordModal({ onClose, onSuccess }) {
                   onChange={(e) => setFormData({ ...formData, confirm_password: e.target.value })}
                   placeholder="Repite la nueva contraseña"
                   required
-                  minLength={6}
+                  minLength={8}
                 />
                 <button
                   type="button"
@@ -247,7 +247,7 @@ function ChangePasswordModal({ onClose, onSuccess }) {
                 Recomendaciones de Seguridad
               </h4>
               <ul style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, paddingLeft: '20px', lineHeight: '1.6' }}>
-                <li>Usa al menos 6 caracteres (recomendado 8+)</li>
+                <li>Usa al menos 8 caracteres con letras y números</li>
                 <li>Combina mayúsculas, minúsculas y números</li>
                 <li>No uses información personal obvia</li>
                 <li>No compartas tu contraseña con nadie</li>

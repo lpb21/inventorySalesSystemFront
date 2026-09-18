@@ -43,7 +43,7 @@ function CreateTenantModal({ onClose, addToast }) {
     if (!form.business_name.trim()) return addToast('Ingrese el nombre del negocio', 'error')
     if (!form.owner_name.trim()) return addToast('Ingrese el nombre del propietario', 'error')
     if (!form.owner_email.trim()) return addToast('Ingrese el correo del propietario', 'error')
-    if (form.owner_password.length < 6) return addToast('La contraseña debe tener al menos 6 caracteres', 'error')
+    if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(form.owner_password)) return addToast('La contraseña debe tener al menos 8 caracteres e incluir letras y números', 'error')
 
     const slug = generateSlug(form.business_name)
     if (!slug) return addToast('El nombre del negocio debe tener letras o números', 'error')
@@ -156,7 +156,7 @@ function CreateTenantModal({ onClose, addToast }) {
                   type="text" className="form-input" style={inputStyle}
                   value={form.owner_password}
                   onChange={(e) => update('owner_password', e.target.value)}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Mínimo 8 caracteres con letras y números"
                 />
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>

@@ -11,12 +11,15 @@ function ResetPasswordModal({ user, onClose, onSuccess }) {
   const [copied, setCopied] = useState(false)
 
   const generateRandomPassword = () => {
-    const length = 8
-    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    let password = ''
-    for (let i = 0; i < length; i++) {
-      password += charset.charAt(Math.floor(Math.random() * charset.length))
+    const letters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    const digits = '0123456789'
+    const all = letters + digits
+    const pick = (set) => set.charAt(Math.floor(Math.random() * set.length))
+    let password = pick(letters) + pick(digits)
+    for (let i = 0; i < 10; i++) {
+      password += pick(all)
     }
+    password = password.split('').sort(() => Math.random() - 0.5).join('')
     setNewPassword(password)
     setShowPassword(true)
   }
@@ -32,8 +35,8 @@ function ResetPasswordModal({ user, onClose, onSuccess }) {
     setError('')
 
     // Validación frontend
-    if (newPassword.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres')
+    if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(newPassword)) {
+      setError('La contraseña debe tener al menos 8 caracteres e incluir letras y números')
       return
     }
 
@@ -247,7 +250,7 @@ function ResetPasswordModal({ user, onClose, onSuccess }) {
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Ej: temporal123"
                   required
-                  minLength={6}
+                  minLength={8}
                 />
                 <button
                   type="button"
@@ -279,7 +282,7 @@ function ResetPasswordModal({ user, onClose, onSuccess }) {
                 Generar Contraseña Segura
               </button>
               <small style={{ color: 'var(--text-secondary)', fontSize: '12px', display: 'block' }}>
-                Mínimo 6 caracteres. El usuario deberá cambiarla al iniciar sesión.
+                Mínimo 8 caracteres con letras y números. El usuario deberá cambiarla al iniciar sesión.
               </small>
             </div>
 

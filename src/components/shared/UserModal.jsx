@@ -132,9 +132,9 @@ function UserModal({ user, onSave, onClose }) {
                   style={{ paddingLeft: '40px' }}
                   value={formData.password}
                   onChange={e => setFormData({ ...formData, password: e.target.value })}
-                  placeholder={user ? 'Dejar vacío para mantener' : 'Mínimo 6 caracteres'}
+                  placeholder={user ? 'Dejar vacío para mantener' : 'Mínimo 8 caracteres con letras y números'}
                   required={!user}
-                  minLength={6}
+                  minLength={8}
                 />
               </div>
             </div>
