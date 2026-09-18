@@ -1,4 +1,4 @@
-import { User, Edit, Trash2, Plus, Ban, CheckCircle } from 'lucide-react'
+import { User, Edit, Trash2, Plus, Ban, CheckCircle, MessageCircle, MessageCircleOff } from 'lucide-react'
 import { can } from '../../utils/permissions'
 
 /**
@@ -12,7 +12,8 @@ function CustomersSection({
   onToggleShowInactive,
   onAddCustomer,
   onEditCustomer,
-  onToggleStatus
+  onToggleStatus,
+  onToggleWhatsapp
 }) {
   const canViewCredits = can(currentUser, 'canViewCreditAccounts')
 
@@ -124,6 +125,15 @@ function CustomersSection({
                       >
                         {customer.is_active !== false ? <Ban size={14} /> : <CheckCircle size={14} />}
                       </button>
+                      {customer.phone_e164 && (
+                        <button
+                          className={`btn btn-sm ${customer.whatsapp_notifications_enabled !== false ? 'btn-success' : 'btn-secondary'}`}
+                          onClick={() => onToggleWhatsapp(customer)}
+                          title={customer.whatsapp_notifications_enabled !== false ? 'Notificaciones WhatsApp activas — clic para desactivar' : 'Notificaciones WhatsApp desactivadas — clic para activar'}
+                        >
+                          {customer.whatsapp_notifications_enabled !== false ? <MessageCircle size={14} /> : <MessageCircleOff size={14} />}
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

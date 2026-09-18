@@ -9,6 +9,7 @@ import { useSalesMutations } from '../../hooks/queries/useSales'
 import { useProducts } from '../../hooks/queries/useProducts'
 import { productsAPI } from '../../api/config'
 import { calculateChange, canCompleteSale, buildSaleItems } from '../../utils/salesLogic'
+import CreditSaleWhatsappModal from './CreditSaleWhatsappModal'
 import { useCategories } from '../../hooks/queries/useCategories'
 import { useCustomers, useCustomerMutations } from '../../hooks/queries/useCustomers'
 import { useCashRegister } from '../../hooks/useCashRegister'
@@ -109,6 +110,7 @@ function SalesView() {
     }
   }
   const [pendingCreditSale, setPendingCreditSale] = useState(null)
+  const [lastCreditSale, setLastCreditSale] = useState(null)
   const [showCustomerSelectModal, setShowCustomerSelectModal] = useState(false)
  
   // Estados para modales de turnos
@@ -155,7 +157,7 @@ function SalesView() {
     // Venta a crédito: recolectar datos y pedir selección de cliente
     if (paymentMethod === 'credit') {
       const saleItems = buildSaleItems(cart)
-      setPendingCreditSale({ items: saleItems, subtotal: cartTotal, total: cartTotal })
+      setPendingCreditSale({ items: saleItems, cartSnapshot: cart, subtotal: cartTotal, total: cartTotal })
       setShowCustomerSelectModal(true)
       return
     }
@@ -238,7 +240,17 @@ function SalesView() {
         items: formattedItems
       }
  
-      await createSale.mutateAsync(saleData)
+      const result = await createSale.mutateAsync(saleData)
+      const canNotify = customer.whatsapp_notifications_enabled !== false && !!customer.phone_e164
+      if (canNotify) {
+        setLastCreditSale({
+          customer,
+          items: pendingCreditSale.cartSnapshot,
+          total: pendingCreditSale.total,
+          balance: result?.customer_credit_balance ?? null,
+          date: result?.created_at || new Date(),
+        })
+      }
       clearCart()
       setPendingCreditSale(null)
       addToast('Venta a crédito completada exitosamente!', 'success')
@@ -331,7 +343,7 @@ function SalesView() {
  
   const numericPaymentAmount = parseInt(paymentAmount || 0, 10)
   const change = calculateChange(numericPaymentAmount, cartTotal)
- 
+  
   return (
     <div className={`pos-container ${swappedLayout ? 'pos-container-swapped' : ''}`}>
       <div className="pos-products">
@@ -645,6 +657,14 @@ function SalesView() {
             setPendingCreditSale(null)
           }}
           onSelectCustomer={processCreditSale}
+        />
+      )}
+
+      {lastCreditSale && (
+        <CreditSaleWhatsappModal
+          sale={lastCreditSale}
+          businessName={currentUser?.tenant?.name}
+          onClose={() => setLastCreditSale(null)}
         />
       )}
  

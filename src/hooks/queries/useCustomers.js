@@ -54,6 +54,11 @@ export function useCustomerMutations() {
         onSuccess: invalidate
     })
 
+    const toggleWhatsapp = useMutation({
+        mutationFn: ({ id, enabled }) => customersAPI.toggleWhatsapp(id, enabled),
+        onSuccess: invalidate
+    })
+
     const registerPayment = useMutation({
         mutationFn: ({ id, data }) => customersAPI.registerPayment(id, data),
         onSuccess: async (_result, variables) => {
@@ -68,5 +73,5 @@ export function useCustomerMutations() {
         }
     })
 
-    return { createCustomer, updateCustomer, deleteCustomer, registerPayment }
+    return { createCustomer, updateCustomer, deleteCustomer, toggleWhatsapp, registerPayment }
 }

@@ -321,6 +321,27 @@ export const adminAPI = {
     method: 'POST',
     body: JSON.stringify(data),
   }),
+
+  listAnnouncements: () => apiRequest('/admin/announcements'),
+
+  createAnnouncement: (data) => apiRequest('/admin/announcements', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
+  updateAnnouncement: (id, data) => apiRequest(`/admin/announcements/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+
+  toggleAnnouncement: (id) => apiRequest(`/admin/announcements/${id}/toggle`, {
+    method: 'PATCH',
+  }),
+}
+
+// API Anuncios (lectura pública para cualquier usuario autenticado)
+export const announcementsAPI = {
+  getActive: () => apiRequest('/announcements/active'),
 }
 
 // API Ventas
@@ -625,8 +646,12 @@ export const customersAPI = {
   delete: (id) => apiRequest(`/customers/${id}`, {
     method: 'DELETE',
   }),
-  
-  // Endpoints de crédito/fiado
+
+  toggleWhatsapp: (id, enabled) => apiRequest(`/customers/${id}/whatsapp-notifications`, {
+    method: 'PATCH',
+    body: JSON.stringify({ enabled }),
+  }),
+
   registerPayment: async (id, data) => {
     // Para registerPayment, necesitamos la respuesta completa para mostrar el mensaje
     const token = getToken();

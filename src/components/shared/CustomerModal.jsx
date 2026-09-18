@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { X, Save, User, Phone, Mail, MapPin, DollarSign, FileText } from 'lucide-react'
+import { normalizePhone, PHONE_COUNTRIES, DEFAULT_COUNTRY } from '../../utils/whatsapp'
 
 function CustomerModal({ customer, onSave, onClose }) {
   const [formData, setFormData] = useState({
     name: '',
     document: '',
     phone: '',
+    phone_country: 'CO',
     email: '',
     address: '',
     credit_limit: ''
@@ -24,6 +26,7 @@ function CustomerModal({ customer, onSave, onClose }) {
         name: customer.name || '',
         document: customer.document || '',
         phone: customer.phone || '',
+        phone_country: customer.phone_country || 'CO',
         email: customer.email || '',
         address: customer.address || '',
         credit_limit: customer.credit_limit || ''
@@ -33,6 +36,7 @@ function CustomerModal({ customer, onSave, onClose }) {
         name: '',
         document: '',
         phone: '',
+        phone_country: 'CO',
         email: '',
         address: '',
         credit_limit: ''
@@ -81,15 +85,10 @@ function CustomerModal({ customer, onSave, onClose }) {
     }
   }
 
-  const validarTelefono = (numero) => {
-    const soloNumeros = numero.toString().replace(/\D/g, '');
-    if (soloNumeros.length === 0) {
-      return { valid: true, message: '' }
-    }
-    if (soloNumeros.length >= 7 && soloNumeros.length <= 10) {
-      return { valid: true, message: '' }
-    }
-    return { valid: false, message: 'El teléfono debe tener entre 7 y 10 dígitos' }
+  const validarTelefono = (numero, country = formData.phone_country) => {
+    if (!numero.toString().trim()) return { valid: true, message: '' } // opcional
+    const result = normalizePhone(country, numero)
+    return result.ok ? { valid: true, message: '' } : { valid: false, message: result.error }
   }
 
   const validarNombre = (nombre) => {
@@ -231,30 +230,42 @@ function CustomerModal({ customer, onSave, onClose }) {
 
             <div className="form-group">
               <label className="form-label">Teléfono</label>
-              <div style={{ position: 'relative' }}>
-                <Phone size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-                <input
-                  type="tel"
-                  className={`form-input ${phoneError ? 'error' : ''}`}
-                  value={formData.phone}
-                  onChange={(e) => {
-                    const valor = e.target.value.replace(/\D/g, '')
-                    setFormData({...formData, phone: valor})
-                    if (phoneError) {
-                      const validation = validarTelefono(valor)
-                      if (validation.valid) setPhoneError('')
-                    }
-                  }}
-                  onBlur={(e) => {
-                    const validation = validarTelefono(e.target.value)
-                    setPhoneError(validation.valid ? '' : validation.message)
-                  }}
-                  placeholder="Ej: 3001234567"
-                  style={{ 
-                    paddingLeft: '40px',
-                    ...(phoneError && { borderColor: 'var(--danger)', boxShadow: '0 0 0 1px var(--danger)' })
-                  }}
-                />
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <select
+                  className="form-input"
+                  style={{ width: '100px', flexShrink: 0 }}
+                  value={formData.phone_country}
+                  onChange={(e) => setFormData({ ...formData, phone_country: e.target.value })}
+                >
+                  {PHONE_COUNTRIES.map(c => (
+                    <option key={c.iso} value={c.iso}>+{c.dial} {c.iso}</option>
+                  ))}
+                </select>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <Phone size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                  <input
+                    type="tel"
+                    className={`form-input ${phoneError ? 'error' : ''}`}
+                    value={formData.phone}
+                    onChange={(e) => {
+                      const valor = e.target.value.replace(/\D/g, '')
+                      setFormData({...formData, phone: valor})
+                      if (phoneError) {
+                        const validation = validarTelefono(valor)
+                        if (validation.valid) setPhoneError('')
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const validation = validarTelefono(e.target.value)
+                      setPhoneError(validation.valid ? '' : validation.message)
+                    }}
+                    placeholder="Ej: 3001234567"
+                    style={{
+                      paddingLeft: '40px',
+                      ...(phoneError && { borderColor: 'var(--danger)', boxShadow: '0 0 0 1px var(--danger)' })
+                    }}
+                  />
+                </div>
               </div>
               {phoneError && (
                 <p style={{ fontSize: '12px', color: 'var(--danger)', marginTop: '4px' }}>

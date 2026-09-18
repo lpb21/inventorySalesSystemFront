@@ -19,6 +19,7 @@ const RenewalRequired   = lazy(() => import('./components/billing/RenewalRequire
 const CreditAccountsView = lazy(() => import('./components/shared/CreditAccountsView'))
 const AdminTenantsView  = lazy(() => import('./components/admin/AdminTenantsView'))
 const AdminAuditView    = lazy(() => import('./components/admin/AdminAuditView'))
+const AdminAnnouncementsView = lazy(() => import('./components/admin/AdminAnnouncementsView'))
 
 function PageLoader() {
   return (
@@ -133,6 +134,7 @@ function App() {
             <Route path="/credit-accounts" element={<CreditAccountsView />} />
             <Route path="/admin/tenants" element={<PermissionGate permission="canManageAllTenants"><AdminTenantsView /></PermissionGate>} />
             <Route path="/admin/audit" element={<PermissionGate permission="canManageAllTenants"><AdminAuditView /></PermissionGate>} />
+            <Route path="/admin/announcements" element={<PermissionGate permission="canManageAllTenants"><AdminAnnouncementsView /></PermissionGate>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

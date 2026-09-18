@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom'
 import { useProducts } from '../../hooks/queries/useProducts'
 import { useDashboardData } from '../../hooks/queries/useDashboard'
 import { useExpiringSoonProducts, useExpiredProducts } from '../../hooks/queries/useExpiration'
+import AnnouncementBanner from './AnnouncementBanner'
 
 function DashboardView() {
   const [expandedSaleId, setExpandedSaleId] = useState(null)
@@ -58,6 +59,8 @@ function DashboardView() {
 
   return (
     <div>
+      <AnnouncementBanner />
+
       {/* Banner de pago exitoso */}
       {showSuccessBanner && (
         <div style={{

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { X, DollarSign, User, ShoppingCart, History, CreditCard, AlertCircle } from 'lucide-react'
 import { customersAPI, ApiNormalizers } from '../../api/config'
 import { useGlobalContext } from '../../context/GlobalContext'
+import { buildWaUrl, buildPaymentMessage } from '../../utils/whatsapp'
 
 function CreditModal({ onClose, onUpdateCredit }) {
   const { customers } = useGlobalContext()
@@ -12,6 +13,7 @@ function CreditModal({ onClose, onUpdateCredit }) {
   const [paymentNote, setPaymentNote] = useState('')
   const [customerDetails, setCustomerDetails] = useState(null)
   const [error, setError] = useState(null)
+  const [lastPayment, setLastPayment] = useState(null)
 
   // Cargar clientes con crédito al abrir el modal
   useEffect(() => {
@@ -95,7 +97,7 @@ function CreditModal({ onClose, onUpdateCredit }) {
   }
 
   const handlePayment = async () => {
-    const amount = parseFloat(paymentAmount)
+  const amount = parseFloat(paymentAmount)
     if (!amount || amount <= 0) {
       alert('Ingrese un monto válido')
       return
@@ -107,7 +109,8 @@ function CreditModal({ onClose, onUpdateCredit }) {
     }
 
     try {
-      await onUpdateCredit(selectedCustomer.id, amount, paymentNote)
+      const result = await onUpdateCredit(selectedCustomer.id, amount, paymentNote)
+      setLastPayment(result)
       setPaymentAmount('')
       setPaymentNote('')
       await loadCustomerDetails(selectedCustomer.id)

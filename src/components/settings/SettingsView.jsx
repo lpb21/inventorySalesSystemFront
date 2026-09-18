@@ -66,7 +66,7 @@ function SettingsView() {
     setShowUserModal
   })
 
-  const { createCustomer, updateCustomer, deleteCustomer } = useCustomerMutations()
+  const { createCustomer, updateCustomer, deleteCustomer, toggleWhatsapp } = useCustomerMutations()
   const {
     toggleSupplierStatus,
     refreshSuppliers,
@@ -90,6 +90,19 @@ function SettingsView() {
       )
     } catch (error) {
       addToast('Error al cambiar estado del cliente', 'error')
+    }
+  }
+
+  const handleToggleWhatsapp = async (customer) => {
+    const newEnabled = customer.whatsapp_notifications_enabled === false
+    try {
+      await toggleWhatsapp.mutateAsync({ id: customer.id, enabled: newEnabled })
+      addToast(
+        newEnabled ? 'Notificaciones WhatsApp activadas' : 'Notificaciones WhatsApp desactivadas',
+        'success'
+      )
+    } catch (error) {
+      addToast('Error al cambiar notificaciones de WhatsApp', 'error')
     }
   }
 
@@ -298,6 +311,7 @@ function SettingsView() {
             setShowCustomerModal(true)
           }}
           onToggleStatus={handleToggleCustomerStatus}
+          onToggleWhatsapp={handleToggleWhatsapp}
         />
       </div>
 

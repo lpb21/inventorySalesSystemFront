@@ -1,6 +1,6 @@
-import { 
+import {
   LayoutDashboard, Package, ShoppingCart, Settings, Shield, History,
-  Search, BarChart3, LogOut, Eye, User, Menu
+  Search, BarChart3, LogOut, Eye, User, Menu, Megaphone
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -48,6 +48,7 @@ function AppLayout({ currentUser, searchTerm, setSearchTerm, lowStockCount, onRe
     { id: 'settings', path: '/settings', label: 'Configuración', icon: Settings, permission: 'canAccessSettings', tenantScoped: true },
     { id: 'admin', path: '/admin/tenants', label: 'Suscripciones', icon: Shield, permission: 'canManageAllTenants' },
     { id: 'admin-audit', path: '/admin/audit', label: 'Auditoría', icon: History, permission: 'canManageAllTenants' },
+    { id: 'admin-announcements', path: '/admin/announcements', label: 'Anuncios', icon: Megaphone, permission: 'canManageAllTenants' },
   ]
 
   const getTitle = () => {
