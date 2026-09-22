@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { 
   X, Save, Package2, PackageOpen, Box, Boxes, Coffee, Utensils, UtensilsCrossed, Apple, Pizza, 
   Hamburger, Salad, Drumstick, Egg, EggFried, Croissant, Wheat, Wine, 
@@ -116,6 +116,56 @@ const ICON_OPTIONS = [
   { name: 'flame', icon: Flame, label: 'Picante' },
 ]
 
+// Grid de ~80 iconos, memoizado aparte: sin esto, cada tecla en nombre/descripción
+// (o el toggle de `loading` al guardar) reconstruye las 80 celdas con sus SVG de
+// lucide-react en cada render del modal - carísimo y evitable, ya que el grid solo
+// depende de cuál icono está seleccionado.
+const IconGrid = memo(function IconGrid({ selectedIcon, onSelect }) {
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(6, 1fr)',
+      gap: '8px',
+      maxHeight: '220px',
+      overflowY: 'auto',
+      padding: '10px',
+      border: '1px solid var(--border)',
+      borderRadius: '8px',
+      background: 'var(--background)'
+    }}>
+      {ICON_OPTIONS.map(({ name: iconName, icon: IconComp, label }) => (
+        <button
+          key={iconName}
+          type="button"
+          onClick={() => onSelect(iconName)}
+          style={{
+            width: '100%',
+            aspectRatio: '1',
+            borderRadius: '8px',
+            border: selectedIcon === iconName ? '2px solid var(--accent)' : '1px solid var(--border)',
+            background: selectedIcon === iconName ? 'var(--accent)' : 'var(--bg-primary)',
+            color: selectedIcon === iconName ? 'white' : 'var(--text-secondary)',
+            cursor: 'pointer',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '4px',
+            transition: 'all 0.15s ease',
+            padding: '4px'
+          }}
+          title={label}
+        >
+          <IconComp size={20} />
+          <span style={{ fontSize: '9px', textAlign: 'center', lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>
+            {label}
+          </span>
+        </button>
+      ))}
+    </div>
+  )
+})
+
 /**
  * Modal para crear una nueva categoría.
  * Gestiona su propio estado de texto internamente
@@ -219,47 +269,7 @@ function CategoryModal({ onSave, onClose, category }) {
               </div>
               
               {/* Grid de iconos */}
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(6, 1fr)', 
-                gap: '8px',
-                maxHeight: '220px',
-                overflowY: 'auto',
-                padding: '10px',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-                background: 'var(--background)'
-              }}>
-                {ICON_OPTIONS.map(({ name: iconName, icon: IconComp, label }) => (
-                  <button
-                    key={iconName}
-                    type="button"
-                    onClick={() => setSelectedIcon(iconName)}
-                    style={{
-                      width: '100%',
-                      aspectRatio: '1',
-                      borderRadius: '8px',
-                      border: selectedIcon === iconName ? '2px solid var(--accent)' : '1px solid var(--border)',
-                      background: selectedIcon === iconName ? 'var(--accent)' : 'var(--bg-primary)',
-                      color: selectedIcon === iconName ? 'white' : 'var(--text-secondary)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '4px',
-                      transition: 'all 0.15s ease',
-                      padding: '4px'
-                    }}
-                    title={label}
-                  >
-                    <IconComp size={20} />
-                    <span style={{ fontSize: '9px', textAlign: 'center', lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>
-                      {label}
-                    </span>
-                  </button>
-                ))}
-              </div>
+              <IconGrid selectedIcon={selectedIcon} onSelect={setSelectedIcon} />
             </div>
           </div>
           <div className="modal-footer">
