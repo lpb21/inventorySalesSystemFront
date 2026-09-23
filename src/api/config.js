@@ -185,6 +185,44 @@ export const productsAPI = {
 
   searchByBarcode: (code) => apiRequest(`/products/barcode/${code}`),
 
+  // Vista previa desde Open Food Facts para el formulario (no guarda nada)
+  lookupBarcode: (code) => apiRequest(`/products/lookup/${encodeURIComponent(code)}`),
+
+  // Foto propia del producto (multipart, campo "image"). El backend la convierte a WebP 512px.
+  uploadImage: async (id, file) => {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append('image', file);
+
+    // Sin Content-Type: el navegador pone el boundary del multipart
+    const response = await fetch(`${API_URL}/products/${id}/image`, {
+      method: 'PUT',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: formData,
+    });
+
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const err = new Error(body?.error?.message || body?.message || 'Error al subir la imagen');
+      err.response = { status: response.status, data: body };
+      throw err;
+    }
+
+    return normalizeSuccessResponse(body);
+  },
+
+  // Quitar la imagen (no se vuelve a autocompletar)
+  deleteImage: (id) => apiRequest(`/products/${id}/image`, {
+    method: 'DELETE',
+  }),
+
+  // "Buscar imagen" en Open Food Facts; puede reemplazar la actual
+  lookupImage: (id) => apiRequest(`/products/${id}/image/lookup`, {
+    method: 'POST',
+  }),
+
   // Importar productos desde CSV
   importFromCSV: async (formData) => {
     const token = getToken();

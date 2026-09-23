@@ -99,5 +99,34 @@ export function useProductMutations() {
         }
     })
 
-    return { createProduct, updateProduct, deleteProduct }
+    // --- Imagen del producto (una sola por producto; la venta solo lee image_url) ---
+
+    const uploadImage = useMutation({
+        mutationFn: ({ id, file }) => productsAPI.uploadImage(id, file),
+        onSuccess: async (result) => {
+            upsertProductInCache(normalizeProduct(extractProduct(result)), true)
+            await refreshProducts()
+        }
+    })
+
+    const removeImage = useMutation({
+        mutationFn: (id) => productsAPI.deleteImage(id),
+        onSuccess: async (result) => {
+            upsertProductInCache(normalizeProduct(extractProduct(result)), true)
+            await refreshProducts()
+        }
+    })
+
+    // Devuelve { status, reason, product } del backend
+    const lookupImage = useMutation({
+        mutationFn: (id) => productsAPI.lookupImage(id),
+        onSuccess: async (result) => {
+            if (result?.product) {
+                upsertProductInCache(normalizeProduct(result.product), true)
+                await refreshProducts()
+            }
+        }
+    })
+
+    return { createProduct, updateProduct, deleteProduct, uploadImage, removeImage, lookupImage }
 }

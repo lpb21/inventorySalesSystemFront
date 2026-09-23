@@ -21,10 +21,12 @@ import { useTransform } from "../../hooks/queries/useTransform";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import ProductModal from "./ProductModal";
+import ProductImage from "../shared/ProductImage";
 import CategoryModal, { ICON_OPTIONS } from "./CategoryModal";
 import SupplierModal from "./SupplierModal";
 import OutputModal from "./OutputModal";
 import { inventoryAPI } from "../../api/config";
+import { apiErrorMessage } from "../../utils/productImage";
 import TransformModal from "./TransformModal";
 import RecipeManagerModal from "./RecipeManagerModal";
 
@@ -65,6 +67,9 @@ function InventoryView({ searchTerm }) {
     createProduct: saveProduct,
     deleteProduct: deleteProductMutation,
     updateProduct: toggleProductStatus,
+    uploadImage,
+    removeImage,
+    lookupImage,
   } = useProductMutations();
   const { createSupplier: saveSupplier, deleteSupplier } =
     useSupplierMutations();
@@ -389,20 +394,7 @@ function InventoryView({ searchTerm }) {
               )}
 
               <div className="product-image">
-                {product.image_url ? (
-                  <img
-                    src={product.image_url}
-                    alt={product.name}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      borderRadius: "8px",
-                    }}
-                  />
-                ) : (
-                  <CategoryIcon size={48} />
-                )}
+                <ProductImage product={product} fallbackIcon={CategoryIcon} iconSize={48} />
               </div>
               <div className="product-name">{product.name}</div>
               <div className="product-category">
@@ -480,21 +472,44 @@ function InventoryView({ searchTerm }) {
           product={editingProduct}
           categories={categories}
           suppliers={suppliers}
-          onSave={async (data) => {
+          onSave={async (data, imageChanges = {}) => {
             try {
+              let saved;
               if (editingProduct) {
-                await toggleProductStatus.mutateAsync({
+                saved = await toggleProductStatus.mutateAsync({
                   id: editingProduct.id,
                   data,
                 });
               } else {
-                await saveProduct.mutateAsync(data);
+                saved = await saveProduct.mutateAsync(data);
+              }
+
+              // La imagen va por sus propios endpoints, después de tener el id del producto.
+              // Si falla, el producto ya quedó guardado: se avisa sin perderlo.
+              const productId = editingProduct?.id || saved?.id || saved?.product?.id;
+              let imageWarning = null;
+              if (productId && imageChanges.imageFile) {
+                try {
+                  await uploadImage.mutateAsync({ id: productId, file: imageChanges.imageFile });
+                } catch (imageError) {
+                  imageWarning = apiErrorMessage(imageError, "No se pudo subir la imagen");
+                }
+              } else if (productId && imageChanges.removeImage) {
+                try {
+                  await removeImage.mutateAsync(productId);
+                } catch (imageError) {
+                  imageWarning = apiErrorMessage(imageError, "No se pudo quitar la imagen");
+                }
               }
 
               // Refreso forzoso de productos
               loadProducts();
 
-              addToast("Producto guardado", "success");
+              if (imageWarning) {
+                addToast(`Producto guardado, pero la imagen no: ${imageWarning}`, "warning", 6000);
+              } else {
+                addToast("Producto guardado", "success");
+              }
               setShowProductModal(false);
               setEditingProduct(null);
 
@@ -511,6 +526,7 @@ function InventoryView({ searchTerm }) {
           }}
           onAddCategory={() => setShowCategoryModal(true)}
           onAddSupplier={() => setShowSupplierModal(true)}
+          onSearchImage={(id) => lookupImage.mutateAsync(id)}
         />
       )}
 

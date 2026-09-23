@@ -1,5 +1,6 @@
 import { Package2 } from 'lucide-react'
 import { ICON_OPTIONS } from '../inventory/CategoryModal'
+import ProductImage from '../shared/ProductImage'
 import {
   isWeightProduct,
   getWeightSaleUnit,
@@ -28,15 +29,7 @@ function ProductCard({ product, onAdd }) {
       style={{ cursor: 'pointer' }}
     >
       <div className="product-image" style={{ height: '100px' }}>
-        {product.image_url ? (
-          <img
-            src={product.image_url}
-            alt={product.name}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
-          />
-        ) : (
-          <CategoryIcon size={36} />
-        )}
+        <ProductImage product={product} fallbackIcon={CategoryIcon} iconSize={36} />
       </div>
  
       <div className="product-name" style={{ fontSize: '14px' }}>{product.name}</div>
