@@ -1456,6 +1456,33 @@ td {
   font-size: 14px;
 }
 
+.login-welcome {
+  color: var(--text-secondary);
+  font-size: 15px;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.login-title-business {
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+}
+
+.login-switch-business {
+  margin-top: 10px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.login-switch-business:hover {
+  color: var(--text-primary);
+}
+
 .login-form {
   margin-bottom: 24px;
 }

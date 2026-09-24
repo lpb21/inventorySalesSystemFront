@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { User, Lock, Eye, EyeOff, AlertTriangle } from 'lucide-react'
 import { useGlobalContext } from './context/GlobalContext'
 import { authAPI, billingAPI, setToken, setUser, clearSession } from './api/config'
+import { getLastBusiness, saveLastBusiness, clearLastBusiness } from './utils/lastBusiness'
 
 // Umbral de días para mostrar el modal de "por vencer" al iniciar sesión
 const EXPIRY_WARNING_DAYS = 4
@@ -18,6 +19,13 @@ export default function Login({ error }) {
   const [authModal, setAuthModal] = useState({ show: false, title: '', message: '', showPaymentLink: false, planCode: null, email: null })
   const [expiryWarning, setExpiryWarning] = useState({ show: false, days: 0, date: '', plan: '' })
   const tempCredentialsRef = useRef({ token: null, user: null })
+  // Último negocio que ingresó en este dispositivo (para el saludo personalizado)
+  const [lastBusiness, setLastBusiness] = useState(getLastBusiness)
+
+  const handleForgetBusiness = () => {
+    clearLastBusiness()
+    setLastBusiness(null)
+  }
 
   // Guarda credenciales y completa el login hacia el destino indicado
   const proceedLogin = (destination = '/') => {
@@ -25,6 +33,7 @@ export default function Login({ error }) {
     if (!token || !user) return
     setToken(token)
     setUser(user)
+    saveLastBusiness(user)
     login(user, token)
     navigate(destination, { replace: true })
   }
@@ -218,8 +227,25 @@ export default function Login({ error }) {
           <div className="login-logo">
             <img className="logo-icon" src="/LOGOPFGEM.jpeg" alt="Logo Punto Fresco" />
           </div>
-          <h1 className="login-title">Punto Fresco</h1>
-          <p className="login-subtitle">Sistema de Gestión de Inventarios</p>
+          {lastBusiness ? (
+            <>
+              <p className="login-welcome">¡Bienvenido de nuevo!</p>
+              <h1 className="login-title login-title-business">{lastBusiness}</h1>
+              <p className="login-subtitle">
+                Controla cada libra, cada venta, cada peso.
+              </p>
+              <button type="button" className="login-switch-business" onClick={handleForgetBusiness}>
+                ¿No es tu negocio? Cambiar
+              </button>
+            </>
+          ) : (
+            <>
+              <h1 className="login-title">Punto Fresco</h1>
+              <p className="login-subtitle">
+                Controla cada libra, cada venta, cada peso.
+              </p>
+            </>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
