@@ -1,3 +1,5 @@
+// EN STAND BY: el aviso al cliente ahora es por SMS (shared/CreditSmsNotifyModal.jsx).
+// Se conserva para cuando se integre WhatsApp (API de Meta). No está montado en ninguna vista.
 import { CheckCircle, MessageCircle, X } from 'lucide-react'
 import { buildWaUrl, buildChargeMessage, openWhatsApp } from '../../utils/whatsapp'
 

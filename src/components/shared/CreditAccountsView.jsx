@@ -3,6 +3,7 @@ import { DollarSign, User, History, CreditCard, AlertCircle, Search, ChevronRigh
 import { customersAPI, ApiNormalizers } from '../../api/config'
 import { useGlobalContext } from '../../context/GlobalContext'
 import { useCustomersWithCredit, useCustomerMutations } from '../../hooks/queries/useCustomers'
+import CreditSmsNotifyModal from './CreditSmsNotifyModal'
 
 function CreditAccountsView({ onUpdateCredit }) {
   const { addToast } = useGlobalContext()
@@ -15,6 +16,8 @@ function CreditAccountsView({ onUpdateCredit }) {
   const [showPaymentForm, setShowPaymentForm] = useState(false)
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
   const [expandedSaleId, setExpandedSaleId] = useState(null)
+  // Último abono, para que el tendero decida si le notifica al cliente por SMS
+  const [lastPayment, setLastPayment] = useState(null)
 
   const { data: customersWithCredit = [], isLoading: loading, error: queryError, refetch: loadCustomersWithCredit } = useCustomersWithCredit()
   const error = queryError?.message || null
@@ -113,6 +116,16 @@ function CreditAccountsView({ onUpdateCredit }) {
         addToast(detailedMessage, 'success')
       } else {
         addToast('Pago registrado exitosamente', 'success')
+      }
+      const paymentData = paymentResult?.data || paymentResult
+      const customerCanBeNotified = selectedCustomer.whatsapp_notifications_enabled !== false && !!selectedCustomer.phone_e164
+      if (customerCanBeNotified && paymentData?.payment_id) {
+        setLastPayment({
+          customer: selectedCustomer,
+          paymentId: paymentData.payment_id,
+          amount: paymentData.payment_amount ?? amount,
+          balance: paymentData.new_balance,
+        })
       }
       
       // Limpiar formulario y recargar datos
@@ -534,6 +547,18 @@ function CreditAccountsView({ onUpdateCredit }) {
             )}
           </div>
         </div>
+      )}
+
+      {lastPayment && (
+        <CreditSmsNotifyModal
+          title="Abono registrado"
+          customer={lastPayment.customer}
+          amountLabel="Abono"
+          amount={lastPayment.amount}
+          balance={lastPayment.balance}
+          target={{ type: 'payment', customerId: lastPayment.customer.id, paymentId: lastPayment.paymentId }}
+          onClose={() => setLastPayment(null)}
+        />
       )}
     </div>
   )

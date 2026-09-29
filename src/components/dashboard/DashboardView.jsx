@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import {
   TrendingUp, AlertTriangle, Package,
-  ShoppingCart, History, ChevronRight, BarChart3, Calendar, CheckCircle
+  ShoppingCart, History, ChevronRight, BarChart3, Calendar, CheckCircle, MessageSquare
 } from 'lucide-react'
 import { getExpirationStatus } from '../../utils/expiration'
 import { can } from '../../utils/permissions'
@@ -12,6 +12,7 @@ import { useProducts } from '../../hooks/queries/useProducts'
 import { useDashboardData } from '../../hooks/queries/useDashboard'
 import { useExpiringSoonProducts, useExpiredProducts } from '../../hooks/queries/useExpiration'
 import AnnouncementBanner from './AnnouncementBanner'
+import { useSmsStatus } from '../../hooks/queries/useSms'
 
 function DashboardView() {
   const [expandedSaleId, setExpandedSaleId] = useState(null)
@@ -36,6 +37,7 @@ function DashboardView() {
   const { data: dashboardData, isLoading: loadingDashboard } = useDashboardData()
   const { data: expiringSoon = [], isLoading: loadingExpiringSoon } = useExpiringSoonProducts()
   const { data: expired = [], isLoading: loadingExpired } = useExpiredProducts()
+  const { data: smsStatus } = useSmsStatus({ refetchOnMount: 'always' })
 
   const todaySales = dashboardData?.metrics?.todaySales || 0
   const sales = dashboardData?.recentSales || []
@@ -135,6 +137,24 @@ function DashboardView() {
           <div className="stat-value">{totalExpirationIssues}</div>
           <div className="stat-label">Vencidos/Próximos a Vencer</div>
         </div>
+
+        {/* SMS disponibles para avisar a clientes de fiado */}
+        {smsStatus && (
+          <div
+            className={`stat-card ${smsStatus.sms_enabled && smsStatus.sms_balance > 5 ? 'primary' : 'danger'}`}
+            onClick={can(currentUser, 'canAccessSettings') ? () => navigate('/settings') : undefined}
+            style={{ cursor: can(currentUser, 'canAccessSettings') ? 'pointer' : 'default' }}
+            title={can(currentUser, 'canAccessSettings') ? 'Ver saldo y paquetes de SMS' : undefined}
+          >
+            <div className={`stat-icon ${smsStatus.sms_enabled && smsStatus.sms_balance > 5 ? 'primary' : 'danger'}`}>
+              <MessageSquare />
+            </div>
+            <div className="stat-value">{smsStatus.sms_enabled ? smsStatus.sms_balance : '—'}</div>
+            <div className="stat-label">
+              {smsStatus.sms_enabled ? 'SMS Disponibles' : 'SMS no activos'}
+            </div>
+          </div>
+        )}
       </div>
 
 

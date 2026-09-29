@@ -20,6 +20,7 @@ const CreditAccountsView = lazy(() => import('./components/shared/CreditAccounts
 const AdminTenantsView  = lazy(() => import('./components/admin/AdminTenantsView'))
 const AdminAuditView    = lazy(() => import('./components/admin/AdminAuditView'))
 const AdminAnnouncementsView = lazy(() => import('./components/admin/AdminAnnouncementsView'))
+const AdminSmsView      = lazy(() => import('./components/admin/AdminSmsView'))
 
 function PageLoader() {
   return (
@@ -135,6 +136,7 @@ function App() {
             <Route path="/admin/tenants" element={<PermissionGate permission="canManageAllTenants"><AdminTenantsView /></PermissionGate>} />
             <Route path="/admin/audit" element={<PermissionGate permission="canManageAllTenants"><AdminAuditView /></PermissionGate>} />
             <Route path="/admin/announcements" element={<PermissionGate permission="canManageAllTenants"><AdminAnnouncementsView /></PermissionGate>} />
+            <Route path="/admin/sms" element={<PermissionGate permission="canManageAllTenants"><AdminSmsView /></PermissionGate>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

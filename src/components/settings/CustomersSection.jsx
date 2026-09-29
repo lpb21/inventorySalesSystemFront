@@ -129,7 +129,7 @@ function CustomersSection({
                         <button
                           className={`btn btn-sm ${customer.whatsapp_notifications_enabled !== false ? 'btn-success' : 'btn-secondary'}`}
                           onClick={() => onToggleWhatsapp(customer)}
-                          title={customer.whatsapp_notifications_enabled !== false ? 'Notificaciones WhatsApp activas — clic para desactivar' : 'Notificaciones WhatsApp desactivadas — clic para activar'}
+                          title={customer.whatsapp_notifications_enabled !== false ? 'Notificaciones SMS activas — clic para desactivar' : 'Notificaciones SMS desactivadas — clic para activar'}
                         >
                           {customer.whatsapp_notifications_enabled !== false ? <MessageCircle size={14} /> : <MessageCircleOff size={14} />}
                         </button>

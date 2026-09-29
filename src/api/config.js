@@ -337,6 +337,45 @@ export const adminAPI = {
   toggleAnnouncement: (id) => apiRequest(`/admin/announcements/${id}/toggle`, {
     method: 'PATCH',
   }),
+
+  // SMS a clientes de fiado (créditos prepago por tenant)
+  // filters: { page, limit, tenantId, sms: 'enabled'|'disabled', balance: 'empty'|'low'|'available' }
+  getSmsOverview: (filters = {}) => {
+    const params = new URLSearchParams()
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== '' && value !== null && value !== undefined) params.append(key, value)
+    })
+    const query = params.toString()
+    return apiRequest(`/admin/sms/overview${query ? `?${query}` : ''}`)
+  },
+
+  runSmsBalanceCheck: () => apiRequest('/admin/sms/balance-check', { method: 'POST' }),
+
+  setTenantSmsEnabled: (tenantId, enabled) => apiRequest(`/admin/tenants/${tenantId}/sms`, {
+    method: 'PATCH',
+    body: JSON.stringify({ enabled }),
+  }),
+
+  grantSmsWelcomeBonus: (tenantId) => apiRequest(`/admin/tenants/${tenantId}/sms/welcome-bonus`, {
+    method: 'POST',
+  }),
+
+  // data: { package_code, note? } | { amount, note }
+  addTenantSmsCredits: (tenantId, data) => apiRequest(`/admin/tenants/${tenantId}/sms/credits`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
+  getTenantSmsTransactions: (tenantId, page = 1, limit = 20) =>
+    apiRequest(`/admin/tenants/${tenantId}/sms/transactions?page=${page}&limit=${limit}`),
+
+  getTenantSmsLogs: (tenantId, page = 1, limit = 20) =>
+    apiRequest(`/admin/tenants/${tenantId}/sms/logs?page=${page}&limit=${limit}`),
+}
+
+// API SMS del tenant (saldo de créditos para avisos a clientes de fiado)
+export const smsAPI = {
+  getStatus: () => apiRequest('/sms/status'),
 }
 
 // API Anuncios (lectura pública para cualquier usuario autenticado)
@@ -362,6 +401,9 @@ export const salesAPI = {
     method: 'POST',
     body: JSON.stringify({ reason }),
   }),
+
+  // El tendero envía al cliente el aviso SMS del fiado
+  notifySms: (id) => apiRequest(`/sales/${id}/notify-sms`, { method: 'POST' }),
   
   getToday: () => apiRequest('/sales/today'),
   
@@ -675,6 +717,10 @@ export const customersAPI = {
     return await response.json();
   },
   
+  // El tendero envía al cliente el aviso SMS del abono
+  notifyPaymentSms: (customerId, paymentId) =>
+    apiRequest(`/customers/${customerId}/payments/${paymentId}/notify-sms`, { method: 'POST' }),
+
   getBalance: (id) => apiRequest(`/customers/${id}/balance`),
   
   getCreditSales: (id) => apiRequest(`/customers/${id}/credit-sales`),

@@ -9,7 +9,7 @@ import { useSalesMutations } from '../../hooks/queries/useSales'
 import { useProducts } from '../../hooks/queries/useProducts'
 import { productsAPI } from '../../api/config'
 import { calculateChange, canCompleteSale, buildSaleItems } from '../../utils/salesLogic'
-import CreditSaleWhatsappModal from './CreditSaleWhatsappModal'
+import CreditSmsNotifyModal from '../shared/CreditSmsNotifyModal'
 import { useCategories } from '../../hooks/queries/useCategories'
 import { useCustomers, useCustomerMutations } from '../../hooks/queries/useCustomers'
 import { useCashRegister } from '../../hooks/useCashRegister'
@@ -244,11 +244,10 @@ function SalesView() {
       const canNotify = customer.whatsapp_notifications_enabled !== false && !!customer.phone_e164
       if (canNotify) {
         setLastCreditSale({
+          saleId: result?.id,
           customer,
-          items: pendingCreditSale.cartSnapshot,
-          total: pendingCreditSale.total,
+          total: result?.total ?? pendingCreditSale.total,
           balance: result?.customer_credit_balance ?? null,
-          date: result?.created_at || new Date(),
         })
       }
       clearCart()
@@ -661,9 +660,13 @@ function SalesView() {
       )}
 
       {lastCreditSale && (
-        <CreditSaleWhatsappModal
-          sale={lastCreditSale}
-          businessName={currentUser?.tenant?.name}
+        <CreditSmsNotifyModal
+          title="Fiado registrado"
+          customer={lastCreditSale.customer}
+          amountLabel="Esta compra"
+          amount={lastCreditSale.total}
+          balance={lastCreditSale.balance}
+          target={{ type: 'sale', saleId: lastCreditSale.saleId }}
           onClose={() => setLastCreditSale(null)}
         />
       )}

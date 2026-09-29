@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Package, ShoppingCart, Settings, Shield, History,
-  Search, BarChart3, LogOut, Eye, User, Menu, Megaphone
+  Search, BarChart3, LogOut, Eye, User, Menu, Megaphone, MessageSquare
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -49,6 +49,7 @@ function AppLayout({ currentUser, searchTerm, setSearchTerm, lowStockCount, onRe
     { id: 'admin', path: '/admin/tenants', label: 'Suscripciones', icon: Shield, permission: 'canManageAllTenants' },
     { id: 'admin-audit', path: '/admin/audit', label: 'Auditoría', icon: History, permission: 'canManageAllTenants' },
     { id: 'admin-announcements', path: '/admin/announcements', label: 'Anuncios', icon: Megaphone, permission: 'canManageAllTenants' },
+    { id: 'admin-sms', path: '/admin/sms', label: 'SMS', icon: MessageSquare, permission: 'canManageAllTenants' },
   ]
 
   const getTitle = () => {
@@ -108,7 +109,7 @@ function AppLayout({ currentUser, searchTerm, setSearchTerm, lowStockCount, onRe
           <img className="logo-icon" src="/LOGOPFGEM.jpeg" alt="Logo Punto Fresco" />
           <div className="sidebar-brand-text">
             <div className="logo-text">Punto Fresco</div>
-            <div className="logo-subtitle">Inventarios</div>
+            <div className="logo-subtitle">Todo bajo control</div>
           </div>
         </div>
         
