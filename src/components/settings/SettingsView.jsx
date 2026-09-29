@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Save, Upload, KeyRound } from 'lucide-react'
 import ImportModal from '../inventory/ImportModal'
 import { useGlobalContext } from '../../context/GlobalContext'
@@ -20,13 +20,14 @@ import CustomersSection from './CustomersSection'
 import SuppliersSection from './SuppliersSection'
 import CategoriesSection from './CategoriesSection'
 import SubscriptionSection from './SubscriptionSection'
-import { suppliersAPI } from '../../api/config'
+import SmsSection from './SmsSection'
+import { suppliersAPI, tenantAPI, setUser } from '../../api/config'
 
 function SettingsView() {
   const {
     currentUser,
+    setCurrentUser,
     users,
-    businessData,
     addToast,
     loadUsers
   } = useGlobalContext()
@@ -98,11 +99,11 @@ function SettingsView() {
     try {
       await toggleWhatsapp.mutateAsync({ id: customer.id, enabled: newEnabled })
       addToast(
-        newEnabled ? 'Notificaciones WhatsApp activadas' : 'Notificaciones WhatsApp desactivadas',
+        newEnabled ? 'Notificaciones SMS activadas para este cliente' : 'Notificaciones SMS desactivadas para este cliente',
         'success'
       )
     } catch (error) {
-      addToast('Error al cambiar notificaciones de WhatsApp', 'error')
+      addToast('Error al cambiar notificaciones SMS', 'error')
     }
   }
 
@@ -172,39 +173,67 @@ function SettingsView() {
     }
   }
 
-  // Función helper para obtener datos del negocio desde múltiples fuentes
-  const getBusinessInfo = () => {
-    if (businessData?.name) {
-      return {
-        name: businessData.name,
-        address: businessData.address,
-        phone: businessData.phone
-      }
-    }
+  // ── Datos del Negocio ──────────────────────────────────────────────
+  // El nombre que se edita es business_name: el nombre comercial que ve el
+  // superadmin en el panel y el cliente en el SMS (tenant.name es interno).
+  const tenant = currentUser?.tenant
+  const canEditBusiness = ['owner', 'superadmin'].includes(currentUser?.role) && !!tenant
+  const toBusinessForm = (t) => ({
+    business_name: t?.business_name || t?.name || '',
+    address: t?.address || '',
+    phone: t?.phone || '',
+  })
+  const [businessForm, setBusinessForm] = useState(() => toBusinessForm(tenant))
+  const [isSavingBusiness, setIsSavingBusiness] = useState(false)
 
-    if (currentUser?.tenant?.name) {
-      return {
-        name: currentUser.tenant.name,
-        address: currentUser.tenant.address,
-        phone: currentUser.tenant.phone
-      }
-    }
+  useEffect(() => {
+    setBusinessForm(toBusinessForm(tenant))
+  }, [tenant?.id, tenant?.business_name, tenant?.name, tenant?.address, tenant?.phone])
 
-    if (currentUser?.business_name) {
-      return {
-        name: currentUser.business_name,
-        address: currentUser.business_address,
-        phone: currentUser.business_phone
-      }
-    }
+  const initialBusiness = toBusinessForm(tenant)
+  const businessChanged = Object.keys(businessForm).some(k => businessForm[k].trim() !== initialBusiness[k])
 
-    return null
+  const handleBusinessField = (field) => (e) => {
+    const value = e.target.value
+    setBusinessForm(prev => ({ ...prev, [field]: value }))
   }
 
-  const businessInfo = getBusinessInfo()
-  const businessName = businessInfo?.name || 'Mi Negocio'
-  const businessAddress = businessInfo?.address || 'Sin dirección'
-  const businessPhone = businessInfo?.phone || 'Sin teléfono'
+  const handleSaveBusiness = async () => {
+    const payload = {
+      business_name: businessForm.business_name.trim(),
+      address: businessForm.address.trim(),
+      phone: businessForm.phone.trim(),
+    }
+    if (payload.business_name.length < 2) {
+      addToast('El nombre del negocio debe tener al menos 2 caracteres', 'warning')
+      return
+    }
+
+    setIsSavingBusiness(true)
+    try {
+      const updated = await tenantAPI.update(payload)
+      // Refleja el cambio en toda la app (SMS, POS, recarga por WhatsApp) sin volver a iniciar sesión
+      const nextUser = {
+        ...currentUser,
+        tenant: {
+          ...currentUser.tenant,
+          business_name: updated?.business_name ?? payload.business_name,
+          address: updated?.address ?? payload.address,
+          phone: updated?.phone ?? payload.phone,
+        },
+      }
+      setCurrentUser(nextUser)
+      setUser(nextUser)
+      addToast('Datos del negocio actualizados', 'success')
+    } catch (error) {
+      const apiError = error?.response?.data?.error
+      const details = Array.isArray(apiError?.details) && apiError.details.length ? apiError.details.join(', ') : null
+      addToast(details || apiError?.message || 'Error al guardar los datos del negocio', 'error')
+    } finally {
+      setIsSavingBusiness(false)
+    }
+  }
+
   const maxUsers = currentUser?.tenant?.limits?.maxUsers
 
   return (
@@ -217,15 +246,39 @@ function SettingsView() {
           </div>
           <div className="form-group">
             <label className="form-label">Nombre del Negocio</label>
-            <input type="text" className="form-input" defaultValue={businessName} />
+            <input
+              type="text"
+              className="form-input"
+              value={businessForm.business_name}
+              onChange={handleBusinessField('business_name')}
+              maxLength={255}
+              placeholder="Así lo verán tus clientes en los SMS"
+              disabled={!canEditBusiness}
+            />
           </div>
           <div className="form-group">
             <label className="form-label">Dirección</label>
-            <input type="text" className="form-input" defaultValue={businessAddress} />
+            <input
+              type="text"
+              className="form-input"
+              value={businessForm.address}
+              onChange={handleBusinessField('address')}
+              maxLength={500}
+              placeholder="Sin dirección"
+              disabled={!canEditBusiness}
+            />
           </div>
           <div className="form-group">
             <label className="form-label">Teléfono</label>
-            <input type="text" className="form-input" defaultValue={businessPhone} />
+            <input
+              type="text"
+              className="form-input"
+              value={businessForm.phone}
+              onChange={handleBusinessField('phone')}
+              maxLength={50}
+              placeholder="Sin teléfono"
+              disabled={!canEditBusiness}
+            />
           </div>
           <div className="form-group">
             <label className="form-label">Usuario</label>
@@ -235,11 +288,23 @@ function SettingsView() {
             <label className="form-label">Email</label>
             <input type="text" className="form-input" defaultValue={currentUser?.email || 'Sin email'} disabled style={{ opacity: 0.7 }} />
           </div>
+          {!canEditBusiness && tenant && (
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: 0 }}>
+              Solo el propietario puede editar los datos del negocio.
+            </p>
+          )}
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            <button className="btn btn-primary">
-              <Save size={18} />
-              Guardar Cambios
-            </button>
+            {canEditBusiness && (
+              <button
+                className="btn btn-primary"
+                onClick={handleSaveBusiness}
+                disabled={isSavingBusiness || !businessChanged}
+                title={businessChanged ? 'Guardar los datos del negocio' : 'No hay cambios por guardar'}
+              >
+                <Save size={18} />
+                {isSavingBusiness ? 'Guardando...' : 'Guardar Cambios'}
+              </button>
+            )}
             <button
               className="btn btn-secondary"
               onClick={() => setShowChangePasswordModal(true)}
@@ -273,6 +338,9 @@ function SettingsView() {
 
       {/* Planes y Suscripción (ePayco) */}
       <SubscriptionSection />
+
+      {/* Créditos SMS para avisos a clientes de fiado */}
+      <SmsSection />
 
       {/* Secciones de entidades */}
       <div style={{ marginTop: '24px' }}>
