@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { X, Save, Loader, Building2 } from 'lucide-react'
+import Modal from '../shared/Modal'
 
 function SupplierModal({ 
   isOpen, 
@@ -238,8 +239,11 @@ function SupplierModal({
   if (!isOpen) return null
 
   return (
-    <div className="modal-overlay" onClick={handleClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
+    <Modal
+      onClose={handleClose}
+      title={editingSupplier ? 'Editar Proveedor' : 'Nuevo Proveedor'}
+      dismissible={!isSaving}
+    >
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ 
@@ -450,8 +454,7 @@ function SupplierModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

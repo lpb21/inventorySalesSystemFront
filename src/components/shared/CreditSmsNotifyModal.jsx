@@ -3,6 +3,7 @@ import { CheckCircle, MessageSquare, X } from 'lucide-react'
 import { useGlobalContext } from '../../context/GlobalContext'
 import { useSmsStatus, useSendSmsNotification } from '../../hooks/queries/useSms'
 import { buildSupportWhatsappUrl, buildSmsRechargeMessage } from '../../utils/support'
+import Modal from './Modal'
 
 const copFmt = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
 const formatCOP = (v) => (Number.isFinite(Number(v)) ? copFmt.format(Number(v)) : '—')
@@ -99,8 +100,7 @@ function CreditSmsNotifyModal({ title, customer, amountLabel, amount, balance, t
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+    <Modal onClose={onClose} title={title} maxWidth="420px">
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
@@ -148,8 +148,7 @@ function CreditSmsNotifyModal({ title, customer, amountLabel, amount, balance, t
             {sentTo ? 'Listo' : 'Cerrar sin notificar'}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

@@ -9,6 +9,7 @@ import {
   Candy, CandyCane, Lollipop, Popsicle, Donut, Martini, Soup, CookingPot, ChefHat,
   Nut, Slice, Snowflake, ThermometerSnowflake, Warehouse, Truck, Scale, Weight, Sparkles, Star, Heart, Flame
 } from 'lucide-react'
+import Modal from '../shared/Modal'
 
 // Iconos de comida y categorías genéricas
 const ICON_OPTIONS = [
@@ -199,8 +200,12 @@ function CategoryModal({ onSave, onClose, category }) {
   const SelectedIconComponent = selectedIconData.icon
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '550px', width: '95%' }}>
+    <Modal
+      onClose={onClose}
+      title={isEditing ? 'Editar Categoría' : 'Nueva Categoría'}
+      maxWidth="550px"
+      style={{ width: '95%' }}
+    >
         <div className="modal-header">
           <h3 className="modal-title">{isEditing ? 'Editar Categoría' : 'Nueva Categoría'}</h3>
           <button className="modal-close" onClick={onClose}>
@@ -282,8 +287,7 @@ function CategoryModal({ onSave, onClose, category }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

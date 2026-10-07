@@ -2,6 +2,7 @@
 // Se conserva para cuando se integre WhatsApp (API de Meta). No está montado en ninguna vista.
 import { CheckCircle, MessageCircle, X } from 'lucide-react'
 import { buildWaUrl, buildChargeMessage, openWhatsApp } from '../../utils/whatsapp'
+import Modal from '../shared/Modal'
 
 function CreditSaleWhatsappModal({ sale, businessName, onClose }) {
   if (!sale) return null
@@ -26,8 +27,7 @@ function CreditSaleWhatsappModal({ sale, businessName, onClose }) {
     : null
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+    <Modal onClose={onClose} title="Fiado registrado" maxWidth="420px">
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
@@ -102,8 +102,7 @@ function CreditSaleWhatsappModal({ sale, businessName, onClose }) {
             Cerrar
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

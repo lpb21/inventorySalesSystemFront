@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useProducts } from '../../hooks/queries/useProducts'
+import { useGlobalContext } from '../../context/GlobalContext'
+import { getBusinessName } from '../../utils/lastBusiness'
 import CustomerDisplay from './CustomerDisplay'
  
 /**
@@ -8,7 +9,7 @@ import CustomerDisplay from './CustomerDisplay'
  * y lo muestra en tiempo real. Sin menú ni layout: pantalla limpia para el cliente.
  */
 function CustomerDisplayPage() {
-  const { data: products = [] } = useProducts()
+  const { currentUser } = useGlobalContext()
   const [cart, setCart] = useState([])
   const [cartTotal, setCartTotal] = useState(0)
  
@@ -36,7 +37,11 @@ function CustomerDisplayPage() {
  
   return (
     <CustomerDisplay
-      products={products}
+      business={{
+        name: getBusinessName(currentUser),
+        address: currentUser?.tenant?.address?.trim() || null,
+        phone: currentUser?.tenant?.phone?.trim() || null,
+      }}
       cart={cart}
       cartTotal={cartTotal}
       onClose={handleClose}

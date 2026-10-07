@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { X, Plus, Save } from 'lucide-react'
 import { useGlobalContext } from '../../context/GlobalContext'
 import { can } from '../../utils/permissions'
+import Modal from '../shared/Modal'
  
 function ProductModal({ product, categories, suppliers = [], onSave, onClose, onAddCategory, onAddSupplier }) {
   const { currentUser } = useGlobalContext()
@@ -121,8 +122,7 @@ function ProductModal({ product, categories, suppliers = [], onSave, onClose, on
   }
  
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
+    <Modal onClose={onClose} title={product ? 'Editar Producto' : 'Nuevo Producto'}>
         <div className="modal-header">
           <h3 className="modal-title">{product ? 'Editar Producto' : 'Nuevo Producto'}</h3>
           <button className="modal-close" onClick={onClose}>
@@ -354,9 +354,8 @@ function ProductModal({ product, categories, suppliers = [], onSave, onClose, on
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }
- 
+
 export default ProductModal

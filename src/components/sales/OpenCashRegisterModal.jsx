@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { X, DollarSign, Clock, User, FileText } from 'lucide-react'
+import Modal from '../shared/Modal'
 
 function OpenCashRegisterModal({ userName, onOpen, onClose, isOpening = false }) {
   const [formData, setFormData] = useState({
@@ -43,8 +44,7 @@ function OpenCashRegisterModal({ userName, onOpen, onClose, isOpening = false })
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+    <Modal onClose={onClose} title="Abrir Turno de Caja" maxWidth="600px">
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
@@ -235,8 +235,7 @@ function OpenCashRegisterModal({ userName, onOpen, onClose, isOpening = false })
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

@@ -3,6 +3,7 @@ import { X, Download, AlertCircle } from 'lucide-react'
 import { API_URL, getToken } from '../../api/config'
 import { exportSalesToCSV } from '../../utils/export'
 import { useGlobalContext } from '../../context/GlobalContext'
+import Modal from '../shared/Modal'
 
 function ExportSalesModal({ onClose }) {
   const { addToast } = useGlobalContext()
@@ -65,8 +66,7 @@ function ExportSalesModal({ onClose }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+    <Modal onClose={onClose} title="Exportar Reporte de Ventas" maxWidth="500px">
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ 
@@ -157,8 +157,7 @@ function ExportSalesModal({ onClose }) {
             )}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

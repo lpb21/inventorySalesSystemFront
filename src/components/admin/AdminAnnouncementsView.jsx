@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Megaphone, Plus, X, Save, Pencil, ToggleLeft, ToggleRight, Clock } from 'lucide-react'
 import { useGlobalContext } from '../../context/GlobalContext'
 import { useAnnouncementsList, useAnnouncementMutations } from '../../hooks/queries/useAnnouncements'
+import Modal from '../shared/Modal'
 
 /**
  * AdminAnnouncementsView — Panel de superadmin para el banner de anuncios
@@ -173,8 +174,7 @@ function AnnouncementModal({ announcement, onClose, onSave }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+    <Modal onClose={onClose} title={announcement ? 'Editar Anuncio' : 'Nuevo Anuncio'} maxWidth="480px">
         <div className="modal-header">
           <h3 className="modal-title">{announcement ? 'Editar Anuncio' : 'Nuevo Anuncio'}</h3>
           <button className="modal-close" onClick={onClose}><X size={20} /></button>
@@ -217,8 +217,7 @@ function AnnouncementModal({ announcement, onClose, onSave }) {
             {saving ? 'Guardando...' : (<><Save size={18} /> Guardar</>)}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

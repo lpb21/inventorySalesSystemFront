@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { X, User, Search, Check, AlertCircle } from 'lucide-react'
+import Modal from '../shared/Modal'
 
 function CustomerSelectModal({ customers, onClose, onSelectCustomer }) {
   const [searchTerm, setSearchTerm] = useState('')
@@ -16,8 +17,7 @@ function CustomerSelectModal({ customers, onClose, onSelectCustomer }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+    <Modal onClose={onClose} title="Seleccionar Cliente" maxWidth="600px">
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ 
@@ -169,8 +169,7 @@ function CustomerSelectModal({ customers, onClose, onSelectCustomer }) {
             Cancelar
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

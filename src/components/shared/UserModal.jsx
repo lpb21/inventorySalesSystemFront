@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { X, Save, Lock } from 'lucide-react'
 import { useGlobalContext } from '../../context/GlobalContext'
 import { getCreatableRoles, canEditUser, ROLE_LABELS } from '../../utils/permissions'
+import Modal from './Modal'
 
 function UserModal({ user, onSave, onClose }) {
   const { currentUser } = useGlobalContext()
@@ -23,8 +24,7 @@ function UserModal({ user, onSave, onClose }) {
   // Si no puede editar este usuario, mostrar mensaje
   if (!canEdit) {
     return (
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="modal" onClick={e => e.stopPropagation()}>
+      <Modal onClose={onClose} title="Sin Permisos">
           <div className="modal-header">
             <h3 className="modal-title">Sin Permisos</h3>
             <button className="modal-close" onClick={onClose}>
@@ -41,16 +41,14 @@ function UserModal({ user, onSave, onClose }) {
               Cerrar
             </button>
           </div>
-        </div>
-      </div>
+      </Modal>
     )
   }
 
   // Si no puede crear usuarios, mostrar mensaje
   if (!user && creatableRoles.length === 0) {
     return (
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="modal" onClick={e => e.stopPropagation()}>
+      <Modal onClose={onClose} title="Sin Permisos">
           <div className="modal-header">
             <h3 className="modal-title">Sin Permisos</h3>
             <button className="modal-close" onClick={onClose}>
@@ -67,8 +65,7 @@ function UserModal({ user, onSave, onClose }) {
               Cerrar
             </button>
           </div>
-        </div>
-      </div>
+      </Modal>
     )
   }
 
@@ -90,8 +87,7 @@ function UserModal({ user, onSave, onClose }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
+    <Modal onClose={onClose} title={user ? 'Editar Usuario' : 'Nuevo Usuario'}>
         <div className="modal-header">
           <h3 className="modal-title">{user ? 'Editar Usuario' : 'Nuevo Usuario'}</h3>
           <button className="modal-close" onClick={onClose}>
@@ -204,8 +200,7 @@ function UserModal({ user, onSave, onClose }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

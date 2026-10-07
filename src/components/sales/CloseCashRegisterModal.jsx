@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { X, DollarSign, Clock, Calculator, FileText, TrendingUp, TrendingDown, Receipt } from 'lucide-react'
+import Modal from '../shared/Modal'
 
 function CloseCashRegisterModal({ activeShift, onClose, onCloseShift, isClosing = false }) {
   const [formData, setFormData] = useState({
@@ -59,8 +60,12 @@ function CloseCashRegisterModal({ activeShift, onClose, onCloseShift, isClosing 
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', display: 'flex', flexDirection: 'column' }}>
+    <Modal
+      onClose={onClose}
+      title="Cerrar Turno de Caja"
+      maxWidth="600px"
+      style={{ display: 'flex', flexDirection: 'column' }}
+    >
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
@@ -320,8 +325,7 @@ function CloseCashRegisterModal({ activeShift, onClose, onCloseShift, isClosing 
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

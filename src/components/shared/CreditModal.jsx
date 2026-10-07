@@ -3,6 +3,7 @@ import { X, DollarSign, User, ShoppingCart, History, CreditCard, AlertCircle } f
 import { customersAPI, ApiNormalizers } from '../../api/config'
 import { useGlobalContext } from '../../context/GlobalContext'
 import { buildWaUrl, buildPaymentMessage } from '../../utils/whatsapp'
+import Modal from './Modal'
 
 function CreditModal({ onClose, onUpdateCredit }) {
   const { customers } = useGlobalContext()
@@ -137,8 +138,9 @@ function CreditModal({ onClose, onUpdateCredit }) {
   const totalDebt = customersWithCredit.reduce((sum, c) => sum + (c.credit_balance || 0), 0)
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '900px', maxHeight: '90vh', overflow: 'auto' }}>
+    // Sin overflow propio: .modal-body ya desplaza. Dos contenedores de
+    // scroll anidados hacían impredecible la rueda del ratón (P2-2).
+    <Modal onClose={onClose} title="Cuentas por Cobrar" maxWidth="900px">
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ 
@@ -433,8 +435,7 @@ function CreditModal({ onClose, onUpdateCredit }) {
             Cerrar
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

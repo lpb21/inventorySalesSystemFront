@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X, Save, User, Phone, Mail, MapPin, DollarSign, FileText } from 'lucide-react'
 import { normalizePhone, PHONE_COUNTRIES, DEFAULT_COUNTRY } from '../../utils/whatsapp'
+import Modal from './Modal'
 
 function CustomerModal({ customer, onSave, onClose }) {
   const [formData, setFormData] = useState({
@@ -141,8 +142,7 @@ function CustomerModal({ customer, onSave, onClose }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
+    <Modal onClose={onClose} title={customer ? 'Editar Cliente' : 'Nuevo Cliente'}>
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ 
@@ -419,8 +419,7 @@ function CustomerModal({ customer, onSave, onClose }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

@@ -3,6 +3,7 @@ import { X, BookOpen, Trash2, Scissors, Package, Plus, Edit } from 'lucide-react
 import Swal from 'sweetalert2'
 import { useRecipes, useRecipeMutations } from '../../hooks/queries/useRecipes'
 import RecipeFormModal from './RecipeFormModal'
+import Modal from '../shared/Modal'
  
 /**
  * RecipeManagerModal — Gestor de recetas de despiece.
@@ -58,8 +59,7 @@ function RecipeManagerModal({ products, onClose, addToast }) {
  
   return (
     <>
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '560px' }}>
+      <Modal onClose={onClose} title="Recetas de Despiece" maxWidth="560px">
           {/* Header */}
           <div className="modal-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -169,9 +169,8 @@ function RecipeManagerModal({ products, onClose, addToast }) {
               Cerrar
             </button>
           </div>
-        </div>
-      </div>
- 
+      </Modal>
+
       {/* Formulario de crear/editar (encima del gestor) */}
       {showForm && (
         <RecipeFormModal

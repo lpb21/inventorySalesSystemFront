@@ -1,7 +1,14 @@
 import { X, ShoppingCart } from 'lucide-react'
 import { formatQuantity, getPriceForSaleUnit, isWeightProduct } from '../../utils/measurements'
 
-function CustomerDisplay({ products, cart, cartTotal, onClose }) {
+// business: { name, address, phone } del negocio en sesión. Esta pantalla la
+// ve el comprador, así que solo muestra los datos que el negocio cargó en
+// Configuración; lo que falte se omite en vez de inventarse.
+function CustomerDisplay({ cart, cartTotal, onClose, business }) {
+  const businessName = business?.name || 'Bienvenido'
+  const address = business?.address
+  const phone = business?.phone
+
   return (
     <div className="customer-display">
       <div style={{ position: 'absolute', top: '20px', right: '20px' }}>
@@ -12,8 +19,7 @@ function CustomerDisplay({ products, cart, cartTotal, onClose }) {
       </div>
 
       <div className="customer-header">
-        <div className="customer-logo">Punto Fresco</div>
-        <div className="customer-title">Salsamentaría &amp; Quesos Frescos</div>
+        <div className="customer-logo">{businessName}</div>
       </div>
 
       {cart && cart.length > 0 ? (
@@ -71,7 +77,8 @@ function CustomerDisplay({ products, cart, cartTotal, onClose }) {
 
       <div style={{ textAlign: 'center', marginTop: '48px', color: 'var(--text-secondary)', fontSize: '14px' }}>
         <p>¡Gracias por su preferencia!</p>
-        <p style={{ marginTop: '8px' }}>Visítenos en Calle Principal #123</p>
+        {address && <p style={{ marginTop: '8px' }}>Visítenos en {address}</p>}
+        {phone && <p style={{ marginTop: '8px' }}>Tel: {phone}</p>}
       </div>
     </div>
   )

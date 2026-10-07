@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { X, Save, Package, AlertTriangle, Trash2, RefreshCw } from 'lucide-react'
+import Modal from '../shared/Modal'
 
 // Tipos de salida disponibles
 const OUTPUT_TYPES = [
@@ -83,8 +84,7 @@ function OutputModal({ products, onSave, onClose }) {
   const outputTypeInfo = OUTPUT_TYPES.find(t => t.id === formData.output_type)
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+    <Modal onClose={onClose} title="Registrar Salida" maxWidth="480px">
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ 
@@ -352,8 +352,7 @@ function OutputModal({ products, onSave, onClose }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

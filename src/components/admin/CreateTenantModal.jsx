@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X, Save, Building2, User, Mail, Lock, Calendar } from 'lucide-react'
 import { useAdminTenantMutations } from '../../hooks/queries/useAdminTenants'
+import Modal from '../shared/Modal'
 
 /**
  * CreateTenantModal — Alta manual de un cliente completo (superadmin).
@@ -75,8 +76,7 @@ function CreateTenantModal({ onClose, addToast }) {
   const inputStyle = { paddingLeft: '38px' }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+    <Modal onClose={onClose} title="Nuevo Cliente" maxWidth="480px">
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
@@ -191,8 +191,7 @@ function CreateTenantModal({ onClose, addToast }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

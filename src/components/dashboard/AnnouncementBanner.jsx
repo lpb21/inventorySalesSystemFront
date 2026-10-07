@@ -20,17 +20,24 @@ function AnnouncementBanner() {
     }
   })
 
-  if (isLoading || !announcement || announcement.id === dismissedId) {
+  // La clave incluye la última edición: el superadmin suele reutilizar el
+  // mismo anuncio (editar el mensaje o reactivarlo) y el id no cambia, así que
+  // con solo el id quien lo cerró una vez no volvía a verlo nunca.
+  const version = announcement
+    ? `${announcement.id}:${announcement.updated_at || announcement.updatedAt || ''}`
+    : null
+
+  if (isLoading || !announcement || version === dismissedId) {
     return null
   }
 
   const handleDismiss = () => {
     try {
-      localStorage.setItem(DISMISSED_KEY, announcement.id)
+      localStorage.setItem(DISMISSED_KEY, version)
     } catch {
       // localStorage puede fallar en modo privado - no bloquea el cierre visual
     }
-    setDismissedId(announcement.id)
+    setDismissedId(version)
   }
 
   return (

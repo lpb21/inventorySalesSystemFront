@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X, Save, Package, Plus, Trash2, BookOpen, ArrowRight } from 'lucide-react'
 import { useRecipeMutations, useRecipeDetail } from '../../hooks/queries/useRecipes'
+import Modal from '../shared/Modal'
  
 /**
  * RecipeFormModal — Crear o editar una receta de despiece.
@@ -113,8 +114,7 @@ function RecipeFormModal({ products, recipeId, onClose, addToast }) {
   }
  
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '560px' }}>
+    <Modal onClose={onClose} title={isEdit ? 'Editar Receta' : 'Nueva Receta'} maxWidth="560px">
         {/* Header */}
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -326,9 +326,8 @@ function RecipeFormModal({ products, recipeId, onClose, addToast }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }
- 
+
 export default RecipeFormModal

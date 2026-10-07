@@ -8,6 +8,7 @@ import {
   useAdminSmsOverview, useAdminSmsMutations, useAdminTenantSmsHistory,
 } from '../../hooks/queries/useSms'
 import { useAdminTenants } from '../../hooks/queries/useAdminTenants'
+import Modal from '../shared/Modal'
 
 const PAGE_SIZE = 20
 
@@ -388,8 +389,7 @@ function AddCreditsModal({ tenant, packages, saving, onClose, onSave }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+    <Modal onClose={onClose} title={`Créditos SMS · ${tenant.name}`} maxWidth="480px">
         <div className="modal-header">
           <h3 className="modal-title">Créditos SMS · {tenant.name}</h3>
           <button className="modal-close" onClick={onClose}><X size={20} /></button>
@@ -475,8 +475,7 @@ function AddCreditsModal({ tenant, packages, saving, onClose, onSave }) {
             {saving ? 'Guardando...' : (<><Save size={18} /> Aplicar</>)}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
 
@@ -488,8 +487,7 @@ function HistoryModal({ tenant, onClose }) {
   const [tab, setTab] = useState('transactions')
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '760px' }}>
+    <Modal onClose={onClose} title={`Historial SMS · ${tenant.name}`} maxWidth="760px">
         <div className="modal-header">
           <h3 className="modal-title">Historial SMS · {tenant.name}</h3>
           <button className="modal-close" onClick={onClose}><X size={20} /></button>
@@ -583,8 +581,7 @@ function HistoryModal({ tenant, onClose }) {
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Cerrar</button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

@@ -4,6 +4,7 @@ import { User, Lock, Eye, EyeOff, AlertTriangle } from 'lucide-react'
 import { useGlobalContext } from './context/GlobalContext'
 import { authAPI, billingAPI, setToken, setUser, clearSession } from './api/config'
 import { getLastBusiness, saveLastBusiness, clearLastBusiness } from './utils/lastBusiness'
+import Modal from './components/shared/Modal'
 
 // Umbral de días para mostrar el modal de "por vencer" al iniciar sesión
 const EXPIRY_WARNING_DAYS = 4
@@ -298,8 +299,13 @@ export default function Login({ error }) {
       </div>
 
       {expiryWarning.show && (
-        <div className="alert-modal-overlay">
-          <div className="alert-modal" onClick={(e) => e.stopPropagation()}>
+        <Modal
+          onClose={handleDismissExpiryWarning}
+          title="Tu suscripción está por vencer"
+          overlayClassName="alert-modal-overlay"
+          dialogClassName="alert-modal"
+          dismissible={false}
+        >
             <div className="alert-modal-header">
               <div className="alert-icon"><AlertTriangle size={28} /></div>
               <h3 className="alert-modal-title">Tu suscripción está por vencer</h3>
@@ -326,16 +332,16 @@ export default function Login({ error }) {
                 Renovar
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {authModal.show && (
-        <div
-          className="alert-modal-overlay"
-          onClick={() => handleCloseAuthModal()}
+        <Modal
+          onClose={() => handleCloseAuthModal()}
+          title={authModal.title}
+          overlayClassName="alert-modal-overlay"
+          dialogClassName="alert-modal"
         >
-          <div className="alert-modal" onClick={(e) => e.stopPropagation()}>
             <div className="alert-modal-header">
               <div className="alert-icon"><AlertTriangle size={28} /></div>
               <h3 className="alert-modal-title">{authModal.title}</h3>
@@ -360,8 +366,7 @@ export default function Login({ error }) {
                 Entendido
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   )

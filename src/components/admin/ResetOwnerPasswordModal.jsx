@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X, Lock, Eye, EyeOff, RefreshCw, AlertTriangle, Copy, Check, KeyRound } from 'lucide-react'
 import { useAdminTenantMutations } from '../../hooks/queries/useAdminTenants'
+import Modal from '../shared/Modal'
 
 /**
  * ResetOwnerPasswordModal — Resetea la contraseña del propietario (owner) de un tenant.
@@ -67,8 +68,7 @@ function ResetOwnerPasswordModal({ tenant, onClose, onSuccess }) {
 
   if (resetComplete) {
     return (
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+      <Modal onClose={onClose} title="Contraseña Reseteada" maxWidth="500px">
           <div className="modal-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{
@@ -169,14 +169,12 @@ function ResetOwnerPasswordModal({ tenant, onClose, onSuccess }) {
               Entendido
             </button>
           </div>
-        </div>
-      </div>
+      </Modal>
     )
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+    <Modal onClose={onClose} title="Resetear Contraseña del Propietario" maxWidth="500px">
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
@@ -333,8 +331,7 @@ function ResetOwnerPasswordModal({ tenant, onClose, onSuccess }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

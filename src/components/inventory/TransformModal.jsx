@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X, Save, Package, Plus, Trash2, Scissors, ArrowRight, BookOpen } from 'lucide-react'
 import { useRecipes, useRecipeDetail } from '../../hooks/queries/useRecipes'
+import Modal from '../shared/Modal'
  
 /**
  * TransformModal — Despiece / transformación de inventario.
@@ -154,8 +155,7 @@ function TransformModal({ products, onSave, onClose }) {
   }
  
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '560px' }}>
+    <Modal onClose={onClose} title="Despiezar Producto" maxWidth="560px">
         {/* Header */}
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -470,9 +470,8 @@ function TransformModal({ products, onSave, onClose }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }
- 
+
 export default TransformModal

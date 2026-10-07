@@ -7,6 +7,7 @@ import { useDashboardData } from './hooks/queries/useDashboard'
 
 import AppLayout         from './components/layout/AppLayout'
 import PermissionGate from './components/shared/PermissionGate'
+import Modal from './components/shared/Modal'
 
 const DashboardView     = lazy(() => import('./components/dashboard/DashboardView'))
 const InventoryView     = lazy(() => import('./components/inventory/InventoryView'))
@@ -176,8 +177,12 @@ function App() {
 
       {/* Modal de alerta genérico */}
       {alertModal.show && (
-        <div className="alert-modal-overlay" onClick={() => setAlertModal({ show: false, title: '', message: '' })}>
-          <div className="alert-modal" onClick={e => e.stopPropagation()}>
+        <Modal
+          onClose={() => setAlertModal({ show: false, title: '', message: '' })}
+          title={alertModal.title}
+          overlayClassName="alert-modal-overlay"
+          dialogClassName="alert-modal"
+        >
             <div className="alert-modal-header">
               <div className="alert-icon"><AlertTriangle size={28} /></div>
               <h3 className="alert-modal-title">{alertModal.title}</h3>
@@ -190,8 +195,7 @@ function App() {
                 Aceptar
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
     </>

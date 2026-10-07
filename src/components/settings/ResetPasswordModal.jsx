@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X, Lock, Eye, EyeOff, RefreshCw, AlertTriangle, Copy, Check } from 'lucide-react'
 import { authAPI } from '../../api/config'
+import Modal from '../shared/Modal'
 
 function ResetPasswordModal({ user, onClose, onSuccess }) {
   const [newPassword, setNewPassword] = useState('')
@@ -62,8 +63,7 @@ function ResetPasswordModal({ user, onClose, onSuccess }) {
 
   if (resetComplete) {
     return (
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+      <Modal onClose={onClose} title="Contraseña Reseteada" maxWidth="500px">
           <div className="modal-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{
@@ -165,14 +165,12 @@ function ResetPasswordModal({ user, onClose, onSuccess }) {
               Entendido
             </button>
           </div>
-        </div>
-      </div>
+      </Modal>
     )
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+    <Modal onClose={onClose} title="Resetear Contraseña" maxWidth="500px">
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
@@ -329,8 +327,7 @@ function ResetPasswordModal({ user, onClose, onSuccess }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

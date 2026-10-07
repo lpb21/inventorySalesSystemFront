@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X, Lock, Eye, EyeOff, KeyRound } from 'lucide-react'
 import { authAPI } from '../../api/config'
+import Modal from '../shared/Modal'
 
 function ChangePasswordModal({ onClose, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -55,8 +56,7 @@ function ChangePasswordModal({ onClose, onSuccess }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+    <Modal onClose={onClose} title="Cambiar mi Contraseña" maxWidth="500px">
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
@@ -283,8 +283,7 @@ function ChangePasswordModal({ onClose, onSuccess }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

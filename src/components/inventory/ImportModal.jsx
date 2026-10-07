@@ -6,6 +6,7 @@ import {
   normalizeHeader,
   REQUIRED_CSV_HEADERS
 } from '../../utils/csvUtils'
+import Modal from '../shared/Modal'
 
 function ImportModal({ onClose, onImportComplete }) {
   const [dragActive, setDragActive] = useState(false)
@@ -437,7 +438,12 @@ function ImportModal({ onClose, onImportComplete }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={uploading ? undefined : onClose} style={{ cursor: uploading ? 'default' : 'pointer' }}>
+    <Modal
+      onClose={onClose}
+      title="Importar Productos"
+      maxWidth="600px"
+      dismissible={!uploading}
+    >
       <style>{`
         .error-list-scroll::-webkit-scrollbar {
           width: 6px;
@@ -454,7 +460,6 @@ function ImportModal({ onClose, onImportComplete }) {
           background: #ff5577;
         }
       `}</style>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
         <div className="modal-header">
           <h2 className="modal-title">
             <Upload size={24} />
@@ -807,8 +812,7 @@ function ImportModal({ onClose, onImportComplete }) {
             </button>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

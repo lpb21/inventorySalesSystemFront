@@ -5,6 +5,7 @@ import { useGlobalContext } from '../../context/GlobalContext'
 import { useAdminTenants, useAdminTenantMutations } from '../../hooks/queries/useAdminTenants'
 import CreateTenantModal from './CreateTenantModal'
 import ResetOwnerPasswordModal from './ResetOwnerPasswordModal'
+import Modal from '../shared/Modal'
  
 /**
  * AdminTenantsView — Panel de superadmin para gestionar suscripciones.
@@ -307,8 +308,7 @@ function ActivateModal({ tenant, onClose, onActivate }) {
   }
  
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '440px' }}>
+    <Modal onClose={onClose} title="Activar Suscripción" maxWidth="440px">
         <div className="modal-header">
           <h3 className="modal-title">Activar Suscripción</h3>
           <button className="modal-close" onClick={onClose}><X size={20} /></button>
@@ -348,9 +348,8 @@ function ActivateModal({ tenant, onClose, onActivate }) {
             {saving ? 'Activando...' : (<><Save size={18} /> Activar</>)}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
- 
+
 export default AdminTenantsView
