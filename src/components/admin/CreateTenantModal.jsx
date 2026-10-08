@@ -12,6 +12,8 @@ function CreateTenantModal({ onClose, addToast }) {
 
   const [form, setForm] = useState({
     business_name: '',
+    tax_id_type: 'NIT',
+    tax_id: '',
     owner_name: '',
     owner_email: '',
     owner_password: '',
@@ -54,6 +56,8 @@ function CreateTenantModal({ onClose, addToast }) {
       await create.mutateAsync({
         business_name: form.business_name.trim(),
         slug,
+        tax_id: form.tax_id.trim(),
+        tax_id_type: form.tax_id_type,
         owner_name: form.owner_name.trim(),
         owner_email: form.owner_email.trim(),
         owner_password: form.owner_password,
@@ -117,6 +121,33 @@ function CreateTenantModal({ onClose, addToast }) {
                   Identificador: <strong>{generateSlug(form.business_name) || '—'}</strong>
                 </div>
               )}
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">NIT o RUT del negocio</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <select
+                  className="form-select"
+                  aria-label="Tipo de identificación"
+                  style={{ width: 'auto', minWidth: '90px' }}
+                  value={form.tax_id_type}
+                  onChange={(e) => update('tax_id_type', e.target.value)}
+                >
+                  <option value="NIT">NIT</option>
+                  <option value="RUT">RUT</option>
+                </select>
+                <input
+                  type="text" className="form-input"
+                  aria-label="Número de NIT o RUT"
+                  value={form.tax_id}
+                  onChange={(e) => update('tax_id', e.target.value)}
+                  maxLength={50}
+                  placeholder="Ej: 900123456-7"
+                />
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                Opcional. Aparece en el recibo de compra; el negocio puede cambiarlo en Configuración.
+              </div>
             </div>
 
             <div style={{ borderTop: '1px solid var(--border)', margin: '4px 0 16px' }} />

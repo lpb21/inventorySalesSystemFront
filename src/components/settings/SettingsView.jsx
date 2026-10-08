@@ -182,13 +182,15 @@ function SettingsView() {
     business_name: t?.business_name || t?.name || '',
     address: t?.address || '',
     phone: t?.phone || '',
+    tax_id: t?.tax_id || '',
+    tax_id_type: t?.tax_id_type || 'NIT',
   })
   const [businessForm, setBusinessForm] = useState(() => toBusinessForm(tenant))
   const [isSavingBusiness, setIsSavingBusiness] = useState(false)
 
   useEffect(() => {
     setBusinessForm(toBusinessForm(tenant))
-  }, [tenant?.id, tenant?.business_name, tenant?.name, tenant?.address, tenant?.phone])
+  }, [tenant?.id, tenant?.business_name, tenant?.name, tenant?.address, tenant?.phone, tenant?.tax_id, tenant?.tax_id_type])
 
   const initialBusiness = toBusinessForm(tenant)
   const businessChanged = Object.keys(businessForm).some(k => businessForm[k].trim() !== initialBusiness[k])
@@ -203,6 +205,8 @@ function SettingsView() {
       business_name: businessForm.business_name.trim(),
       address: businessForm.address.trim(),
       phone: businessForm.phone.trim(),
+      tax_id: businessForm.tax_id.trim(),
+      tax_id_type: businessForm.tax_id_type,
     }
     if (payload.business_name.length < 2) {
       addToast('El nombre del negocio debe tener al menos 2 caracteres', 'warning')
@@ -220,6 +224,8 @@ function SettingsView() {
           business_name: updated?.business_name ?? payload.business_name,
           address: updated?.address ?? payload.address,
           phone: updated?.phone ?? payload.phone,
+          tax_id: updated?.tax_id ?? payload.tax_id,
+          tax_id_type: updated?.tax_id_type ?? payload.tax_id_type,
         },
       }
       setCurrentUser(nextUser)
@@ -255,6 +261,32 @@ function SettingsView() {
               placeholder="Así lo verán tus clientes en los SMS"
               disabled={!canEditBusiness}
             />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Identificación del negocio</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <select
+                className="form-select"
+                aria-label="Tipo de identificación"
+                style={{ width: 'auto', minWidth: '90px' }}
+                value={businessForm.tax_id_type}
+                onChange={handleBusinessField('tax_id_type')}
+                disabled={!canEditBusiness}
+              >
+                <option value="NIT">NIT</option>
+                <option value="RUT">RUT</option>
+              </select>
+              <input
+                type="text"
+                className="form-input"
+                aria-label="Número de NIT o RUT"
+                value={businessForm.tax_id}
+                onChange={handleBusinessField('tax_id')}
+                maxLength={50}
+                placeholder="Opcional. Aparece en el recibo de compra"
+                disabled={!canEditBusiness}
+              />
+            </div>
           </div>
           <div className="form-group">
             <label className="form-label">Dirección</label>

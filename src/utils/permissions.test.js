@@ -12,6 +12,13 @@ describe('permissions - can', () => {
     expect(can(undefined, 'canEditProducts')).toBe(false)
   })
 
+  it('el recibo de ventas pasadas solo lo ve el administrador del negocio', () => {
+    expect(can({ role: 'cashier' }, 'canViewSaleReceipts')).toBe(false)
+    expect(can({ role: 'supervisor' }, 'canViewSaleReceipts')).toBe(false)
+    expect(can({ role: 'admin' }, 'canViewSaleReceipts')).toBe(true)
+    expect(can({ role: 'owner' }, 'canViewSaleReceipts')).toBe(true)
+  })
+
   it('el cajero NO puede editar productos ni ver costos', () => {
     const cashier = { role: 'cashier' }
     expect(can(cashier, 'canEditProducts')).toBe(false)

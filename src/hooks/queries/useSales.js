@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { salesAPI, ApiNormalizers } from '../../api/config'
 import { useGlobalContext } from '../../context/GlobalContext'
 import { can } from '../../utils/permissions'
@@ -11,6 +11,28 @@ export function useSales(options = {}) {
             return ApiNormalizers.normalizeList(response, ['sales', 'data'])
         },
         ...options
+    })
+}
+
+// Historial paginado de ventas, con búsqueda por código (número de ticket) y
+// rango de fechas (YYYY-MM-DD, en hora local del navegador).
+export function useSalesHistory({ page = 1, limit = 10, search = '', startDate = '', endDate = '' } = {}) {
+    return useQuery({
+        queryKey: ['sales', 'history', { page, limit, search, startDate, endDate }],
+        queryFn: async () => {
+            const params = { page, limit, status: 'completed' }
+            if (search) params.search = search
+            if (startDate) params.start_date = new Date(`${startDate}T00:00:00`).toISOString()
+            if (endDate) params.end_date = new Date(`${endDate}T23:59:59.999`).toISOString()
+
+            const response = await salesAPI.getAll(params)
+            return {
+                sales: ApiNormalizers.normalizeList(response, ['sales', 'data']),
+                pagination: response?.pagination || null,
+            }
+        },
+        // Mantiene la página anterior visible mientras llega la siguiente
+        placeholderData: keepPreviousData,
     })
 }
 

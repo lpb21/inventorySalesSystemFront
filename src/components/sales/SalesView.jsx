@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import {
   ShoppingCart, Minus, Plus, X, DollarSign, Check,
   ArrowLeftRight,
-  Clock, Power, AlertCircle, CheckCircle, ScanLine
+  Clock, Power, AlertCircle, CheckCircle, ScanLine, Receipt
 } from 'lucide-react'
 import { useGlobalContext } from '../../context/GlobalContext'
 import { useSalesMutations } from '../../hooks/queries/useSales'
 import { useProducts } from '../../hooks/queries/useProducts'
 import { productsAPI } from '../../api/config'
 import { calculateChange, canCompleteSale, buildSaleItems } from '../../utils/salesLogic'
+import { buildReceiptData } from '../../utils/receipt'
 import CreditSmsNotifyModal from '../shared/CreditSmsNotifyModal'
 import { useCategories } from '../../hooks/queries/useCategories'
 import { useCustomers, useCustomerMutations } from '../../hooks/queries/useCustomers'
@@ -18,6 +19,7 @@ import CustomerSelectModal from './CustomerSelectModal'
 import OpenCashRegisterModal from './OpenCashRegisterModal'
 import CloseCashRegisterModal from './CloseCashRegisterModal'
 import ProductGrid from './ProductGrid'
+import SaleReceiptModal from './SaleReceiptModal'
 import {
   convertWeightQuantity,
   formatQuantity,
@@ -111,6 +113,9 @@ function SalesView() {
   }
   const [pendingCreditSale, setPendingCreditSale] = useState(null)
   const [lastCreditSale, setLastCreditSale] = useState(null)
+  // Recibo de la última venta: no se abre solo, queda disponible en un botón
+  const [lastReceipt, setLastReceipt] = useState(null)
+  const [showReceipt, setShowReceipt] = useState(false)
   const [showCustomerSelectModal, setShowCustomerSelectModal] = useState(false)
  
   // Estados para modales de turnos
@@ -172,11 +177,20 @@ function SalesView() {
         total: cartTotal,
         payment_method: paymentMethod,
         amount_received: amountReceived,
+        // El back lee payment_received; sin él guardaba el total como monto recibido
+        payment_received: amountReceived,
         change_given: Math.max(0, amountReceived - cartTotal),
         customer_id: null
       }
  
-      await createSale.mutateAsync(saleData)
+      const result = await createSale.mutateAsync(saleData)
+      setLastReceipt(buildReceiptData({
+        sale: { payment_method: paymentMethod, ...result },
+        cart,
+        tenant: currentUser?.tenant,
+        cashierName: currentUser?.name,
+        amountReceived,
+      }))
       clearCart()
       addToast('Venta completada exitosamente!', 'success')
       setShowPayment(false)
@@ -250,6 +264,14 @@ function SalesView() {
           balance: result?.customer_credit_balance ?? null,
         })
       }
+      setLastReceipt(buildReceiptData({
+        sale: { payment_method: 'credit', ...result },
+        cart: pendingCreditSale.cartSnapshot,
+        tenant: currentUser?.tenant,
+        cashierName: currentUser?.name,
+        customer,
+        creditBalance: result?.customer_credit_balance ?? null,
+      }))
       clearCart()
       setPendingCreditSale(null)
       addToast('Venta a crédito completada exitosamente!', 'success')
@@ -645,6 +667,18 @@ function SalesView() {
               Cobrar
             </button>
           )}
+
+          {lastReceipt && !showPayment && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{ width: '100%', marginTop: '8px' }}
+              onClick={() => setShowReceipt(true)}
+            >
+              <Receipt size={16} />
+              Recibo de la última venta (N° {lastReceipt.ticketNumber})
+            </button>
+          )}
         </div>
       </div>
  
@@ -657,6 +691,10 @@ function SalesView() {
           }}
           onSelectCustomer={processCreditSale}
         />
+      )}
+
+      {showReceipt && lastReceipt && (
+        <SaleReceiptModal receipt={lastReceipt} onClose={() => setShowReceipt(false)} />
       )}
 
       {lastCreditSale && (
