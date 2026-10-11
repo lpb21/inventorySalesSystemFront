@@ -330,6 +330,7 @@ function CreditModal({ onClose, onUpdateCredit }) {
                       <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
                         <input
                           type="number"
+                          inputMode="numeric"
                           className="form-input"
                           placeholder="Monto a pagar"
                           value={paymentAmount}

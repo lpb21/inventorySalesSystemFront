@@ -185,6 +185,9 @@ function CreateTenantModal({ onClose, addToast }) {
                 <span style={iconStyle}><Lock size={16} /></span>
                 <input
                   type="text" className="form-input" style={inputStyle}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   value={form.owner_password}
                   onChange={(e) => update('owner_password', e.target.value)}
                   placeholder="Mínimo 8 caracteres con letras y números"

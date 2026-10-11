@@ -7,6 +7,8 @@ import {
   normalizeNumber
 } from '../utils/measurements'
 import { getCartStorageKey } from '../utils/cartStorage'
+import { normalizeDiscountPercent } from '../utils/discounts'
+import { calculateCartTotal } from '../utils/salesLogic'
 
 /**
  * Hook para gestionar el carrito del punto de venta.
@@ -107,6 +109,13 @@ export function useCart() {
     }))
   }
 
+  // Descuento de la línea, en porcentaje (0 lo quita)
+  const setCartDiscount = (id, percent) => {
+    setCart(cart.map(item => (
+      item.id === id ? { ...item, discount_percent: normalizeDiscountPercent(percent) } : item
+    )))
+  }
+
   const removeFromCart = (id) => {
     setCart(cart.filter(item => item.id !== id))
   }
@@ -120,7 +129,7 @@ export function useCart() {
     setPosKey(prev => prev + 1)
   }
 
-  const cartTotal = cart.reduce((sum, item) => sum + ((item.price || 0) * item.quantity), 0)
+  const cartTotal = calculateCartTotal(cart)
 
   return {
     cart,
@@ -129,6 +138,7 @@ export function useCart() {
     addToCart,
     updateCartQuantity,
     updateCartWeight,
+    setCartDiscount,
     removeFromCart,
     clearCart
   }

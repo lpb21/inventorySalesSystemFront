@@ -245,6 +245,9 @@ function ReportsView() {
               </div>
               <input
                 type="text"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 className="form-input"
                 aria-label="Buscar por código de venta"
                 placeholder="Código de venta..."

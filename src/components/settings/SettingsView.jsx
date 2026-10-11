@@ -21,6 +21,7 @@ import SuppliersSection from './SuppliersSection'
 import CategoriesSection from './CategoriesSection'
 import SubscriptionSection from './SubscriptionSection'
 import SmsSection from './SmsSection'
+import DiscountSettingsSection from './DiscountSettingsSection'
 import { suppliersAPI, tenantAPI, setUser } from '../../api/config'
 
 function SettingsView() {
@@ -303,7 +304,7 @@ function SettingsView() {
           <div className="form-group">
             <label className="form-label">Teléfono</label>
             <input
-              type="text"
+              type="tel"
               className="form-input"
               value={businessForm.phone}
               onChange={handleBusinessField('phone')}
@@ -367,6 +368,9 @@ function SettingsView() {
           </p>
         </div>
       </div>
+
+      {/* Descuentos por línea del punto de venta */}
+      <DiscountSettingsSection />
 
       {/* Planes y Suscripción (ePayco) */}
       <SubscriptionSection />

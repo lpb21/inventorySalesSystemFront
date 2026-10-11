@@ -3,6 +3,7 @@
  * Extraídas de SalesView para poder probarlas y aligerar el componente.
  */
 import { normalizeNumber } from './measurements'
+import { getLineTotal, normalizeDiscountPercent } from './discounts'
 
 /**
  * Calcula el vuelto a devolver.
@@ -28,24 +29,21 @@ export function canCompleteSale({ paymentMethod, paymentAmount, total, cartLengt
 
 /**
  * Construye los items de venta a partir del carrito.
- * Cada item lleva su subtotal calculado (precio × cantidad).
+ * Cada item lleva su descuento y su subtotal ya descontado.
  */
 export function buildSaleItems(cart = []) {
   return cart.map(item => ({
     product_id: item.id,
     quantity: item.quantity,
     unit_price: item.price,
-    subtotal: normalizeNumber(item.price, 0) * normalizeNumber(item.quantity, 0),
+    discount_percent: normalizeDiscountPercent(item.discount_percent),
+    subtotal: getLineTotal(item),
   }))
 }
 
 /**
- * Calcula el total del carrito (precio × cantidad de cada item).
- * Misma lógica que useCart, extraída para poder testearla.
+ * Calcula el total del carrito: cada línea con su descuento aplicado.
  */
 export function calculateCartTotal(cart = []) {
-  return cart.reduce(
-    (sum, item) => sum + normalizeNumber(item.price, 0) * normalizeNumber(item.quantity, 0),
-    0
-  )
+  return Math.round(cart.reduce((sum, item) => sum + getLineTotal(item), 0) * 100) / 100
 }

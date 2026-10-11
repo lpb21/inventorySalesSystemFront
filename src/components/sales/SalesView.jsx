@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   ShoppingCart, Minus, Plus, X, DollarSign, Check,
   ArrowLeftRight,
-  Clock, Power, AlertCircle, CheckCircle, ScanLine, Receipt
+  Clock, Power, AlertCircle, CheckCircle, ScanLine, Receipt, AlertTriangle
 } from 'lucide-react'
 import { useGlobalContext } from '../../context/GlobalContext'
 import { useSalesMutations } from '../../hooks/queries/useSales'
@@ -20,6 +20,17 @@ import OpenCashRegisterModal from './OpenCashRegisterModal'
 import CloseCashRegisterModal from './CloseCashRegisterModal'
 import ProductGrid from './ProductGrid'
 import SaleReceiptModal from './SaleReceiptModal'
+import DiscountAuthorizationModal from './DiscountAuthorizationModal'
+import { can } from '../../utils/permissions'
+import {
+  cartHasDiscounts,
+  getCartDiscountTotal,
+  getDiscountSettings,
+  getLineGross,
+  getLineTotal,
+  isBelowCost,
+  normalizeDiscountPercent
+} from '../../utils/discounts'
 import {
   convertWeightQuantity,
   formatQuantity,
@@ -38,6 +49,7 @@ function SalesView() {
     addToCart,
     updateCartQuantity,
     updateCartWeight,
+    setCartDiscount,
     removeFromCart,
     clearCart,
     addToast,
@@ -64,6 +76,25 @@ function SalesView() {
  
   // Estados para el proceso de venta
   const [completingSale, setCompletingSale] = useState(false)
+
+  // --- Descuentos por línea ---
+  // Supervisor, admin y owner los aplican directo; el cajero los solicita y
+  // alguien de perfil mayor los aprueba al cobrar (DiscountAuthorizationModal).
+  const canApplyDiscount = can(currentUser, 'canDiscount')
+  const canSeeCosts = can(currentUser, 'canViewCosts')
+  const discountSettings = getDiscountSettings(currentUser?.tenant)
+  const [discountOpen, setDiscountOpen] = useState({})
+  const [discountDrafts, setDiscountDrafts] = useState({})
+  const [pendingDiscountAuth, setPendingDiscountAuth] = useState(null)
+  const cartDiscountTotal = getCartDiscountTotal(cart)
+
+  const toggleDiscount = (item, checked) => {
+    setDiscountOpen(prev => ({ ...prev, [item.id]: checked }))
+    if (!checked) {
+      setCartDiscount(item.id, 0)
+      setDiscountDrafts(prev => ({ ...prev, [item.id]: '' }))
+    }
+  }
  
   // --- Escaneo de código de barras ---
   const [barcodeInput, setBarcodeInput] = useState('')
@@ -149,7 +180,7 @@ function SalesView() {
    * Completa una venta normal (efectivo, nequi, tarjeta).
    * Si el método es 'credit', abre el modal de selección de cliente.
    */
-  const completeSale = async (paymentMethod = 'cash', amountReceived = cartTotal) => {
+  const completeSale = async (paymentMethod = 'cash', amountReceived = cartTotal, discountToken = null) => {
     if (cart.length === 0) return
  
     // Verificar si hay turno activo - SOLO para cajeros
@@ -159,10 +190,16 @@ function SalesView() {
       return
     }
  
+    // El cajero necesita que un perfil mayor apruebe los descuentos antes de cobrar
+    if (cartHasDiscounts(cart) && !canApplyDiscount && !discountToken) {
+      setPendingDiscountAuth({ paymentMethod, amountReceived })
+      return
+    }
+
     // Venta a crédito: recolectar datos y pedir selección de cliente
     if (paymentMethod === 'credit') {
       const saleItems = buildSaleItems(cart)
-      setPendingCreditSale({ items: saleItems, cartSnapshot: cart, subtotal: cartTotal, total: cartTotal })
+      setPendingCreditSale({ items: saleItems, cartSnapshot: cart, subtotal: cartTotal, total: cartTotal, discountToken })
       setShowCustomerSelectModal(true)
       return
     }
@@ -173,8 +210,8 @@ function SalesView() {
       const saleData = {
         items: buildSaleItems(cart),
         subtotal: cartTotal,
-        discount: 0,
         total: cartTotal,
+        discount_authorization_token: discountToken,
         payment_method: paymentMethod,
         amount_received: amountReceived,
         // El back lee payment_received; sin él guardaba el total como monto recibido
@@ -239,7 +276,8 @@ function SalesView() {
       const formattedItems = pendingCreditSale.items.map(item => ({
         product_id: item.product_id,
         quantity: item.quantity,
-        unit_price: item.unit_price
+        unit_price: item.unit_price,
+        discount_percent: item.discount_percent
       }))
  
       const saleData = {
@@ -247,7 +285,7 @@ function SalesView() {
         customer_id: customerId,
         customer_name: customer.name || '',
         subtotal: pendingCreditSale.subtotal,
-        discount: 0,
+        discount_authorization_token: pendingCreditSale.discountToken,
         tax: 0,
         total: pendingCreditSale.total,
         note: 'Venta a crédito',
@@ -327,6 +365,8 @@ function SalesView() {
     setPaymentAmount('')
     setPaymentMethod('cash')
     setWeightDrafts({})
+    setDiscountOpen({})
+    setDiscountDrafts({})
   }, [cart.length])
 
     // Emitir el carrito a la pantalla cliente (ventana aparte) vía BroadcastChannel
@@ -384,6 +424,9 @@ function SalesView() {
               <input
                 ref={barcodeInputRef}
                 type="text"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 className="form-input"
                 value={barcodeInput}
                 onChange={(e) => setBarcodeInput(e.target.value)}
@@ -464,6 +507,9 @@ function SalesView() {
                 : item.stock
               const visibleUnitPrice = weightItem ? getPriceForSaleUnit(item, saleUnit) : (item.price || 0)
               const weightDraftValue = weightDrafts[item.id] ?? formatQuantity(displayQuantity)
+              const discountPercent = normalizeDiscountPercent(item.discount_percent)
+              const discountChecked = discountOpen[item.id] ?? discountPercent > 0
+              const discountInputId = `discount-${item.id}`
  
               return (
                 <div key={item.id} className="cart-item">
@@ -483,7 +529,10 @@ function SalesView() {
  
                     <div className="cart-item-summary">
                       <div className="cart-item-total">
-                        ${((item.price || 0) * normalizeNumber(item.quantity, 0)).toLocaleString()}
+                        {discountPercent > 0 && (
+                          <span className="cart-item-original">${getLineGross(item).toLocaleString()}</span>
+                        )}
+                        ${getLineTotal(item).toLocaleString()}
                       </div>
                       <button
                         className="qty-btn cart-remove-btn"
@@ -566,6 +615,70 @@ function SalesView() {
                       </div>
                     )}
                   </div>
+
+                  <div className="cart-item-discount">
+                    <label className="cart-discount-toggle" htmlFor={discountInputId}>
+                      <input
+                        id={discountInputId}
+                        type="checkbox"
+                        checked={discountChecked}
+                        onChange={(e) => toggleDiscount(item, e.target.checked)}
+                      />
+                      {canApplyDiscount ? 'Aplicar descuento' : 'Solicitar descuento'}
+                    </label>
+
+                    {discountChecked && (
+                      discountSettings.mode === 'fixed' ? (
+                        <div className="cart-discount-presets" role="group" aria-label={`Descuento para ${item.name}`}>
+                          {discountSettings.presets.map(preset => (
+                            <button
+                              key={preset}
+                              type="button"
+                              className={`cart-discount-chip ${discountPercent === preset ? 'active' : ''}`}
+                              aria-pressed={discountPercent === preset}
+                              onClick={() => setCartDiscount(item.id, discountPercent === preset ? 0 : preset)}
+                            >
+                              {preset}%
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="cart-discount-free">
+                          <input
+                            type="number"
+                            className="form-input cart-discount-input"
+                            min="0"
+                            max="100"
+                            step="0.5"
+                            inputMode="decimal"
+                            aria-label={`Porcentaje de descuento para ${item.name}`}
+                            placeholder="0"
+                            value={discountDrafts[item.id] ?? (discountPercent > 0 ? String(discountPercent) : '')}
+                            onChange={(e) => {
+                              setDiscountDrafts(prev => ({ ...prev, [item.id]: e.target.value }))
+                              setCartDiscount(item.id, e.target.value)
+                            }}
+                            onBlur={() => setDiscountDrafts(prev => ({
+                              ...prev,
+                              [item.id]: discountPercent > 0 ? String(discountPercent) : ''
+                            }))}
+                          />
+                          <span>%</span>
+                        </div>
+                      )
+                    )}
+
+                    {discountPercent > 0 && !canApplyDiscount && (
+                      <span className="cart-discount-pending">Pendiente de autorización</span>
+                    )}
+                  </div>
+
+                  {canSeeCosts && isBelowCost(item) && (
+                    <div className="discount-below-cost" role="alert">
+                      <AlertTriangle size={16} />
+                      Con este descuento vendes por debajo del costo
+                    </div>
+                  )}
                 </div>
               )
             })
@@ -573,6 +686,12 @@ function SalesView() {
         </div>
  
         <div className="cart-footer">
+          {cartDiscountTotal > 0 && (
+            <div className="cart-discount-summary">
+              <span>Descuentos</span>
+              <span>-${cartDiscountTotal.toLocaleString()}</span>
+            </div>
+          )}
           <div className="cart-total">
             <span className="cart-total-label">Total</span>
             <span className="cart-total-value">${cartTotal.toLocaleString()}</span>
@@ -600,6 +719,7 @@ function SalesView() {
                   <label className="form-label">Monto Recibido</label>
                   <input
                     type="number"
+                    inputMode="numeric"
                     className="form-input"
                     value={paymentAmount}
                     onChange={(e) => setPaymentAmount(e.target.value)}
@@ -690,6 +810,18 @@ function SalesView() {
             setPendingCreditSale(null)
           }}
           onSelectCustomer={processCreditSale}
+        />
+      )}
+
+      {pendingDiscountAuth && (
+        <DiscountAuthorizationModal
+          cart={cart}
+          onClose={() => setPendingDiscountAuth(null)}
+          onAuthorized={(token) => {
+            const { paymentMethod: method, amountReceived } = pendingDiscountAuth
+            setPendingDiscountAuth(null)
+            completeSale(method, amountReceived, token)
+          }}
         />
       )}
 

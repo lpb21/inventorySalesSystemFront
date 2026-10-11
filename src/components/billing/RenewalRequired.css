@@ -280,3 +280,10 @@
     padding: 24px 20px;
   }
 }
+
+/* Pantallas táctiles: 16px evita el zoom automático de Safari iOS al enfocar un campo */
+@media (pointer: coarse) {
+  .form-group input {
+    font-size: 16px;
+  }
+}

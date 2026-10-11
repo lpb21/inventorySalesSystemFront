@@ -110,6 +110,9 @@ function ChangePasswordModal({ onClose, onSuccess }) {
                 />
                 <input
                   type={showCurrentPassword ? 'text' : 'password'}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   className="form-input"
                   style={{ paddingLeft: '40px', paddingRight: '40px' }}
                   value={formData.current_password}
@@ -156,6 +159,9 @@ function ChangePasswordModal({ onClose, onSuccess }) {
                 />
                 <input
                   type={showNewPassword ? 'text' : 'password'}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   className="form-input"
                   style={{ paddingLeft: '40px', paddingRight: '40px' }}
                   value={formData.new_password}
@@ -205,6 +211,9 @@ function ChangePasswordModal({ onClose, onSuccess }) {
                 />
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   className="form-input"
                   style={{ paddingLeft: '40px', paddingRight: '40px' }}
                   value={formData.confirm_password}

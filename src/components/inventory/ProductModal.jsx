@@ -160,6 +160,9 @@ function ProductModal({ product, categories, suppliers = [], onSave, onClose, on
               <label className="form-label">Código de Barras</label>
               <input
                 type="text"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 className={`form-input ${errors.barcode ? 'error' : ''}`}
                 value={formData.barcode}
                 onChange={e => setFormData({ ...formData, barcode: e.target.value })}
@@ -241,6 +244,7 @@ function ProductModal({ product, categories, suppliers = [], onSave, onClose, on
                 <label className="form-label">Precio de Venta</label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   className="form-input"
                   value={formData.price}
                   onChange={e => setFormData({ ...formData, price: e.target.value })}
@@ -252,6 +256,7 @@ function ProductModal({ product, categories, suppliers = [], onSave, onClose, on
                 <label className="form-label">Precio de Costo</label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   className="form-input"
                   value={formData.cost}
                   onChange={e => setFormData({ ...formData, cost: e.target.value })}
@@ -298,6 +303,7 @@ function ProductModal({ product, categories, suppliers = [], onSave, onClose, on
                 </label>
                 <input
                   type="number"
+                  inputMode={formData.type === 'weight' ? 'decimal' : 'numeric'}
                   className="form-input"
                   value={formData.stock}
                   onChange={e => setFormData({ ...formData, stock: e.target.value })}
@@ -312,6 +318,7 @@ function ProductModal({ product, categories, suppliers = [], onSave, onClose, on
                 </label>
                 <input
                   type="number"
+                  inputMode={formData.type === 'weight' ? 'decimal' : 'numeric'}
                   className="form-input"
                   value={formData.min_stock}
                   onChange={e => setFormData({ ...formData, min_stock: e.target.value })}

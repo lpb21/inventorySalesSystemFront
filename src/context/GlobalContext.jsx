@@ -212,6 +212,7 @@ export const GlobalProvider = ({ children }) => {
         addToCart: cartState.addToCart,
         updateCartQuantity: cartState.updateCartQuantity,
         updateCartWeight: cartState.updateCartWeight,
+        setCartDiscount: cartState.setCartDiscount,
         removeFromCart: cartState.removeFromCart,
         clearCart: cartState.clearCart
     }

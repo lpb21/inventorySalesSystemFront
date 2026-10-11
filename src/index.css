@@ -1879,3 +1879,245 @@ input[type="date"].form-input:invalid::-webkit-datetime-edit {
   text-align: right;
   font-size: 14px;
 }
+
+/* Pantallas táctiles: 16px evita el zoom automático de Safari iOS al enfocar un campo */
+@media (pointer: coarse) {
+  .form-input,
+  .form-select,
+  .search-box input {
+    font-size: 16px;
+  }
+}
+
+/* Descuentos por línea (POS, autorización y configuración) */
+.cart-item-total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.cart-item-original {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  text-decoration: line-through;
+}
+
+.cart-item-discount {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.cart-discount-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.cart-discount-toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.cart-discount-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cart-discount-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.cart-discount-chip:hover {
+  border-color: var(--accent);
+}
+
+.cart-discount-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.cart-discount-free {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+}
+
+.cart-discount-input {
+  width: 84px;
+  padding: 6px 10px;
+}
+
+.cart-discount-pending {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--warning);
+}
+
+.cart-discount-summary {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--warning);
+}
+
+.discount-below-cost {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--warning);
+  background: rgba(255, 193, 7, 0.15);
+  color: var(--warning);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.discount-below-cost svg {
+  flex-shrink: 0;
+}
+
+.discount-auth-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.discount-auth-item {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--background);
+  border: 1px solid var(--border);
+}
+
+.discount-auth-name {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.discount-auth-percent {
+  flex-shrink: 0;
+  color: var(--warning);
+  font-weight: 700;
+}
+
+.discount-auth-amounts {
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 16px;
+}
+
+.discount-auth-error {
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: rgba(233, 69, 96, 0.15);
+  color: var(--accent);
+  font-size: 14px;
+}
+
+.discount-mode-options {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 0;
+  border: none;
+}
+
+.discount-mode-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--background);
+  cursor: pointer;
+}
+
+.discount-mode-option input {
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+
+.discount-mode-option span {
+  display: grid;
+  gap: 2px;
+  font-size: 14px;
+}
+
+.discount-mode-option small {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.discount-mode-options:disabled .discount-mode-option {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.discount-preset-chip {
+  cursor: default;
+}
+
+.discount-preset-chip button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  color: inherit;
+  cursor: pointer;
+}
+
+.discount-preset-form {
+  display: flex;
+  gap: 8px;
+  max-width: 280px;
+  margin-bottom: 16px;
+}
+
+.discount-settings-body {
+  padding: 20px;
+}

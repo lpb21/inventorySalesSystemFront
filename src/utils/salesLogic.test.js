@@ -50,8 +50,13 @@ describe('salesLogic - buildSaleItems', () => {
     ]
     const result = buildSaleItems(cart)
     expect(result).toHaveLength(2)
-    expect(result[0]).toEqual({ product_id: 'p1', quantity: 2, unit_price: 15000, subtotal: 30000 })
+    expect(result[0]).toEqual({ product_id: 'p1', quantity: 2, unit_price: 15000, discount_percent: 0, subtotal: 30000 })
     expect(result[1].subtotal).toBe(8000)
+  })
+
+  it('envía el descuento de la línea y su subtotal ya descontado', () => {
+    const result = buildSaleItems([{ id: 'p1', price: 18000, quantity: 2, discount_percent: 10 }])
+    expect(result[0]).toEqual({ product_id: 'p1', quantity: 2, unit_price: 18000, discount_percent: 10, subtotal: 32400 })
   })
 
   it('devuelve array vacío para carrito vacío', () => {
@@ -66,6 +71,14 @@ describe('salesLogic - calculateCartTotal', () => {
       { price: 8000, quantity: 1 },   // 8000
     ]
     expect(calculateCartTotal(cart)).toBe(38000)
+  })
+
+  it('descuenta cada línea según su porcentaje', () => {
+    const cart = [
+      { price: 18000, quantity: 2, discount_percent: 10 },  // 32400
+      { price: 8000, quantity: 1 },                         // 8000
+    ]
+    expect(calculateCartTotal(cart)).toBe(40400)
   })
 
   it('devuelve 0 para carrito vacío', () => {

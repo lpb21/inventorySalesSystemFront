@@ -1,5 +1,6 @@
 import { X, ShoppingCart } from 'lucide-react'
 import { formatQuantity, getPriceForSaleUnit, isWeightProduct } from '../../utils/measurements'
+import { getLineTotal, normalizeDiscountPercent } from '../../utils/discounts'
 
 // business: { name, address, phone } del negocio en sesión. Esta pantalla la
 // ve el comprador, así que solo muestra los datos que el negocio cargó en
@@ -54,7 +55,12 @@ function CustomerDisplay({ cart, cartTotal, onClose, business }) {
                 <span style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
                   ${visibleUnitPrice.toLocaleString()} x {formatQuantity(item.display_quantity ?? item.quantity)} {saleUnit}
                 </span>
-                <span style={{ color: 'var(--success)', fontWeight: 700, fontSize: '20px' }}>${((item.price || 0) * item.quantity).toLocaleString()}</span>
+                {normalizeDiscountPercent(item.discount_percent) > 0 && (
+                  <span style={{ color: 'var(--warning)', fontWeight: 600, fontSize: '16px' }}>
+                    -{normalizeDiscountPercent(item.discount_percent)}%
+                  </span>
+                )}
+                <span style={{ color: 'var(--success)', fontWeight: 700, fontSize: '20px' }}>${getLineTotal(item).toLocaleString()}</span>
               </div>
                 )
               })()

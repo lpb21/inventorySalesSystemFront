@@ -213,6 +213,7 @@ function CustomerModal({ customer, onSave, onClose }) {
                 <FileText size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                 <input
                   type="text"
+                  inputMode="numeric"
                   className="form-input"
                   value={formData.document}
                   onChange={(e) => {
@@ -351,6 +352,7 @@ function CustomerModal({ customer, onSave, onClose }) {
                 <DollarSign size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                 <input
                   type="number"
+                  inputMode="numeric"
                   className="form-input"
                   value={formData.credit_limit}
                   onChange={(e) => {

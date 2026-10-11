@@ -232,6 +232,7 @@ function OutputModal({ products, onSave, onClose }) {
               <div style={{ position: 'relative' }}>
                 <input
                   type="number"
+                  inputMode="decimal"
                   className="form-input"
                   value={formData.quantity}
                   onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}

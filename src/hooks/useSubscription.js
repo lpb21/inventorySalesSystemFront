@@ -2,11 +2,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { billingAPI } from '../api/config'
 import { useGlobalContext } from '../context/GlobalContext'
 
-// Hook para obtener la suscripción actual y los planes disponibles
+// Hook para obtener la suscripción actual del negocio
 export function useSubscription() {
   const { addToast } = useGlobalContext()
   const [subscription, setSubscription] = useState(null)
-  const [plans, setPlans] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -15,17 +14,12 @@ export function useSubscription() {
     setError(null)
 
     try {
-      const [subscriptionData, plansData] = await Promise.all([
-        billingAPI.getCurrentSubscription(),
-        billingAPI.getAvailablePlans(),
-      ])
+      const subscriptionData = await billingAPI.getCurrentSubscription()
 
       // Estructura mejorada: { subscription, tenant, plan_info, time_info, can_access_system, ... }
       const subsData = subscriptionData?.data || subscriptionData || {}
-      const rawPlans = plansData?.data || plansData || []
 
       setSubscription(subsData)
-      setPlans(Array.isArray(rawPlans) ? rawPlans : [])
     } catch (err) {
       const message = err?.response?.data?.error?.message || err.message || 'Error cargando información de suscripción'
       setError(message)
@@ -41,7 +35,6 @@ export function useSubscription() {
 
   return {
     subscription,
-    plans,
     loading,
     error,
     refetch: fetchSubscription,

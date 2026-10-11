@@ -191,6 +191,7 @@ function CloseCashRegisterModal({ activeShift, onClose, onCloseShift, isClosing 
                 />
                 <input
                   type="number"
+                  inputMode="decimal"
                   className="form-input"
                   style={{ paddingLeft: '40px' }}
                   value={formData.closing_amount}

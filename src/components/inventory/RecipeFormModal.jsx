@@ -278,6 +278,7 @@ function RecipeFormModal({ products, recipeId, onClose, addToast }) {
                     {/* Cantidad sugerida */}
                     <input
                       type="number"
+                      inputMode="decimal"
                       className="form-input"
                       value={item.quantity}
                       onChange={(e) => updateItem(index, { quantity: e.target.value })}

@@ -10,6 +10,7 @@
  */
 import { normalizeNumber, formatQuantity } from './measurements'
 import { paymentMethodLabel } from './paymentMethods'
+import { getLineDiscount, getLineTotal, normalizeDiscountPercent } from './discounts'
 
 export function formatMoney(value) {
   return `$${Math.round(normalizeNumber(value, 0)).toLocaleString('es-CO')}`
@@ -53,6 +54,8 @@ export function buildReceiptData({
           quantity: normalizeNumber(item.quantity, 0),
           unit: cartItem?.unit || '',
           unitPrice: normalizeNumber(item.unit_price, 0),
+          discountPercent: normalizeDiscountPercent(item.discount_percent),
+          discountAmount: normalizeNumber(item.discount_amount, 0),
           subtotal: normalizeNumber(item.subtotal, 0),
         }
       })
@@ -61,8 +64,13 @@ export function buildReceiptData({
         quantity: normalizeNumber(item.quantity, 0),
         unit: item.unit || '',
         unitPrice: normalizeNumber(item.price, 0),
-        subtotal: normalizeNumber(item.price, 0) * normalizeNumber(item.quantity, 0),
+        discountPercent: normalizeDiscountPercent(item.discount_percent),
+        discountAmount: getLineDiscount(item),
+        subtotal: getLineTotal(item),
       }))
+
+  // Sin totales del back, el subtotal es el bruto y el descuento la suma de las líneas
+  const itemsDiscount = sourceItems.reduce((sum, item) => sum + item.discountAmount, 0)
 
   const itemsTotal = sourceItems.reduce((sum, item) => sum + item.subtotal, 0)
   const total = normalizeNumber(sale.total, itemsTotal)
@@ -82,8 +90,8 @@ export function buildReceiptData({
     cashier: cashierName || '',
     customerName: customer?.name || sale.customer_name || '',
     items: sourceItems,
-    subtotal: normalizeNumber(sale.subtotal, itemsTotal),
-    discount: normalizeNumber(sale.discount, 0),
+    subtotal: normalizeNumber(sale.subtotal, itemsTotal + itemsDiscount),
+    discount: normalizeNumber(sale.discount, itemsDiscount),
     tax: normalizeNumber(sale.tax, 0),
     total,
     paymentMethod: sale.payment_method || 'cash',
@@ -108,8 +116,12 @@ export function buildReceiptHtml(receipt) {
       <div class="item-name">${escapeHtml(item.name)}</div>
       <div class="row">
         <span>${escapeHtml(formatQuantity(item.quantity))} ${escapeHtml(item.unit)} x ${escapeHtml(formatMoney(item.unitPrice))}</span>
-        <span>${escapeHtml(formatMoney(item.subtotal))}</span>
+        <span>${escapeHtml(formatMoney(item.subtotal + item.discountAmount))}</span>
       </div>
+      ${item.discountAmount > 0 ? `<div class="row muted">
+        <span>Descuento ${escapeHtml(item.discountPercent)}%</span>
+        <span>-${escapeHtml(formatMoney(item.discountAmount))}</span>
+      </div>` : ''}
     </div>`).join('')
 
   return `<!DOCTYPE html>

@@ -465,6 +465,7 @@ function CreditAccountsView({ onUpdateCredit }) {
                     <div className="payment-form">
                       <input 
                         type="number" 
+                        inputMode="numeric"
                         className="form-input"
                         value={paymentAmount} 
                         onChange={e => setPaymentAmount(e.target.value)} 

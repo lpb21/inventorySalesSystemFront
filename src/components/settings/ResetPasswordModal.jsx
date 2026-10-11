@@ -242,6 +242,9 @@ function ResetPasswordModal({ user, onClose, onSuccess }) {
                 />
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   className="form-input"
                   style={{ paddingLeft: '40px', paddingRight: '40px' }}
                   value={newPassword}

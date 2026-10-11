@@ -256,6 +256,9 @@ export default function Login({ error }) {
               <User className="input-icon" size={20} />
               <input
                 type="text"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 className="form-input with-icon"
                 placeholder="Ingresa tu usuario"
                 value={username}
@@ -271,6 +274,9 @@ export default function Login({ error }) {
               <Lock className="input-icon" size={20} />
               <input
                 type={showPassword ? 'text' : 'password'}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 className="form-input with-icon"
                 placeholder="Ingresa tu contraseña"
                 value={password}

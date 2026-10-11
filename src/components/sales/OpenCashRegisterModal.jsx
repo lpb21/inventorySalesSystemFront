@@ -151,6 +151,7 @@ function OpenCashRegisterModal({ userName, onOpen, onClose, isOpening = false })
                 />
                 <input
                   type="number"
+                  inputMode="decimal"
                   className="form-input"
                   style={{ paddingLeft: '40px' }}
                   value={formData.opening_amount}

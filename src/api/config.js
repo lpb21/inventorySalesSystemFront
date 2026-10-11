@@ -402,6 +402,12 @@ export const salesAPI = {
     body: JSON.stringify({ reason }),
   }),
 
+  // Un supervisor, admin u owner aprueba en caja los descuentos del cajero
+  authorizeDiscount: (data) => apiRequest('/sales/discount-authorization', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
   // El tendero envía al cliente el aviso SMS del fiado
   notifySms: (id) => apiRequest(`/sales/${id}/notify-sms`, { method: 'POST' }),
   
@@ -480,6 +486,12 @@ export const tenantAPI = {
     body: JSON.stringify(data),
   }),
   
+  // Modo y porcentajes de descuento del punto de venta (owner y admin)
+  updateDiscountSettings: (data) => apiRequest('/tenants/current/discount-settings', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+
   getSubscription: () => apiRequest('/tenants/current/subscription'),
   
   // Gestión de tenants (para superadmin)

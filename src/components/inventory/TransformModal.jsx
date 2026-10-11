@@ -273,6 +273,7 @@ function TransformModal({ products, onSave, onClose }) {
                 <div style={{ position: 'relative' }}>
                   <input
                     type="number"
+                    inputMode="decimal"
                     className="form-input"
                     value={sourceQty}
                     onChange={(e) => setSourceQty(e.target.value)}
@@ -370,6 +371,7 @@ function TransformModal({ products, onSave, onClose }) {
                     {/* Cantidad del destino */}
                     <input
                       type="number"
+                      inputMode="decimal"
                       className="form-input"
                       value={target.quantity}
                       onChange={(e) => updateTarget(index, { quantity: e.target.value })}

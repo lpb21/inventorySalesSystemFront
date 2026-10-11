@@ -369,7 +369,7 @@ function SupplierModal({
             <div className="form-group">
               <label className="form-label">Teléfono <span style={{color: 'var(--danger)'}}>*</span></label>
               <input
-                type="text"
+                type="tel"
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}

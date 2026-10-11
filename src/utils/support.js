@@ -10,3 +10,6 @@ export const buildSupportWhatsappUrl = (text) => buildWaUrl(SUPPORT_WHATSAPP_E16
 
 export const buildSmsRechargeMessage = (businessName) =>
   `Hola, quiero recargar SMS para ${businessName || 'mi negocio'}.`
+
+export const buildSubscriptionRenewalMessage = (businessName) =>
+  `Hola, quiero renovar la suscripción de ${businessName || 'mi negocio'}.`

@@ -21,7 +21,7 @@ describe('buildReceiptData', () => {
     const receipt = buildReceiptData({ sale, cart, tenant, cashierName: 'Leo', amountReceived: 10000 });
     expect(receipt.ticketNumber).toBe('2026-000012');
     expect(receipt.business.name).toBe('Tienda Doña Ana');
-    expect(receipt.items).toEqual([{ name: 'Arroz', quantity: 2, unit: 'lb', unitPrice: 2500, subtotal: 5000 }]);
+    expect(receipt.items).toEqual([{ name: 'Arroz', quantity: 2, unit: 'lb', unitPrice: 2500, discountPercent: 0, discountAmount: 0, subtotal: 5000 }]);
     expect(receipt.total).toBe(5000);
     expect(receipt.amountReceived).toBe(10000);
     expect(receipt.change).toBe(5000);
@@ -47,6 +47,41 @@ describe('buildReceiptData', () => {
     expect(receipt.change).toBe(0);
     expect(receipt.customerName).toBe('Carlos');
     expect(receipt.creditBalance).toBe(15000);
+  });
+});
+
+describe('descuentos por línea', () => {
+  const discountedSale = {
+    ...sale,
+    discount: '500.00',
+    total: '4500.00',
+    items: [{ ...sale.items[0], discount_percent: '10.00', discount_amount: '500.00', subtotal: '4500.00' }],
+  };
+
+  it('lleva el descuento de cada línea y el total descontado', () => {
+    const receipt = buildReceiptData({ sale: discountedSale, cart, tenant, amountReceived: 5000 });
+    expect(receipt.items[0]).toMatchObject({ unitPrice: 2500, discountPercent: 10, discountAmount: 500, subtotal: 4500 });
+    expect(receipt.subtotal).toBe(5000);
+    expect(receipt.discount).toBe(500);
+    expect(receipt.total).toBe(4500);
+    expect(receipt.change).toBe(500);
+  });
+
+  it('desde el carrito calcula bruto, descuento y total', () => {
+    const receipt = buildReceiptData({
+      sale: { id: 'abc123456', payment_method: 'card' },
+      cart: [{ ...cart[0], discount_percent: 10 }],
+    });
+    expect(receipt.subtotal).toBe(5000);
+    expect(receipt.discount).toBe(500);
+    expect(receipt.total).toBe(4500);
+  });
+
+  it('imprime el precio original, el descuento de la línea y el total de descuentos', () => {
+    const html = buildReceiptHtml(buildReceiptData({ sale: discountedSale, cart, tenant }));
+    expect(html).toContain('Descuento 10%');
+    expect(html).toContain('-$500');
+    expect(html).toContain('$4.500');
   });
 });
 

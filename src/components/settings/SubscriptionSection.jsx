@@ -1,158 +1,125 @@
-import { ArrowUpCircle, CreditCard, AlertCircle, Clock } from 'lucide-react'
+import { CreditCard, AlertCircle, CheckCircle, MessageSquare } from 'lucide-react'
 import { useGlobalContext } from '../../context/GlobalContext'
-import { useBilling } from '../../hooks/useBilling'
 import { useSubscription } from '../../hooks/useSubscription'
+import { buildSupportWhatsappUrl, buildSubscriptionRenewalMessage } from '../../utils/support'
 
-function formatPrice(amountInCents, currency = 'COP') {
-  if (amountInCents === 0) return 'Gratis'
-  const value = (amountInCents || 0) / 100
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value)
+const EXPIRING_SOON_DAYS = 7
+
+const STATUS_LABELS = {
+  active: 'Activa',
+  trial: 'Periodo de prueba',
+  grace_period: 'En periodo de gracia',
+  past_due: 'Pago pendiente',
+  pending: 'Pago pendiente',
+  expired: 'Vencida',
+  cancelled: 'Cancelada',
+  suspended: 'Suspendida',
 }
 
+const formatDate = (value) => (
+  value ? new Date(value).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }) : null
+)
+
+/**
+ * Estado y vigencia de la suscripción del negocio. Se cobra por tiempo de uso
+ * (todos los negocios tienen todas las funciones) y la renovación la activa
+ * soporte, así que aquí no hay planes ni precios: solo hasta cuándo está
+ * vigente y cómo renovar.
+ */
 export default function SubscriptionSection() {
   const { currentUser } = useGlobalContext()
-  const { subscription, plans, loading, error } = useSubscription()
-  const { handleCheckout, loading: checkoutLoading } = useBilling()
+  const { subscription, loading, error } = useSubscription()
 
-  // Extraer datos de la nueva estructura
   const subsData = subscription || {}
   const currentSub = subsData.subscription
-  const planInfo = subsData.plan_info
-  const timeInfo = subsData.time_info
-  const hasActiveSubscription = subsData.has_active_subscription
-  const needsAttention = subsData.needs_attention
-  const canAccess = subsData.can_access_system
+  const timeInfo = subsData.time_info || {}
 
-  const currentPlanCode = planInfo?.code || subsData.tenant?.current_plan || currentUser?.tenant?.plan || null
+  const status = currentSub?.overall_status || currentSub?.status || subsData.tenant?.status
+  const statusLabel = STATUS_LABELS[status] || 'Sin suscripción activa'
+  const isTrial = status === 'trial'
+  const daysRemaining = timeInfo.days_remaining
+  const periodEnd = formatDate(currentSub?.current_period_end)
+  const graceUntil = formatDate(currentSub?.grace_until)
+  const expired = typeof daysRemaining === 'number' && daysRemaining < 0
+  const periodEndLabel = expired ? 'Venció el' : isTrial ? 'La prueba termina el' : 'Vigente hasta el'
+
+  const blocked = !subsData.can_access_system
+  const expiringSoon = !blocked && typeof daysRemaining === 'number' && daysRemaining <= EXPIRING_SOON_DAYS
+  const warn = blocked || expiringSoon || timeInfo.is_in_grace_period
+
+  const businessName = currentUser?.tenant?.business_name || currentUser?.tenant?.name
+  const renewalUrl = buildSupportWhatsappUrl(buildSubscriptionRenewalMessage(businessName))
 
   return (
     <div className="card" style={{ marginTop: '24px' }}>
       <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <CreditCard size={20} />
-          <h3 className="card-title" style={{ marginBottom: 0 }}>Planes y Suscripción</h3>
+          <h3 className="card-title" style={{ marginBottom: 0 }}>Suscripción</h3>
         </div>
-        {currentPlanCode && (
-          <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-            Plan actual: <strong style={{ textTransform: 'capitalize' }}>{currentPlanCode}</strong>
-          </div>
-        )}
       </div>
 
       {loading && (
-        <div className="empty-state" style={{ padding: '32px', textAlign: 'center' }}>
-          <div className="spinner" style={{ margin: '0 auto 12px', width: 32, height: 32 }} />
-          <p style={{ color: 'var(--text-secondary)' }}>Cargando información de planes...</p>
-        </div>
+        <p style={{ color: 'var(--text-secondary)', padding: '12px 0' }}>Cargando tu suscripción...</p>
       )}
 
       {!loading && error && (
-        <div className="empty-state" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-          <p>No se pudo cargar la información de suscripción.</p>
-        </div>
+        <p style={{ color: 'var(--text-secondary)', padding: '12px 0' }}>No se pudo cargar la información de suscripción.</p>
       )}
 
       {!loading && !error && (
         <>
-          {/* Estado actual de la suscripción */}
-          {hasActiveSubscription && planInfo && (
-            <div style={{ marginBottom: '20px', padding: '12px', background: 'rgba(0,217,165,0.08)', borderRadius: '8px', border: '1px solid rgba(0,217,165,0.2)' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                <Clock size={18} style={{ marginTop: '2px', color: '#00d9a5' }} />
-                <div style={{ flex: 1, fontSize: '13px' }}>
-                  <div style={{ fontWeight: 600, marginBottom: '4px' }}>
-                    Suscripción {planInfo.display_name || planInfo.code}
-                  </div>
-                  <div style={{ color: 'var(--text-secondary)', marginBottom: '2px' }}>
-                    Precio: <strong>{planInfo.amount_formatted || formatPrice(planInfo.amount_in_cents)}</strong> por {planInfo.cycle_days || 30} días
-                  </div>
-                  {timeInfo?.days_remaining !== undefined && (
-                    <div style={{ color: 'var(--text-secondary)' }}>
-                      Renovación: <strong>{timeInfo.days_remaining} día(s)</strong> • {timeInfo.current_period_end_formatted}
-                    </div>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: 0 }}>
+            Tu suscripción incluye todas las funciones del sistema. Se renueva por periodos de tiempo.
+          </p>
+
+          <div style={{
+            marginBottom: '16px', padding: '12px', borderRadius: '8px',
+            background: warn ? 'rgba(244,63,94,0.08)' : 'rgba(0,217,165,0.08)',
+            border: `1px solid ${warn ? 'rgba(244,63,94,0.2)' : 'rgba(0,217,165,0.2)'}`,
+            display: 'flex', alignItems: 'flex-start', gap: '12px',
+          }}>
+            {warn
+              ? <AlertCircle size={20} style={{ color: '#f43f5e', flexShrink: 0, marginTop: '2px' }} />
+              : <CheckCircle size={20} style={{ color: '#00d9a5', flexShrink: 0, marginTop: '2px' }} />}
+            <div style={{ fontSize: '14px' }}>
+              <div>Estado: <strong>{statusLabel}</strong></div>
+              {periodEnd && (
+                <div style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
+                  {periodEndLabel} <strong>{periodEnd}</strong>
+                  {typeof daysRemaining === 'number' && daysRemaining >= 0 && (
+                    <> ({daysRemaining === 0 ? 'vence hoy' : `${daysRemaining} día${daysRemaining !== 1 ? 's' : ''} restante${daysRemaining !== 1 ? 's' : ''}`})</>
                   )}
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* Alerta si necesita atención */}
-          {needsAttention && !hasActiveSubscription && (
-            <div style={{ marginBottom: '20px', padding: '12px', background: 'rgba(244,63,94,0.08)', borderRadius: '8px', border: '1px solid rgba(244,63,94,0.2)' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                <AlertCircle size={18} style={{ marginTop: '2px', color: '#f43f5e' }} />
-                <div style={{ flex: 1, fontSize: '13px', color: 'var(--text-secondary)' }}>
-                  Tu suscripción requiere atención. Por favor renuévala para acceder al sistema.
+              )}
+              {timeInfo.is_in_grace_period && graceUntil && (
+                <div style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
+                  Puedes seguir usando el sistema hasta el <strong>{graceUntil}</strong>. Renueva para no perder el acceso.
                 </div>
-              </div>
+              )}
+              {blocked && (
+                <div style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
+                  Renueva tu suscripción para seguir usando el sistema.
+                </div>
+              )}
+              {expiringSoon && !timeInfo.is_in_grace_period && (
+                <div style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
+                  Tu suscripción está por vencer. Renueva a tiempo para no interrumpir tus ventas.
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
-          {/* Planes disponibles */}
-          {Array.isArray(plans) && plans.length > 0 && (
-            <div className="grid-3" style={{ marginTop: '12px', gap: '16px' }}>
-              {plans.map((plan) => {
-                const isCurrent = plan.code === currentPlanCode
-
-                return (
-                  <div
-                    key={plan.code || plan.id}
-                    className="card"
-                    style={{
-                      borderColor: isCurrent ? 'var(--accent)' : 'var(--border)',
-                      background: isCurrent ? 'rgba(233,69,96,0.04)' : 'var(--surface)',
-                    }}
-                  >
-                    <div className="card-header" style={{ marginBottom: '8px' }}>
-                      <h4 className="card-title" style={{ marginBottom: 0 }}>{plan.display_name || plan.name || plan.code}</h4>
-                    </div>
-                    <div style={{ marginBottom: '12px' }}>
-                      <div style={{ fontSize: '20px', fontWeight: 600 }}>
-                        {formatPrice(plan.amountInCents ?? plan.amount_in_cents ?? plan.priceInCents ?? 0)}
-                      </div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                        por {plan.cycle_days || 30} días
-                      </div>
-                    </div>
-                    {Array.isArray(plan.features) && plan.features.length > 0 && (
-                      <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 12px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                        {plan.features.map((feature, index) => (
-                          <li key={index} style={{ marginBottom: 4 }}>
-                            • {feature}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    <button
-                      className="btn btn-primary"
-                      style={{ width: '100%', marginTop: '4px', opacity: isCurrent ? 0.8 : 1 }}
-                      disabled={isCurrent || checkoutLoading}
-                      onClick={() => handleCheckout(plan.code)}
-                    >
-                      {isCurrent ? (
-                        'Plan actual'
-                      ) : (
-                        <>
-                          <ArrowUpCircle size={16} style={{ marginRight: 6 }} />
-                          {checkoutLoading ? 'Redirigiendo...' : 'Mejorar plan'}
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          {!Array.isArray(plans) || plans.length === 0 && (
-            <div className="empty-state" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-              <p>No hay planes disponibles para mostrar.</p>
-            </div>
-          )}
+          <a
+            className="btn btn-primary"
+            href={renewalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}
+          >
+            <MessageSquare size={16} />
+            Renovar por WhatsApp
+          </a>
         </>
       )}
     </div>
